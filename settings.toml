@@ -1,0 +1,94 @@
+[DEFAULT]
+
+[log]
+    # see logging levels
+    level = "DEBUG"
+    # see formatting settings
+    form = "%(asctime)s [%(levelname)s] > %(name)s: %(message)s"
+
+    # log library rules
+    [[log.lib]]
+        # http requests
+        name = "urllib3.connectionpool"
+        enable = true
+        level = "INFO"
+
+    [[log.lib]]
+        # async caching
+        name = "aiocache.base"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # http requests
+        name = "httpx"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # http requests
+        name = "httpcore"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # pyrogram dispatcher
+        name = "pyrogram.dispatcher"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # pyrogram connection
+        name = "pyrogram.connection"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # pyrogram session
+        name = "pyrogram.session"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # SQL echoing
+        name = "sqlalchemy.engine"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # connection pool logging
+        name = "sqlalchemy.pool"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # custom logging for SQL dialects
+        name = "sqlalchemy.dialects"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # logging of various ORM functions
+        name = "sqlalchemy.orm"
+        enable = true
+        level = "WARNING"
+
+    [[log.lib]]
+        # snscrape base functionality
+        name = "snscrape.base"
+        enable = true
+        level = "WARNING"
+
+    [log.file]
+        # enable logging to file
+        enable = false
+        # see logging levels
+        level = "INFO"
+        # see formatting settings
+        form = "%(asctime)s [%(levelname)s] > %(name)s: %(message)s"
+        # date format
+        date = "%Y-%m-%d.%H-%M-%S"
+        # folder path
+        path = "log"
+        # prefix for log file
+        pref = "log."

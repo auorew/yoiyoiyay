@@ -1,0 +1,60 @@
+\[ `HELP v\.4\.5` *:* `2023\.10\.22` \]
+
+*/help* — show this very message\.
+
+_*Any text message*_ — the bot will ignore it, unless there's a *tiktok*, *twitter*, *pixiv*`¹`, *instagram* or *youtube short* link in it, that can be parsed\.
+
+If you send _*several*_ links at once in one message, *all links will be* ||_hopefully_|| *parsed*\.
+
+The bot *can be used in groups and channels* to some extent\. Commands below have default values depending on where the bot is used\.
+
+_user_ values are for users, _non\-user_ values are for channels and groups\.
+
+\[ `TOGGLES` \]
+
+*/include\_link* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want the bot to use a source link as a caption to messages\.
+
+*/delete\_link* \(_user_: *off*, _non\-user_: *off*\) — toggle this on if you want your source messages for a post to be deleted`²`\.
+
+*/tiktok\_hd* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want to get a video in HD quality \(may result in large videofile\)\.
+
+*/twitter\_hd* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want to get twitter photos as documents\.
+
+*/pixiv\_hd* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want to get pixiv photos as documents\.
+
+*/instagram\_hd* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want to get instagram photos as documents\.
+
+*/ignore\_fw* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want the bot to ignore forwarded messages \(mainly useful in channel mode\)\.
+
+\[ `STYLE COMMANDS` \]
+
+You can use these commands with an integer argument to specify the style you want to switch to\. In cases when integer is out of range modulo operation is used\. Any other arguments are ignored\.
+
+*/twitter\_style* \(_user_: style \#`3`, _non\-user_: style \#`3`\) — cycle through the twitter post styles\.
+Only `4` styles are available at the moment\.
+
+*/pixiv\_style* \(_user_: style \#`3`, _non\-user_: style \#`3`\) — cycle through the pixiv post styles\.
+Only `5` styles are available at the moment\.
+
+*/tiktok\_style* \(_user_: style \#`0`, _non\-user_: style \#`0`\) — cycle through the tiktok post styles\.
+Only `5` styles are available at the moment\.
+
+*/youtube\_short\_style* \(_user_: style \#`0`, _non\-user_: style \#`0`\) — cycle through the youtube short post styles\.
+Only `6` styles are available at the moment\.
+
+\[ `SPECIAL` \]
+
+*/tiktok\_mode* \(_user_: style \#`0`, _non\-user_: style \#`0`\) — cycle through the tiktok modes for sending slideshow\-tiktoks\.
+Only `2` modes are available at the moment\.
+
+\[ `NOTES` \]
+
+`¹`: When pixiv artwork contains *more than 1 artwork* it should be specified like this: `pixiv.net\/artworks\/XXXXXX + 1\-4`\.
+
+*Rules*:
+`1`\. You *must* use `+` sign, spaces before and after it are *optional*\.
+`2`\. You can either use ranges \(and reversed ranges: `6\-3`\) or just write a list of numbers like this: `3 6 2`\. Optional `,` and `\.` are allowed between numbers and ranges\.
+
+Specified order will be used by the bot while sending illustrations and documents\. Please note that Telegram allows *only 10 images at once*\.
+
+`²`: ⚠️ *MESSAGES ARE _ALWAYS_ DELETED* ⚠️, even if the bot __*can't*__ get the content\! *Except* for the cases with forwarded messages if they're ignored with */ignore\_fw* option\.

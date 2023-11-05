@@ -1,0 +1,90 @@
+[tool.poetry]
+name = "YoiYoi Bot"
+version = "4.4"
+description = "This is a bot for downloading tiktok, twitter and instagram content."
+authors = ["auorew <auuorew@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+python-telegram-bot = {version = "^20.6", extras = ["job-queue", "webhooks"]}
+python-dotenv = "^1.0.0"
+sqlalchemy = "^2.0.23"
+alembic = "^1.12.1"
+sqlalchemy-repr = "^0.1.0"
+tzdata = "^2023.3"
+python-magic = {version = "^0.4.27", platform = "linux"}
+python-magic-bin = {version = "^0.4.14", platform = "win32"}
+tenacity = "^8.2.3"
+beautifulsoup4 = "^4.12.2"
+pillow = "^9.5.0"
+logtail-python = "^0.2.3"
+pixivpy-async = "^1.2.14"
+aiocache = "^0.12.0"
+orjson = "^3.9.10"
+snscrape = "^0.6.2.20230320"
+python-dateutil = "^2.8.2"
+gallery-dl = "^1.26.1"
+psycopg2-binary = "^2.9.9"
+yt-dlp = "^2023.10.13"
+fastapi = "^0.101.1"
+uvicorn = "^0.23.2"
+pyrogram = "^2.0.106"
+tgcrypto = "^1.2.5"
+sqlalchemy-serializer = "^1.4.1"
+
+[tool.poetry.group.dev.dependencies]
+isort = "^5.12.0"
+black = "^23.10.1"
+ruff = "^0.0.260"
+pre-commit = "^3.5.0"
+
+[tool.isort]
+profile = "black"
+skip = ["alembic.ini"]
+skip_glob = [".*/", ".*", "log/", "*.log"]
+line_length = 90
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+lines_between_types = 1
+
+[tool.black]
+line-length = 90
+include = '\.pyi?$'
+
+[tool.ruff]
+select = ["E", "F"]
+fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+ignore = []
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+per-file-ignores = {}
+line-length = 90
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+target-version = "py311"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
