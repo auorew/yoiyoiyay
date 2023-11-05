@@ -21,8 +21,6 @@ QUEUE_SIZE = 3
 JOB_KWARGS = {"misfire_grace_time": 30}
 
 # start time and intervals
-PING_YAMINUI = {"first": 5, "interval": 10 * 60, "job_kwargs": JOB_KWARGS}
-PING_RESIZER = {"first": 5, "interval": 3 * 60, "job_kwargs": JOB_KWARGS}
 GET_PROXY = {"first": 5, "interval": 10 * 60, "job_kwargs": JOB_KWARGS}
 
 

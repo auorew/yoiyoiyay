@@ -17,7 +17,7 @@ from telegram.ext import (
 )
 
 # get bot constants
-from ..bot import GET_PROXY, PING_RESIZER, PING_YAMINUI, READ_TIMEOUT, WRITE_TIMEOUT
+from ..bot import GET_PROXY, READ_TIMEOUT, WRITE_TIMEOUT
 
 # bot commands
 from ..bot.commands import (
@@ -48,7 +48,7 @@ from ..bot.functions import process_link
 from ..bot.inline_functions import inliner
 
 # bot jobs
-from ..bot.jobs import get_proxy, ping_resizer, ping_yaminui
+from ..bot.jobs import get_proxy
 
 # get logger
 log = logging.getLogger(__name__)
@@ -227,10 +227,6 @@ def create_bot_app() -> Application:
 
     # get job queue and ping other bots
     jobs = application.job_queue
-    # ping yaminui bot every 10 minutes
-    jobs.run_repeating(ping_yaminui, **PING_YAMINUI)
-    # ping resizer bot every 3 minutes
-    jobs.run_repeating(ping_resizer, **PING_RESIZER)
     # get new proxy every 10 minutes
     jobs.run_repeating(get_proxy, **GET_PROXY)
     # mute messages about job being done

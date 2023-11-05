@@ -1,7 +1,6 @@
 """Bot Jobs"""
 import asyncio
 import logging
-import os
 import ssl
 
 # http requests
@@ -20,7 +19,7 @@ from telegram.ext import CallbackContext
 from ..extra import PROXY, PROXY_CID, PROXY_LIMIT, PROXY_SET, PROXY_TIMEOUT
 
 # get fake headers & retry requets
-from ..extra.request_helpers import FAKE_HEADERS, make_request
+from ..extra.request_helpers import FAKE_HEADERS
 
 # setup logger
 log = logging.getLogger(__name__)
@@ -138,31 +137,3 @@ async def get_proxy(_: CallbackContext):
         PROXY["https://"] = PROXY_SET.pop()
     else:
         log.debug("GetProxy: No proxies.")
-
-
-async def ping_yaminui(_: CallbackContext):
-    """Ping yaminui bot
-
-    Args:
-        _ (CallbackContext): callback context (not used)
-    """
-    response = await make_request(
-        os.environ["YAMINUI_LINK"],
-        method="POST",
-        headers={**FAKE_HEADERS, "Content-Type": "application/json"},
-        data=orjson.dumps({}),
-    )
-    log.debug("Ping to yaminui bot: %r.", response)
-
-
-async def ping_resizer(_: CallbackContext):
-    """Ping resizer bot
-
-    Args:
-        _ (CallbackContext): callback context (not used)
-    """
-    response = await make_request(
-        os.environ["RESIZER_LINK"],
-        method="GET",
-    )
-    log.debug("Ping to resizer bot: %r.", response)
