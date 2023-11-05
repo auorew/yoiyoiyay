@@ -11,9 +11,6 @@ from logging import FileHandler, Formatter, Logger
 from pathlib import Path
 from typing import Optional
 
-# working with env
-from dotenv import load_dotenv
-
 # logtail for logging
 from logtail import LogtailHandler
 
@@ -22,8 +19,7 @@ DATE_RUN = datetime.now()
 FILE_DIR = Path(__file__).parent.parent.parent  # /extra -> /yoiyoi -> /app
 
 
-# load .env file & get config
-load_dotenv()
+# get config
 CONFIG = tomllib.load(Path(os.environ["PATH_SETTINGS"]).open("rb"))
 
 
