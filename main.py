@@ -4,9 +4,10 @@ import sys
 # working with env
 from dotenv import load_dotenv
 
+# start main bot
 from yoiyoi.app.main import start_app
 
-# start bot
+# start pyro bot
 from yoiyoi.app.pyro import pyro_app
 
 # settings

@@ -55,11 +55,7 @@ log = logging.getLogger(__name__)
 
 
 def create_bot_app() -> Application:
-    """Set up bot
-
-    Args:
-        mode (int, optional): bot mode. Defaults to BotMode.POLLING.
-    """
+    """Set up bot"""
     # create updater & dispatcher
     application = (
         ApplicationBuilder()
