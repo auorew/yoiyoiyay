@@ -19,6 +19,9 @@ from aiocache import cached
 # httpx exceptions
 from httpx import ConnectTimeout, ProxyError, ReadError, ReadTimeout, RemoteProtocolError
 
+# pyrogram exceptions
+from pyrogram.errors import FloodWait
+
 # telegram exceptions
 from telegram.error import RetryAfter
 
@@ -73,6 +76,9 @@ def wait_fixed_time(retry_state: RetryCallState) -> int:
     if isinstance(exception, RetryAfter):
         log.warning("Telegram limit exceeded: waiting %d s.", exception.retry_after + 1)
         return exception.retry_after + 1
+    if isinstance(exception, FloodWait):
+        log.warning("Telegram limit exceeded: waiting %d s.", exception.value + 1)
+        return exception.value + 1
     # network errors
     if isinstance(
         exception,
