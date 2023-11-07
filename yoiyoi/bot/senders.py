@@ -25,22 +25,6 @@ async def pyro_get_message(update: Update) -> PyroMessage:
 
 
 @retry_request
-async def send_media_group(update: Update, **kwargs) -> Message:
-    """Sends media group in current chat
-
-    Args:
-        update (Update): current update
-    """
-    if "read_timeout" not in kwargs:
-        kwargs["read_timeout"] = READ_MEDIA_TIMEOUT
-
-    if "write_timeout" not in kwargs:
-        kwargs["write_timeout"] = WRITE_MEDIA_TIMEOUT
-
-    return await update.effective_chat.send_media_group(**kwargs)
-
-
-@retry_request
 async def reply_video(update: Update, **kwargs) -> Message:
     """Replies video in current chat
 
@@ -48,16 +32,6 @@ async def reply_video(update: Update, **kwargs) -> Message:
         update (Update): current update
     """
     return await update.effective_message.reply_video(**kwargs)
-
-
-@retry_request
-async def send_video(update: Update, **kwargs) -> Message:
-    """Sends video in current chat
-
-    Args:
-        update (Update): current update
-    """
-    return await update.effective_chat.send_video(**kwargs)
 
 
 @retry_request
