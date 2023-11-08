@@ -257,7 +257,7 @@ async def send_collection(
         if post := await pyro_send_media_group(message, media=files, quote=quoted):
             log.info("[%d] Sent media group.", update_id)
         # send document group
-        if docs and chat.tw_orig and post:
+        if docs and post:
             log.info("[%d] Sending document group...", update_id)
             if await pyro_send_media_group(post[0], media=docs, quote=True):
                 log.info("[%d] Sent document group.", update_id)
@@ -364,11 +364,12 @@ async def send_twitter(
                         parse_mode=PyroPM.HTML if idx == ids[0] else None,
                     ),
                 )
-                docs.append(
-                    PyroInputMediaDocument(
-                        media=filepath,
-                    ),
-                )
+                if chat.tw_orig:
+                    docs.append(
+                        PyroInputMediaDocument(
+                            media=filepath,
+                        ),
+                    )
             else:
                 if not (videolink := await choose_twitter_video(update, media)):
                     log.error("[%d] Couldn't get links.", update.update_id)
@@ -470,11 +471,12 @@ async def send_instagram(
                         caption=info if not idx else None,
                     ),
                 )
-                docs.append(
-                    PyroInputMediaDocument(
-                        media=filepath,
-                    ),
-                )
+                if chat.in_orig:
+                    docs.append(
+                        PyroInputMediaDocument(
+                            media=filepath,
+                        ),
+                    )
             if item.type == "video":
                 files.append(
                     PyroInputMediaVideo(
@@ -784,11 +786,12 @@ async def send_pixiv(
                         parse_mode=PyroPM.HTML if ids[0] == idx else None,
                     ),
                 )
-                docs.append(
-                    PyroInputMediaDocument(
-                        media=filepath,
-                    ),
-                )
+                if chat.px_orig:
+                    docs.append(
+                        PyroInputMediaDocument(
+                            media=filepath,
+                        ),
+                    )
         if files:
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)
