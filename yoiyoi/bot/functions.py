@@ -377,7 +377,7 @@ async def send_twitter(
                 if (videopath := Path(videopath)) != filepath:
                     storage.add(videopath)
                 # add to collection
-                files.append(InputMediaVideo(videopath, info if idx == ids[0] else None))
+                files.append(InputMediaVideo(videopath, None, info if idx == ids[0] else None))
         log.debug("[%d] Finished adding to collection.", update_id)
         log.debug("[%d] Caption: %r.", update_id, info)
         if await send_collection(update, chat, storage, files, docs):
@@ -442,7 +442,7 @@ async def send_instagram(
                 if chat.in_orig:
                     docs.append(InputMediaDocument(filepath))
             if item.type == "video":
-                files.append(InputMediaVideo(filepath, info if not idx else None))
+                files.append(InputMediaVideo(filepath, None, info if not idx else None))
         log.debug("[%d] Finished adding to collection.", update_id)
         log.debug("[%d] Caption: %r.", update_id, info)
         if await send_collection(update, chat, storage, files, docs):
@@ -535,10 +535,7 @@ async def send_tiktok(
                 filename = await make_file_name(str(media.id), filepath)
                 videopath = move_file(filepath, storage_folder / filename)
                 storage.add(videopath)
-                files.append(InputMediaVideo(videopath, info))
-            # if file is too big
-            error_text += "can't be sent, because video file is too big\\!"
-            log.error("[%d] Video file is too big.", update_id)
+                files.append(InputMediaVideo(videopath, None, info))
         if files:
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)
@@ -599,7 +596,7 @@ async def send_youtube_short(
             filename = await make_file_name(video.id, filepath)
             videopath = move_file(filepath, storage_folder / filename)
             storage.add(videopath)
-            files.append(InputMediaVideo(videopath, info))
+            files.append(InputMediaVideo(videopath, None, info))
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)
             if await send_collection(update, chat, storage, files):
@@ -661,7 +658,7 @@ async def send_pixiv(
             if (videopath := Path(videopath)) != filepath:
                 storage.add(videopath)
             # add to collection
-            files.append(InputMediaVideo(videopath, info))
+            files.append(InputMediaVideo(videopath, None, info))
         else:
             if count > 1:
                 ids = []

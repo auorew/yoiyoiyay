@@ -283,13 +283,15 @@ async def write_content_to_file(
 @retry_request
 async def get_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
     async with stream_response(url, **kwargs) as response:
-        return response.headers
+        if response.is_success:
+            return response.headers
 
 
 @retry_request
 async def get_cookies(url: str, **kwargs) -> Optional[httpx.Cookies]:
     async with stream_response(url, "GET", **kwargs) as response:
-        return response.cookies
+        if response.is_success:
+            return response.cookies
 
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
