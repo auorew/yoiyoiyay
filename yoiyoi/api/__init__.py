@@ -144,7 +144,6 @@ LINKS = {
         )
         """,
         "info": r"(?:\@(?P<author>[\w\.]+)\/video\/(?P<id>\d+))",
-        "thumb": "https://www.tiktok.com/api/img/?itemId={0}&location={1}",
         "link": "https://www.tiktok.com/@web/video/{id}",
         "source": "https://www.tiktok.com/@{author}/video/{id}",
         "type": LinkType.TIKTOK,

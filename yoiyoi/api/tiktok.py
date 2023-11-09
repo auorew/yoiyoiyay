@@ -142,6 +142,7 @@ async def get_tokcounter_info(basic_info: dict) -> dict:
             return
         # process response
         return {
+            "thumb": None,  # info['video']['cover'] is animated
             "kind": TikTokMediaKind.SLIDESHOW
             if info["video"]["downloadUrl"].endswith("mp3")
             else TikTokMediaKind.VIDEO,
@@ -190,6 +191,7 @@ async def get_lovetik_info(basic_info: dict) -> dict:
             return
         # process response
         return {
+            "thumb": info["cover"],
             "kind": TikTokMediaKind.SLIDESHOW
             if len(info["links"]) == 1
             else TikTokMediaKind.VIDEO,
@@ -215,6 +217,7 @@ async def get_ytdlp_info(basic_info: dict) -> dict:
             log.warning("yt-dlp: Unable to download.")
             return
         return {
+            "thumb": info["thumbnails"][0]["url"],
             "kind": TikTokMediaKind.SLIDESHOW
             if info["video_ext"] == "none"
             else TikTokMediaKind.VIDEO,
@@ -495,20 +498,17 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
         (
             get_ytdlp_info(basic_info),  # best
             get_tokcounter_info(basic_info),  # good
-            get_lovetik_info(basic_info),  # good
+            get_lovetik_info(basic_info),  # okay
         )
     ):
         if info := await get_info:
             info.update(basic_info)
-            break
+            if info["thumb"]:
+                break
     else:
         return
 
     log.info("TikTok info: %s.", info)
-
-    # add thumbnails
-    for i in range(2):
-        info[f"thumb_{i}"] = TT["thumb"].format(info["id"], i)
 
     if info["kind"] == TikTokMediaKind.VIDEO:
         log.info("TikTok type: video.")

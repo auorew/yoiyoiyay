@@ -35,8 +35,8 @@ from ..api import LinkType, TikTokMediaKind
 # instagram api
 from ..api.instagram import get_instagram_links
 
-# Link & TweetContent namedtuples
-from ..api.namedtuples import Link, TweetContent
+# Link, PixivContent, TweetContent namedtuples
+from ..api.namedtuples import Link, PixivContent, TweetContent
 
 # pixiv api
 from ..api.pixiv import get_pixiv_links
@@ -60,6 +60,7 @@ from ..bot.formatters import (
     get_text,
     join_file_name,
     make_file_name,
+    make_thumb_name,
     pixiv_parse,
 )
 
@@ -328,10 +329,10 @@ async def send_twitter(
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         for idx in ids:
-            media = tweet.content[idx - 1]
+            media: TweetContent = tweet.content[idx - 1]
             if media.type == "photo":
                 filepath = await save_file(media.links[0])
-                filename = await join_file_name("twitter", media.links[0], filepath)
+                filename = await make_file_name("twitter", media.links[0], filepath)
                 filepath = move_file(filepath, storage_folder / filename)
                 storage.add(filepath)
                 log.debug("[%d] Filename: %r.", update_id, filename)
@@ -360,9 +361,13 @@ async def send_twitter(
                     )
                     return
                 filepath = await save_file(videolink)
-                filename = await join_file_name("twitter", videolink, filepath)
+                filename = await make_file_name("twitter", videolink, filepath)
                 filepath = move_file(filepath, storage_folder / filename)
                 storage.add(filepath)
+                thumbpath = await save_file(media.thumb)
+                thumbname = await make_thumb_name(filename, thumbpath)
+                thumbpath = move_file(thumbpath, storage_folder / thumbname)
+                storage.add(thumbpath)
                 if media.type == "gif" or os.stat(filepath).st_size < MAX_GIF_FILE_SIZE:
                     if not (videopath := await process_video(update, filepath)):
                         log.error("[%d] Couldn't add sound to video.", update.update_id)
@@ -377,7 +382,9 @@ async def send_twitter(
                 if (videopath := Path(videopath)) != filepath:
                     storage.add(videopath)
                 # add to collection
-                files.append(InputMediaVideo(videopath, None, info if idx == ids[0] else None))
+                files.append(
+                    InputMediaVideo(videopath, thumbpath, info if idx == ids[0] else None)
+                )
         log.debug("[%d] Finished adding to collection.", update_id)
         log.debug("[%d] Caption: %r.", update_id, info)
         if await send_collection(update, chat, storage, files, docs):
@@ -420,9 +427,9 @@ async def send_instagram(
         for idx, item in enumerate(media):
             filepath = await save_file(item.link)
             if not (filename := item.name):
-                filename = await join_file_name("instagram", item.link, filepath)
+                filename = await make_file_name("instagram", item.link, filepath)
             else:
-                filename = await make_file_name(filename, filepath)
+                filename = await join_file_name(filename, filepath)
             filepath = move_file(filepath, storage_folder / filename)
             storage.add(filepath)
             log.debug("[%d] Filename: %r.", update_id, filename)
@@ -442,7 +449,13 @@ async def send_instagram(
                 if chat.in_orig:
                     docs.append(InputMediaDocument(filepath))
             if item.type == "video":
-                files.append(InputMediaVideo(filepath, None, info if not idx else None))
+                thumbpath = await save_file(item.thumb)
+                thumbname = await make_thumb_name(filename, thumbpath)
+                thumbpath = move_file(thumbpath, storage_folder / thumbname)
+                storage.add(thumbpath)
+                files.append(
+                    InputMediaVideo(filepath, thumbpath, info if not idx else None)
+                )
         log.debug("[%d] Finished adding to collection.", update_id)
         log.debug("[%d] Caption: %r.", update_id, info)
         if await send_collection(update, chat, storage, files, docs):
@@ -494,9 +507,9 @@ async def send_tiktok(
                     filelink = media_photo.link
                     filepath = await save_file(filelink)
                     if not (filename := media_photo.name):
-                        filename = await join_file_name("tiktok", filelink, filepath)
+                        filename = await make_file_name("tiktok", filelink, filepath)
                     else:
-                        filename = await make_file_name(filename, filepath)
+                        filename = await join_file_name(filename, filepath)
                     filepath = move_file(filepath, storage_folder / filename)
                     storage.add(filepath)
                     log.debug("[%d] Filename: %r.", update_id, filename)
@@ -532,10 +545,14 @@ async def send_tiktok(
                 log.error("[%d] Video file is too big.", update_id)
             # upload video if any
             if filepath:
-                filename = await make_file_name(str(media.id), filepath)
+                filename = await join_file_name(str(media.id), filepath)
                 videopath = move_file(filepath, storage_folder / filename)
                 storage.add(videopath)
-                files.append(InputMediaVideo(videopath, None, info))
+                thumbpath = await save_file(media.thumb)
+                thumbname = await make_thumb_name(filename, thumbpath)
+                thumbpath = move_file(thumbpath, storage_folder / thumbname)
+                storage.add(thumbpath)
+                files.append(InputMediaVideo(videopath, thumbpath, info))
         if files:
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)
@@ -593,10 +610,14 @@ async def send_youtube_short(
             log.error("[%d] Video file is too big.", update_id)
         # upload video if any
         if filepath:
-            filename = await make_file_name(video.id, filepath)
+            filename = await join_file_name(video.id, filepath)
             videopath = move_file(filepath, storage_folder / filename)
             storage.add(videopath)
-            files.append(InputMediaVideo(videopath, None, info))
+            thumbpath = await save_file(video.thumb)
+            thumbname = await make_thumb_name(filename, thumbpath)
+            thumbpath = move_file(thumbpath, storage_folder / thumbname)
+            storage.add(thumbpath)
+            files.append(InputMediaVideo(videopath, thumbpath, info))
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)
             if await send_collection(update, chat, storage, files):
@@ -642,9 +663,9 @@ async def send_pixiv(
         ids = [1]
         parsed_ids = await pixiv_parse(update, link.illust, count)
         if art.type == "ugoira":
-            media = art.content[0]
+            media: PixivContent = art.content[0]
             filepath = await save_file(media.original)
-            filename = await join_file_name("pixiv", media.original, filepath)
+            filename = await make_file_name("pixiv", media.original, filepath)
             filepath = move_file(filepath, storage_folder / filename)
             storage.add(filepath)
             if not (videopath := await process_video(update, filepath)):
@@ -658,7 +679,11 @@ async def send_pixiv(
             if (videopath := Path(videopath)) != filepath:
                 storage.add(videopath)
             # add to collection
-            files.append(InputMediaVideo(videopath, None, info))
+            thumbpath = await save_file(media.thumb, headers=PIXIV_HEADERS)
+            thumbname = await make_thumb_name(filename, thumbpath)
+            thumbpath = move_file(thumbpath, storage_folder / thumbname)
+            storage.add(thumbpath)
+            files.append(InputMediaVideo(videopath, thumbpath, info))
         else:
             if count > 1:
                 ids = []
@@ -696,7 +721,7 @@ async def send_pixiv(
                     media = art.content[idx - 1]
                     filelink = media.original
                     filepath = await save_file(filelink, headers=PIXIV_HEADERS)
-                    filename = await join_file_name("pixiv", filelink, filepath)
+                    filename = await make_file_name("pixiv", filelink, filepath)
                     filepath = move_file(filepath, storage_folder / filename)
                     storage.add(filepath)
                     log.debug("[%d] Filename: %r.", update_id, filename)

@@ -17,7 +17,7 @@ InstaMedia = namedtuple(
     "InstaMedia",
     (
         "source",
-        "prev",
+        "thumb",
         "link",
         "type",
         "name",
@@ -33,8 +33,7 @@ TikTokMedia = namedtuple(
         "author",
         "author_name",
         "desc",
-        "thumb_0",
-        "thumb_1",
+        "thumb",
         "content",
         "info_source",
         "advinfo_source",

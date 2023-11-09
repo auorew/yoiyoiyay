@@ -278,7 +278,7 @@ def extract_file_ext(file: str | bytes) -> str:
     return NO_EXT
 
 
-async def join_file_name(link_type: str, link: str, file: str | bytes) -> str:
+async def make_file_name(link_type: str, link: str, file: str | bytes) -> str:
     """Gets file name from file and link depending on link type
 
     Args:
@@ -292,7 +292,7 @@ async def join_file_name(link_type: str, link: str, file: str | bytes) -> str:
     return ".".join((extract_file_name(link_type, link), extract_file_ext(file)))
 
 
-async def make_file_name(file_name: str, file: str | bytes) -> str:
+async def join_file_name(file_name: str, file: str | bytes) -> str:
     """Make file name from file name and extenstion depending on file type
 
     Args:
@@ -303,3 +303,7 @@ async def make_file_name(file_name: str, file: str | bytes) -> str:
         str: new file name
     """
     return ".".join((file_name, extract_file_ext(file)))
+
+
+async def make_thumb_name(file_name: str, file: str | bytes) -> str:
+    return ".".join((file_name.rsplit(".")[0], "thumb", extract_file_ext(file)))
