@@ -1,4 +1,5 @@
 """Bot formatters"""
+import asyncio
 import logging
 import re
 import subprocess
@@ -141,6 +142,50 @@ async def get_text(update: Update) -> str:
         + [entity.url for entity in mes.entities + mes.caption_entities]
         if text
     )
+
+
+async def get_video_info(filepath: str) -> [int, int, int]:
+    # try ffprobe
+    try:
+        log.debug("Get video info: trying ffprobe...")
+        # fmt: off
+        ffprobe_command = [
+            "ffprobe",
+            "-v", "quiet",
+            "-show_entries", "stream=width,height,duration",
+            "-of", "json",
+            "-select_streams", "v:0",
+            str(filepath),
+        ]
+        # fmt: on
+        log.debug("Get video info: ffprobe command: %s.", " ".join(ffprobe_command))
+        process = await asyncio.create_subprocess_exec(
+            *ffprobe_command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        if await process.wait() != 0:
+            raise Exception("process exited with non-zero value")
+        if stderr := await process.stderr.read():
+            raise Exception(stderr.decode("utf-8"))
+        if not (format_info := orjson.loads(await process.stdout.read())):
+            raise Exception("No parseable output")
+        if not (size_info := format_info["streams"]):
+            raise Exception("No video streams")
+        video_info = size_info[0]
+        width = video_info.get("width", 0)
+        height = video_info.get("height", 0)
+        duration = int(float(video_info.get("duration", 0)))
+        log.info("Get video info: %d x %d, %ds...", width, height, duration)
+        return width, height, duration
+    except Exception as exception:
+        log.warning(
+            "Get video info: failed to run ffprobe command because of %s: %r.",
+            exception.__class__.__name__,
+            exception,
+        )
+    # else
+    return 0, 0, 0
 
 
 def extract_file_name(link_type: str, link: str) -> str:

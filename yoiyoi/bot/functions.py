@@ -14,6 +14,9 @@ import orjson
 # working with images
 from PIL import Image
 
+# pyrogram enums
+from pyrogram.enums.parse_mode import ParseMode as PM
+
 # pyrogram types
 from pyrogram.types import InputMediaDocument, InputMediaPhoto, InputMediaVideo
 
@@ -58,6 +61,7 @@ from ..bot.formatters import (
     esc,
     formatter,
     get_text,
+    get_video_info,
     join_file_name,
     make_file_name,
     make_thumb_name,
@@ -348,9 +352,20 @@ async def send_twitter(
                     imagepath = move_file(imagepath, storage_folder / f"RE_{filename}")
                     storage.add(imagepath)
                 # add to collection
-                files.append(InputMediaPhoto(imagepath, info if idx == ids[0] else None))
+                files.append(
+                    InputMediaPhoto(
+                        media=imagepath,
+                        caption=info if idx == ids[0] else None,
+                        parse_mode=PM.HTML,
+                    )
+                )
                 if chat.tw_orig:
-                    docs.append(InputMediaDocument(filepath))
+                    docs.append(
+                        InputMediaDocument(
+                            media=filepath,
+                            parse_mode=PM.HTML,
+                        )
+                    )
             else:
                 if not (videolink := await choose_twitter_video(update, media)):
                     log.error("[%d] Couldn't get links.", update.update_id)
@@ -364,10 +379,6 @@ async def send_twitter(
                 filename = await make_file_name("twitter", videolink, filepath)
                 filepath = move_file(filepath, storage_folder / filename)
                 storage.add(filepath)
-                thumbpath = await save_file(media.thumb)
-                thumbname = await make_thumb_name(filename, thumbpath)
-                thumbpath = move_file(thumbpath, storage_folder / thumbname)
-                storage.add(thumbpath)
                 if media.type == "gif" or os.stat(filepath).st_size < MAX_GIF_FILE_SIZE:
                     if not (videopath := await process_video(update, filepath)):
                         log.error("[%d] Couldn't add sound to video.", update.update_id)
@@ -381,9 +392,22 @@ async def send_twitter(
                     videopath = filepath
                 if (videopath := Path(videopath)) != filepath:
                     storage.add(videopath)
+                videoinfo = await get_video_info(videopath)
+                thumbpath = await save_file(media.thumb)
+                thumbname = await make_thumb_name(filename, thumbpath)
+                thumbpath = move_file(thumbpath, storage_folder / thumbname)
+                storage.add(thumbpath)
                 # add to collection
                 files.append(
-                    InputMediaVideo(videopath, thumbpath, info if idx == ids[0] else None)
+                    InputMediaVideo(
+                        media=videopath,
+                        thumb=thumbpath,
+                        caption=info if idx == ids[0] else None,
+                        parse_mode=PM.HTML,
+                        width=videoinfo[0],
+                        height=videoinfo[1],
+                        duration=videoinfo[2],
+                    )
                 )
         log.debug("[%d] Finished adding to collection.", update_id)
         log.debug("[%d] Caption: %r.", update_id, info)
@@ -445,16 +469,36 @@ async def send_instagram(
                 if (imagepath := Path(imagepath)) != filepath:
                     imagepath = move_file(imagepath, storage_folder / f"RE_{filename}")
                     storage.add(imagepath)
-                files.append(InputMediaPhoto(imagepath, info if not idx else None))
+                files.append(
+                    InputMediaPhoto(
+                        media=imagepath,
+                        caption=info if not idx else None,
+                        parse_mode=PM.HTML,
+                    )
+                )
                 if chat.in_orig:
-                    docs.append(InputMediaDocument(filepath))
+                    docs.append(
+                        InputMediaDocument(
+                            media=filepath,
+                            parse_mode=PM.HTML,
+                        )
+                    )
             if item.type == "video":
+                videoinfo = await get_video_info(filepath)
                 thumbpath = await save_file(item.thumb)
                 thumbname = await make_thumb_name(filename, thumbpath)
                 thumbpath = move_file(thumbpath, storage_folder / thumbname)
                 storage.add(thumbpath)
                 files.append(
-                    InputMediaVideo(filepath, thumbpath, info if not idx else None)
+                    InputMediaVideo(
+                        media=filepath,
+                        thumb=thumbpath,
+                        caption=info if not idx else None,
+                        parse_mode=PM.HTML,
+                        width=videoinfo[0],
+                        height=videoinfo[1],
+                        duration=videoinfo[2],
+                    )
                 )
         log.debug("[%d] Finished adding to collection.", update_id)
         log.debug("[%d] Caption: %r.", update_id, info)
@@ -526,9 +570,20 @@ async def send_tiktok(
                             imagepath, storage_folder / f"RE_{filename}"
                         )
                         storage.add(imagepath)
-                    files.append(InputMediaPhoto(imagepath, info if idx == i else None))
+                    files.append(
+                        InputMediaPhoto(
+                            media=imagepath,
+                            caption=info if idx == i else None,
+                            parse_mode=PM.HTML,
+                        )
+                    )
                     if chat.tt_orig:
-                        docs.append(InputMediaDocument(filepath))
+                        docs.append(
+                            InputMediaDocument(
+                                media=filepath,
+                                parse_mode=PM.HTML,
+                            )
+                        )
                 # get next 10 photos/docs
                 i, j = j, j + 10
         else:
@@ -548,11 +603,22 @@ async def send_tiktok(
                 filename = await join_file_name(str(media.id), filepath)
                 videopath = move_file(filepath, storage_folder / filename)
                 storage.add(videopath)
+                videoinfo = await get_video_info(videopath)
                 thumbpath = await save_file(media.thumb)
                 thumbname = await make_thumb_name(filename, thumbpath)
                 thumbpath = move_file(thumbpath, storage_folder / thumbname)
                 storage.add(thumbpath)
-                files.append(InputMediaVideo(videopath, thumbpath, info))
+                files.append(
+                    InputMediaVideo(
+                        media=videopath,
+                        thumb=thumbpath,
+                        caption=info,
+                        parse_mode=PM.HTML,
+                        width=videoinfo[0],
+                        height=videoinfo[1],
+                        duration=videoinfo[2],
+                    )
+                )
         if files:
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)
@@ -613,11 +679,22 @@ async def send_youtube_short(
             filename = await join_file_name(video.id, filepath)
             videopath = move_file(filepath, storage_folder / filename)
             storage.add(videopath)
+            videoinfo = await get_video_info(videopath)
             thumbpath = await save_file(video.thumb)
             thumbname = await make_thumb_name(filename, thumbpath)
             thumbpath = move_file(thumbpath, storage_folder / thumbname)
             storage.add(thumbpath)
-            files.append(InputMediaVideo(videopath, thumbpath, info))
+            files.append(
+                InputMediaVideo(
+                    media=videopath,
+                    thumb=thumbpath,
+                    caption=info,
+                    parse_mode=PM.HTML,
+                    width=videoinfo[0],
+                    height=videoinfo[1],
+                    duration=videoinfo[2],
+                )
+            )
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)
             if await send_collection(update, chat, storage, files):
@@ -678,12 +755,23 @@ async def send_pixiv(
                 return
             if (videopath := Path(videopath)) != filepath:
                 storage.add(videopath)
-            # add to collection
+            videoinfo = await get_video_info(videopath)
             thumbpath = await save_file(media.thumb, headers=PIXIV_HEADERS)
             thumbname = await make_thumb_name(filename, thumbpath)
             thumbpath = move_file(thumbpath, storage_folder / thumbname)
             storage.add(thumbpath)
-            files.append(InputMediaVideo(videopath, thumbpath, info))
+            # add to collection
+            files.append(
+                InputMediaVideo(
+                    media=videopath,
+                    thumb=thumbpath,
+                    caption=info,
+                    parse_mode=PM.HTML,
+                    width=videoinfo[0],
+                    height=videoinfo[1],
+                    duration=videoinfo[2],
+                )
+            )
         else:
             if count > 1:
                 ids = []
@@ -739,10 +827,19 @@ async def send_pixiv(
                         )
                         storage.add(imagepath)
                     files.append(
-                        InputMediaPhoto(imagepath, info if ids[i] == idx else None)
+                        InputMediaPhoto(
+                            media=imagepath,
+                            caption=info if ids[i] == idx else None,
+                            parse_mode=PM.HTML,
+                        )
                     )
                     if chat.px_orig:
-                        docs.append(InputMediaDocument(filepath))
+                        docs.append(
+                            InputMediaDocument(
+                                media=filepath,
+                                parse_mode=PM.HTML,
+                            )
+                        )
                 # get next 10 photos/docs
                 i, j = j, j + 10
         if files:
