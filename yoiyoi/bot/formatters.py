@@ -278,7 +278,7 @@ def extract_file_ext(file: str | bytes) -> str:
     return NO_EXT
 
 
-async def combine_file_name(link_type: str, link: str, file: str | bytes) -> str:
+async def join_file_name(link_type: str, link: str, file: str | bytes) -> str:
     """Gets file name from file and link depending on link type
 
     Args:

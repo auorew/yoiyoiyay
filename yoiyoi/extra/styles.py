@@ -5,9 +5,6 @@ from html import escape as escape_html
 # PixivMedia & TweetMedia namedtuples
 from ..api.namedtuples import PixivMedia, TikTokMedia, TweetMedia, YouTubeShortMedia
 
-# escape markdown
-from ..bot.formatters import esc
-
 
 class AbstractSwitcher(ABC):
     """Abstract style class"""
@@ -237,20 +234,20 @@ class TikTokStyle(BaseStyle):
         vid: TikTokMedia,
     ) -> str:
         user, username, link, desc = (
-            esc(vid.author_name),
-            esc(vid.author),
-            esc(vid.source),
-            esc(vid.desc),
+            escape_html(vid.author_name),
+            escape_html(vid.author),
+            escape_html(vid.source),
+            escape_html(vid.desc),
         )
         match style:
             case cls.VIDEO_LINK_DESC:
                 return f"{link}\n\n{desc}"
             case cls.VIDEO_INFO_LINK:
-                return f"{user} \\| @{username}\n\n{link}"
+                return f"{user} | @{username}\n\n{link}"
             case cls.VIDEO_INFO_EMBED_LINK:
-                return f"[{user} \\| @{username}]({link})"
+                return f"<a href='{link}'>{user} | @{username}</a>"
             case cls.VIDEO_INFO_EMBED_LINK_DESC:
-                return f"[{user} \\| @{username}]({link})\n\n{desc}"
+                return f"<a href='{link}'>{user} | @{username}</a>\n\n{desc}"
             case cls.VIDEO_LINK | _:
                 return link
 

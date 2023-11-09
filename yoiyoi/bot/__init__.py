@@ -11,9 +11,6 @@ from ..extra.upload import upload_log
 # read & write timeouts for bot
 READ_TIMEOUT, WRITE_TIMEOUT = 5, 5
 
-# read & write media timeouts for bot
-READ_MEDIA_TIMEOUT, WRITE_MEDIA_TIMEOUT = 50, 50
-
 # limited queue size
 QUEUE_SIZE = 3
 

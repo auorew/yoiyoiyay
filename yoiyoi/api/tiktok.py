@@ -60,7 +60,7 @@ TikTokSize = int
 TikTok = TypedDict("TikTok", link=TikTokURL, size=TikTokSize)
 
 # regex
-REGEX_TIKMATE_ONLINE = re.compile(r"\.app_(?P<name>\w+\.\w{3,4})")
+REGEX_TIKMATE_ONLINE = re.compile(r"\.app_(?P<name>\w+)\.(?P<extension>\w{3,4})$")
 
 
 async def get_url_info(link: str) -> dict:

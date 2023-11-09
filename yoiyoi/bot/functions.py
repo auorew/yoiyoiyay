@@ -14,20 +14,14 @@ import orjson
 # working with images
 from PIL import Image
 
-# pyrogram constants
-from pyrogram.enums.parse_mode import ParseMode as PyroPM
-
 # pyrogram types
-from pyrogram.types import InputMediaDocument as PyroInputMediaDocument
-from pyrogram.types import InputMediaPhoto as PyroInputMediaPhoto
-from pyrogram.types import InputMediaVideo as PyroInputMediaVideo
+from pyrogram.types import InputMediaDocument, InputMediaPhoto, InputMediaVideo
 
 # telegram core bot api
-from telegram import InputMediaDocument, InputMediaPhoto, Update
+from telegram import Update
 
 # telegram constants
 from telegram.constants import MessageLimit as ML
-from telegram.constants import ParseMode as PM
 
 # telegram errors
 from telegram.error import BadRequest
@@ -61,10 +55,10 @@ from ..bot import QUEUE_SIZE, PixivParse
 
 # bot formatters
 from ..bot.formatters import (
-    combine_file_name,
     esc,
     formatter,
     get_text,
+    join_file_name,
     make_file_name,
     pixiv_parse,
 )
@@ -73,14 +67,7 @@ from ..bot.formatters import (
 from ..bot.helpers import notify
 
 # bot senders
-from ..bot.senders import (
-    pyro_get_message,
-    pyro_send_media_group,
-    reply_media_group,
-    reply_video,
-    send_error,
-    send_reply,
-)
+from ..bot.senders import get_message, send_error, send_media_group, send_reply
 
 # database table
 from ..db.models import Chat
@@ -89,7 +76,7 @@ from ..db.models import Chat
 from ..db.updaters import update_chat
 
 # get file size
-from ..extra.request_helpers import PIXIV_HEADERS, get_file, save_file
+from ..extra.request_helpers import PIXIV_HEADERS, save_file
 
 # media styles
 from ..extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
@@ -250,17 +237,21 @@ async def send_collection(
 ):
     update_id = update.update_id
     try:
-        message = await pyro_get_message(update)
+        message = await get_message(update)
         quoted = not (chat.delete_link or chat.include_link)
-        # send media group
-        log.info("[%d] Sending media group...", update_id)
-        if post := await pyro_send_media_group(message, media=files, quote=quoted):
-            log.info("[%d] Sent media group.", update_id)
-        # send document group
-        if docs and post:
-            log.info("[%d] Sending document group...", update_id)
-            if await pyro_send_media_group(post[0], media=docs, quote=True):
-                log.info("[%d] Sent document group.", update_id)
+        i, j = 0, 10
+        while i < len(files):
+            # send media group
+            log.info("[%d] Sending media group...", update_id)
+            if post := await send_media_group(message, media=files[i:j], quote=quoted):
+                log.info("[%d] Sent media group.", update_id)
+            # send document group
+            if docs and post:
+                log.info("[%d] Sending document group...", update_id)
+                if await send_media_group(post[0], media=docs[i:j], quote=True):
+                    log.info("[%d] Sent document group.", update_id)
+            # get next 10 photos/docs
+            i, j = j, j + 10
         # seems to be successful
         return True
     except Exception as exception:
@@ -302,7 +293,6 @@ async def send_twitter(
                 info = f"{escape_html(link.info)}\n\n{info}"
             if len(info) > ML.CAPTION_LENGTH:
                 info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + r"\.\.\."
-        files, docs = [], []
         ids = tuple(range(1, count + 1))
         parsed_ids = await pixiv_parse(update, link.illust, count)
         if link.illust:
@@ -334,14 +324,14 @@ async def send_twitter(
                         "can't be sent, because something went wrong "
                         "while parsing your input."
                     )
-        storage = set()
+        files, docs, storage = [], [], set()
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         for idx in ids:
             media = tweet.content[idx - 1]
             if media.type == "photo":
                 filepath = await save_file(media.links[0])
-                filename = await combine_file_name("twitter", media.links[0], filepath)
+                filename = await join_file_name("twitter", media.links[0], filepath)
                 filepath = move_file(filepath, storage_folder / filename)
                 storage.add(filepath)
                 log.debug("[%d] Filename: %r.", update_id, filename)
@@ -357,19 +347,9 @@ async def send_twitter(
                     imagepath = move_file(imagepath, storage_folder / f"RE_{filename}")
                     storage.add(imagepath)
                 # add to collection
-                files.append(
-                    PyroInputMediaPhoto(
-                        media=imagepath,
-                        caption=info if idx == ids[0] else None,
-                        parse_mode=PyroPM.HTML if idx == ids[0] else None,
-                    ),
-                )
+                files.append(InputMediaPhoto(imagepath, info if idx == ids[0] else None))
                 if chat.tw_orig:
-                    docs.append(
-                        PyroInputMediaDocument(
-                            media=filepath,
-                        ),
-                    )
+                    docs.append(InputMediaDocument(filepath))
             else:
                 if not (videolink := await choose_twitter_video(update, media)):
                     log.error("[%d] Couldn't get links.", update.update_id)
@@ -380,7 +360,7 @@ async def send_twitter(
                     )
                     return
                 filepath = await save_file(videolink)
-                filename = await combine_file_name("twitter", videolink, filepath)
+                filename = await join_file_name("twitter", videolink, filepath)
                 filepath = move_file(filepath, storage_folder / filename)
                 storage.add(filepath)
                 if media.type == "gif" or os.stat(filepath).st_size < MAX_GIF_FILE_SIZE:
@@ -397,13 +377,7 @@ async def send_twitter(
                 if (videopath := Path(videopath)) != filepath:
                     storage.add(videopath)
                 # add to collection
-                files.append(
-                    PyroInputMediaVideo(
-                        media=videopath,
-                        caption=info if idx == ids[0] else None,
-                        parse_mode=PyroPM.HTML if idx == ids[0] else None,
-                    ),
-                )
+                files.append(InputMediaVideo(videopath, info if idx == ids[0] else None))
         log.debug("[%d] Finished adding to collection.", update_id)
         log.debug("[%d] Caption: %r.", update_id, info)
         if await send_collection(update, chat, storage, files, docs):
@@ -439,15 +413,14 @@ async def send_instagram(
     log.info("[%d] Instagram Link: %s.", update_id, link.link)
     # get media
     if media := await get_instagram_links(link.link):
-        files, docs = [], []
-        storage = set()
+        files, docs, storage = [], [], set()
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         info = media[0].source if chat.include_link else None
         for idx, item in enumerate(media):
             filepath = await save_file(item.link)
             if not (filename := item.name):
-                filename = await combine_file_name("instagram", item.link, filepath)
+                filename = await join_file_name("instagram", item.link, filepath)
             else:
                 filename = await make_file_name(filename, filepath)
             filepath = move_file(filepath, storage_folder / filename)
@@ -465,25 +438,11 @@ async def send_instagram(
                 if (imagepath := Path(imagepath)) != filepath:
                     imagepath = move_file(imagepath, storage_folder / f"RE_{filename}")
                     storage.add(imagepath)
-                files.append(
-                    PyroInputMediaPhoto(
-                        media=imagepath,
-                        caption=info if not idx else None,
-                    ),
-                )
+                files.append(InputMediaPhoto(imagepath, info if not idx else None))
                 if chat.in_orig:
-                    docs.append(
-                        PyroInputMediaDocument(
-                            media=filepath,
-                        ),
-                    )
+                    docs.append(InputMediaDocument(filepath))
             if item.type == "video":
-                files.append(
-                    PyroInputMediaVideo(
-                        media=filepath,
-                        caption=info if not idx else None,
-                    ),
-                )
+                files.append(InputMediaVideo(filepath, info if not idx else None))
         log.debug("[%d] Finished adding to collection.", update_id)
         log.debug("[%d] Caption: %r.", update_id, info)
         if await send_collection(update, chat, storage, files, docs):
@@ -524,80 +483,67 @@ async def send_tiktok(
             info = TikTokStyle.get_format(chat.tt_style, media)
             if len(info) > ML.CAPTION_LENGTH:
                 info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + r"\.\.\."
+        files, docs, storage = [], [], set()
+        storage_folder = Path(CACHE_DIR / str(update_id))
+        storage_folder.mkdir(parents=True, exist_ok=True)
         if media.kind == TikTokMediaKind.SLIDESHOW and chat.tt_slide_mode == 1:
             media_photos = media.content[2:]
             i, j = 0, 10
             while i < len(media_photos):
-                photos, docs = [], []
                 for idx, media_photo in enumerate(media_photos[i:j], i):
-                    photo = await get_file(media_photo.link)
+                    filelink = media_photo.link
+                    filepath = await save_file(filelink)
                     if not (filename := media_photo.name):
-                        filename = await combine_file_name(
-                            "instagram", media_photo.link, photo[:1024]
-                        )
+                        filename = await join_file_name("tiktok", filelink, filepath)
                     else:
-                        filename = await make_file_name(filename, photo[:1024])
-                    photos.append(
-                        InputMediaPhoto(
-                            media=photo,
-                            filename=filename,
-                            parse_mode=PM.MARKDOWN_V2 if idx == i else None,
-                            caption=info if idx == i else None,
-                        ),
-                    )
-                    docs.append(
-                        InputMediaDocument(
-                            media=photo,
-                            filename=filename,
-                            disable_content_type_detection=True,
-                        ),
-                    )
-                log.debug("[%d] Finished adding to collection.", update_id)
-                log.debug("[%d] Caption: %r.", update_id, info)
-                # send media group
-                log.info("[%d] Sending media group...", update_id)
-                if post := await reply_media_group(
-                    update.effective_message,
-                    media=photos,
-                    quote=not (chat.delete_link or chat.include_link),
-                ):
-                    log.info("[%d] Sent media group.", update_id)
-                # send document group
-                if chat.tt_orig and docs and post:
-                    log.info("[%d] Sending document group...", update_id)
-                    if await reply_media_group(post[0], media=docs, quote=True):
-                        log.info("[%d] Sent document group.", update_id)
-                # after sending first 10 photos/docs
+                        filename = await make_file_name(filename, filepath)
+                    filepath = move_file(filepath, storage_folder / filename)
+                    storage.add(filepath)
+                    log.debug("[%d] Filename: %r.", update_id, filename)
+                    if not (imagepath := await process_image(update, filepath)):
+                        log.error("[%d] Couldn't resize image.", update.update_id)
+                        await send_error(
+                            update,
+                            error_text + "contains images the bot couldn't resize\\!",
+                            quote=not (chat.delete_link or chat.include_link),
+                        )
+                        return
+                    if (imagepath := Path(imagepath)) != filepath:
+                        imagepath = move_file(
+                            imagepath, storage_folder / f"RE_{filename}"
+                        )
+                        storage.add(imagepath)
+                    files.append(InputMediaPhoto(imagepath, info if idx == i else None))
+                    if chat.tt_orig:
+                        docs.append(InputMediaDocument(filepath))
+                # get next 10 photos/docs
                 i, j = j, j + 10
-            return
         else:
             videos = media.content[:2]
             # check size
-            video_link = None
-            if not chat.tt_orig:
-                if 0 < videos[-1].size < 50 << 20:
-                    video_link = videos[-1].link
+            filepath = None
+            for vid in videos:
+                if 0 < vid.size < 50 << 20:
+                    filepath = await save_file(vid.link)
+                    break
             else:
-                for vid in videos:
-                    if 0 < vid.size < 50 << 20:
-                        video_link = vid.link
-                        break
-            if video_link:
-                # upload
-                log.info("[%d] Sending video...", update_id)
-                if await reply_video(
-                    update,
-                    video=video_link,
-                    caption=info,
-                    parse_mode=PM.MARKDOWN_V2,
-                    filename=f"{media.id}.mp4",
-                    quote=not (chat.delete_link or chat.include_link),
-                ):
-                    log.info("[%d] Sent video.", update_id)
-                return
+                # if file is too big
+                error_text += "can't be sent, because video file is too big\\!"
+                log.error("[%d] Video file is too big.", update_id)
+            # upload video if any
+            if filepath:
+                filename = await make_file_name(str(media.id), filepath)
+                videopath = move_file(filepath, storage_folder / filename)
+                storage.add(videopath)
+                files.append(InputMediaVideo(videopath, info))
             # if file is too big
             error_text += "can't be sent, because video file is too big\\!"
             log.error("[%d] Video file is too big.", update_id)
+        if files:
+            log.debug("[%d] Finished adding to collection.", update_id)
+            log.debug("[%d] Caption: %r.", update_id, info)
+            if await send_collection(update, chat, storage, files, docs):
+                return
     # if there is no video
     else:
         log.error("[%d] Couldn't get tiktok content.", update_id)
@@ -636,8 +582,7 @@ async def send_youtube_short(
             if len(info) > ML.CAPTION_LENGTH:
                 info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + r"\.\.\."
         # check size
-        files = []
-        storage = set()
+        files, storage = [], set()
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         filepath = None
@@ -654,13 +599,7 @@ async def send_youtube_short(
             filename = await make_file_name(video.id, filepath)
             videopath = move_file(filepath, storage_folder / filename)
             storage.add(videopath)
-            files.append(
-                PyroInputMediaVideo(
-                    media=videopath,
-                    caption=info,
-                    parse_mode=PyroPM.HTML,
-                ),
-            )
+            files.append(InputMediaVideo(videopath, info))
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)
             if await send_collection(update, chat, storage, files):
@@ -700,16 +639,15 @@ async def send_pixiv(
             info = PixivStyle.get_format(chat.px_style, art)
             if link.info:
                 info = f"{esc(link.info)}\n\n{info}"
-        files, docs = [], []
-        ids = [1]
-        parsed_ids = await pixiv_parse(update, link.illust, count)
-        storage = set()
+        files, docs, storage = [], [], set()
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
+        ids = [1]
+        parsed_ids = await pixiv_parse(update, link.illust, count)
         if art.type == "ugoira":
             media = art.content[0]
             filepath = await save_file(media.original)
-            filename = await combine_file_name("pixiv", media.original, filepath)
+            filename = await join_file_name("pixiv", media.original, filepath)
             filepath = move_file(filepath, storage_folder / filename)
             storage.add(filepath)
             if not (videopath := await process_video(update, filepath)):
@@ -723,13 +661,7 @@ async def send_pixiv(
             if (videopath := Path(videopath)) != filepath:
                 storage.add(videopath)
             # add to collection
-            files.append(
-                PyroInputMediaVideo(
-                    media=videopath,
-                    caption=info,
-                    parse_mode=PyroPM.HTML,
-                ),
-            )
+            files.append(InputMediaVideo(videopath, info))
         else:
             if count > 1:
                 ids = []
@@ -761,37 +693,36 @@ async def send_pixiv(
                             "can't be sent, because something went wrong "
                             "while parsing your input."
                         )
-            for idx in ids:
-                media = art.content[idx - 1]
-                filepath = await save_file(media.original, headers=PIXIV_HEADERS)
-                filename = await combine_file_name("pixiv", media.original, filepath)
-                filepath = move_file(filepath, storage_folder / filename)
-                storage.add(filepath)
-                log.debug("[%d] Filename: %r.", update_id, filename)
-                if not (imagepath := await process_image(update, filepath)):
-                    log.error("[%d] Couldn't resize image.", update.update_id)
-                    await send_error(
-                        update,
-                        error_text + "contains images the bot couldn't resize\\!",
-                        quote=not (chat.delete_link or chat.include_link),
+            i, j = 0, 10
+            while i < len(ids):
+                for idx in ids[i:j]:
+                    media = art.content[idx - 1]
+                    filelink = media.original
+                    filepath = await save_file(filelink, headers=PIXIV_HEADERS)
+                    filename = await join_file_name("pixiv", filelink, filepath)
+                    filepath = move_file(filepath, storage_folder / filename)
+                    storage.add(filepath)
+                    log.debug("[%d] Filename: %r.", update_id, filename)
+                    if not (imagepath := await process_image(update, filepath)):
+                        log.error("[%d] Couldn't resize image.", update.update_id)
+                        await send_error(
+                            update,
+                            error_text + "contains images the bot couldn't resize\\!",
+                            quote=not (chat.delete_link or chat.include_link),
+                        )
+                        return
+                    if (imagepath := Path(imagepath)) != filepath:
+                        imagepath = move_file(
+                            imagepath, storage_folder / f"RE_{filename}"
+                        )
+                        storage.add(imagepath)
+                    files.append(
+                        InputMediaPhoto(imagepath, info if ids[i] == idx else None)
                     )
-                    return
-                if (imagepath := Path(imagepath)) != filepath:
-                    imagepath = move_file(imagepath, storage_folder / f"RE_{filename}")
-                    storage.add(imagepath)
-                files.append(
-                    PyroInputMediaPhoto(
-                        media=imagepath,
-                        caption=info if ids[0] == idx else None,
-                        parse_mode=PyroPM.HTML if ids[0] == idx else None,
-                    ),
-                )
-                if chat.px_orig:
-                    docs.append(
-                        PyroInputMediaDocument(
-                            media=filepath,
-                        ),
-                    )
+                    if chat.px_orig:
+                        docs.append(InputMediaDocument(filepath))
+                # get next 10 photos/docs
+                i, j = j, j + 10
         if files:
             log.debug("[%d] Finished adding to collection.", update_id)
             log.debug("[%d] Caption: %r.", update_id, info)

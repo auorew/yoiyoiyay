@@ -135,6 +135,14 @@ LINKS = {
             )
             (?P<id>\d+)
         """,
+        "file": r"""(?x)
+        (?:
+            (?:.+)\/
+            (?P<id>[\w\-]+)
+            (?:\.(?P<ext>\w{3,4}))?
+            (?:\?)
+        )
+        """,
         "info": r"(?:\@(?P<author>[\w\.]+)\/video\/(?P<id>\d+))",
         "thumb": "https://www.tiktok.com/api/img/?itemId={0}&location={1}",
         "link": "https://www.tiktok.com/@web/video/{id}",

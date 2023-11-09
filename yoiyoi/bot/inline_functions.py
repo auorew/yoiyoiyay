@@ -417,7 +417,7 @@ async def inline_tiktok(
                         "video_url": vid.link,
                         "mime_type": "video/mp4",
                         "thumbnail_url": video.thumb_1,
-                        "parse_mode": PM.MARKDOWN_V2,
+                        "parse_mode": PM.HTML,
                         "caption": (
                             TikTokStyle.get_format(user.tt_style, video)
                             if user.include_link
