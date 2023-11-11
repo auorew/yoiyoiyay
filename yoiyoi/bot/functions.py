@@ -3,8 +3,8 @@ import asyncio
 import logging
 import os
 
-from html import escape as escape_html
 from pathlib import Path
+from typing import Optional
 
 # pyrogram enums
 from pyrogram.enums.parse_mode import ParseMode as PM
@@ -31,7 +31,15 @@ from ..api import LinkType, TikTokMediaKind
 from ..api.instagram import get_instagram_links
 
 # Link, PixivContent, TweetContent namedtuples
-from ..api.namedtuples import Link, PixivContent, TweetContent
+from ..api.namedtuples import (
+    Link,
+    PixivContent,
+    PixivMedia,
+    TikTokMedia,
+    TweetContent,
+    TweetMedia,
+    YouTubeShortMedia,
+)
 
 # pixiv api
 from ..api.pixiv import get_pixiv_links
@@ -76,7 +84,7 @@ from ..db.updaters import update_chat
 from ..extra.request_helpers import PIXIV_HEADERS, save_file
 
 # media styles
-from ..extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
+from ..extra.styles import PixivStyle, Style, TikTokStyle, TwitterStyle, YouTubeShortStyle
 
 # extra utilities
 from ..extra.utils import delete_files, move_file
@@ -92,6 +100,23 @@ update_queue = asyncio.Queue(QUEUE_SIZE)
 
 # current media groups
 media_groups = set()
+
+# media type
+Media = TweetMedia | PixivMedia | TikTokMedia | YouTubeShortMedia
+
+
+async def generate_info(link: Link, style: Style, style_id: int, media: Media) -> str:
+    info = style.get_format(style_id, media)
+    if link.info:
+        info = f"{link.info}\n\n{info}"
+    if len(info) > ML.CAPTION_LENGTH:
+        info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + "..."
+    return info
+
+
+async def get_info(link: Link, style: Style, chat: Chat, media: Media) -> Optional[str]:
+    if chat.include_link:
+        return await generate_info(link, style, getattr(chat, style.field), media)
 
 
 async def send_collection(
@@ -152,13 +177,10 @@ async def send_twitter(
     log.info("[%d] Twitter Link: %s.", update_id, link.link)
     # get media
     if (tweet := await get_twitter_links(link.id)) and (count := len(tweet.content)):
-        info = None
-        if chat.include_link:
-            info = TwitterStyle.get_format(chat.tw_style, tweet)
-            if link.info:
-                info = f"{escape_html(link.info)}\n\n{info}"
-            if len(info) > ML.CAPTION_LENGTH:
-                info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + r"\.\.\."
+        info = await get_info(link, TwitterStyle, chat, tweet)
+        files, docs, storage = [], [], set()
+        storage_folder = Path(CACHE_DIR / str(update_id))
+        storage_folder.mkdir(parents=True, exist_ok=True)
         ids = tuple(range(1, count + 1))
         parsed_ids = await pixiv_parse(update, link.illust, count)
         if link.illust:
@@ -190,9 +212,6 @@ async def send_twitter(
                         "can't be sent, because something went wrong "
                         "while parsing your input."
                     )
-        files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update_id))
-        storage_folder.mkdir(parents=True, exist_ok=True)
         for idx in ids:
             media: TweetContent = tweet.content[idx - 1]
             if media.type == "photo":
@@ -396,11 +415,7 @@ async def send_tiktok(
     log.info("[%d] TikTok Link: %s.", update_id, link.link)
     # get media
     if media := await get_tiktok_links(link.link):
-        info = None
-        if chat.include_link:
-            info = TikTokStyle.get_format(chat.tt_style, media)
-            if len(info) > ML.CAPTION_LENGTH:
-                info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + r"\.\.\."
+        info = await get_info(link, TikTokStyle, chat, media)
         files, docs, storage = [], [], set()
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
@@ -517,12 +532,7 @@ async def send_youtube_short(
     log.info("[%d] YouTube Short Link: %s.", update_id, link.link)
     # get media
     if video := await get_youtube_short_links(link):
-        info = None
-        if chat.include_link:
-            info = YouTubeShortStyle.get_format(chat.yts_style, video)
-            if len(info) > ML.CAPTION_LENGTH:
-                info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + r"\.\.\."
-        # check size
+        info = await get_info(link, YouTubeShortStyle, chat, video)
         files, storage = [], set()
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
@@ -592,11 +602,7 @@ async def send_pixiv(
     log.info("[%d] Pixiv Link: %s.", update_id, link.link)
     # get media
     if (art := await get_pixiv_links(link.id)) and (count := len(art.content)):
-        info = None
-        if chat.include_link:
-            info = PixivStyle.get_format(chat.px_style, art)
-            if link.info:
-                info = f"{esc(link.info)}\n\n{info}"
+        info = await get_info(link, PixivStyle, chat, art)
         files, docs, storage = [], [], set()
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)

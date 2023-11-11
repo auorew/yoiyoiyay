@@ -25,7 +25,7 @@ class AbstractSwitcher(ABC):
         pass
 
 
-class BaseSwitcher(AbstractSwitcher):
+class Switcher(AbstractSwitcher):
     """Represents base switcher for any purposes."""
 
     name = "Base"
@@ -45,7 +45,7 @@ class BaseSwitcher(AbstractSwitcher):
         return value % len(cls.options)
 
 
-class BaseStyle(BaseSwitcher):
+class Style(Switcher):
     """Represents base style for other styles."""
 
     name = "Base"
@@ -73,7 +73,7 @@ class BaseStyle(BaseSwitcher):
         return NotImplemented
 
 
-class TwitterStyle(BaseStyle):
+class TwitterStyle(Style):
     """Represents twitter style."""
 
     name = "Twitter"
@@ -128,7 +128,7 @@ class TwitterStyle(BaseStyle):
                 return link
 
 
-class PixivStyle(BaseStyle):
+class PixivStyle(Style):
     """Represents pixiv style."""
 
     name = "Pixiv"
@@ -195,7 +195,7 @@ class PixivStyle(BaseStyle):
                 return link
 
 
-class TikTokStyle(BaseStyle):
+class TikTokStyle(Style):
     """Represents tiktok style."""
 
     name = "TikTok"
@@ -252,7 +252,7 @@ class TikTokStyle(BaseStyle):
                 return link
 
 
-class YouTubeShortStyle(BaseStyle):
+class YouTubeShortStyle(Style):
     """Represents pixiv style."""
 
     name = "YouTube Short"
@@ -312,7 +312,7 @@ class YouTubeShortStyle(BaseStyle):
                 return link
 
 
-class TikTokMode(BaseSwitcher):
+class TikTokMode(Switcher):
     """Represents tiktok slideshow modes."""
 
     name = "TikTok slideshow mode"

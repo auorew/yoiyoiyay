@@ -11,7 +11,7 @@ from ..db import Session
 from ..db.models import Chat
 
 # media styles
-from ..extra.styles import BaseStyle
+from ..extra.styles import Style
 
 # get logger
 log = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ async def toggle_field(chat_id: int, field: str) -> bool:
         return state
 
 
-async def switch_style(chat_id: int, style: BaseStyle, value: int) -> int:
+async def switch_style(chat_id: int, style: Style, value: int) -> int:
     """Switches style value to new style value.
 
     Args:
@@ -88,7 +88,7 @@ async def switch_style(chat_id: int, style: BaseStyle, value: int) -> int:
         return new_style
 
 
-async def cycle_style(chat_id: int, style: BaseStyle) -> int:
+async def cycle_style(chat_id: int, style: Style) -> int:
     """Cycles style value.
 
     Args:

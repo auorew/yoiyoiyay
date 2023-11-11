@@ -13,7 +13,7 @@ from ..bot.senders import send_error, send_reply
 from ..db.updaters import cycle_style, switch_style, toggle_field
 
 # media styles
-from ..extra.styles import BaseStyle
+from ..extra.styles import Style
 
 # notify
 from .helpers import notify
@@ -54,7 +54,7 @@ async def parse_style_args(args: list[str]) -> Optional[int]:
         return
 
 
-async def change_style(update: Update, style: BaseStyle, args: list[str] = None) -> None:
+async def change_style(update: Update, style: Style, args: list[str] = None) -> None:
     """Changes specified style and sends message to chat.
 
     Args:
