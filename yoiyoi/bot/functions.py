@@ -3,16 +3,8 @@ import asyncio
 import logging
 import os
 
-from hashlib import sha256
 from html import escape as escape_html
 from pathlib import Path
-from typing import Optional
-
-# parse json
-import orjson
-
-# working with images
-from PIL import Image
 
 # pyrogram enums
 from pyrogram.enums.parse_mode import ParseMode as PM
@@ -54,7 +46,7 @@ from ..api.twitter import get_twitter_links
 from ..api.youtube_short import get_youtube_short_links
 
 # get constants and pyrogram app
-from ..bot import QUEUE_SIZE, PixivParse
+from ..bot import CACHE_DIR, MAX_GIF_FILE_SIZE, QUEUE_SIZE, PixivParse
 
 # bot formatters
 from ..bot.formatters import (
@@ -87,7 +79,10 @@ from ..extra.request_helpers import PIXIV_HEADERS, save_file
 from ..extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
 
 # extra utilities
-from ..extra.utils import delete_files, get_file_chunk, move_file
+from ..extra.utils import delete_files, move_file
+
+# content processor
+from .processors import choose_twitter_video, crop_thumbnail, process_image, process_video
 
 # setup logger
 log = logging.getLogger(__name__)
@@ -97,140 +92,6 @@ update_queue = asyncio.Queue(QUEUE_SIZE)
 
 # current media groups
 media_groups = set()
-
-# telegram image max size
-MAX_SIZE = (2560, 2560)
-
-# telegram max photo size sum
-MAX_PHOTO_SIZE_SUM = 10000
-
-# telegram max photo size (10 MB)
-MAX_PHOTO_FILE_SIZE = 10 << 20
-
-# presumed max gif file size (3 MB)
-MAX_GIF_FILE_SIZE = 3 << 20
-
-# cache directory
-CACHE_DIR = Path(".") / os.environ.get("CACHE_DIR", ".cache")
-
-
-class ImageResizeException(Exception):
-    pass
-
-
-async def count_audio_stream(update: Update, filepath: Path) -> bool:
-    update_id = update.update_id
-    log.info("[%d] Checking for audio streams...", update_id)
-    # fmt: off
-    ffprobe_command = [
-        "ffprobe",
-        "-v", "quiet",
-        "-print_format", "json",
-        "-show_streams",
-        "-select_streams", "a:0",
-        str(filepath),
-    ]
-    # fmt: on
-    log.debug("[%d] ffprobe command: %s.", update_id, " ".join(ffprobe_command))
-    process = await asyncio.create_subprocess_exec(
-        *ffprobe_command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    if await process.wait() != 0:
-        log.warning("[%d] ffprobe command failed.", update_id)
-    try:
-        output = await process.stdout.read()
-        result = orjson.loads(output)
-    except orjson.JSONDecodeError:
-        log.warning("[%d] Couldn't parse output: %s.", update_id, output)
-        log.warning("[%d] Assuming 0 audio streams...", update_id)
-        return 0
-    return len(result["streams"])
-
-
-async def process_video(update: Update, filepath: Path) -> Optional[Path]:
-    update_id = update.update_id
-    log.info("[%d] Processing a video...", update_id)
-    # if more than 0 audio streams then quit
-    if await count_audio_stream(update, filepath):
-        log.info("[%d] Found an audio stream!", update_id)
-        return filepath
-    log.info("[%d] Found no audio streams!", update_id)
-    # rename and create output path
-    result_path = filepath.parent / filepath.name.replace(".mov", ".mp4")
-    rename_path = filepath.rename(
-        filepath.parent / f"RE_{filepath.name.replace('.mov', '.mp4')}"
-    )
-    log.debug("[%d] Output video: %s.", update_id, result_path)
-    # fmt: off
-    ffmpeg_command = (
-        "ffmpeg",
-        "-hide_banner", "-loglevel", "warning",
-        "-i", str(rename_path),
-        "-f", "lavfi", "-t", "1", "-i", "anullsrc=r=44100:cl=stereo",
-        "-c:v", "copy",
-        str(result_path),
-    )
-    # fmt: on
-    log.debug("[%d] ffmpeg command: %s.", update_id, " ".join(ffmpeg_command))
-    process = await asyncio.create_subprocess_exec(*ffmpeg_command)
-    if await process.wait() != 0:
-        log.warning("[%d] ffmpeg command failed.", update_id)
-    original = sha256(get_file_chunk(rename_path)).hexdigest()
-    output = sha256(get_file_chunk(result_path)).hexdigest()
-    log.debug("[%d] SHA256 input  hash: %s.", update_id, original)
-    log.debug("[%d] SHA256 output hash: %s.", update_id, output)
-    if original == output:
-        log.info("[%d] SHA256 hashes are the same, deleting output...", update_id)
-        result_path.unlink(missing_ok=True)
-        return rename_path.rename(result_path)
-    else:
-        log.info("[%d] SHA256 hashes are different, sending output...", update_id)
-        rename_path.unlink(missing_ok=True)
-        return result_path
-
-
-async def resize_image(filepath: Path):
-    if (resizer_api := os.environ.get("RESIZER_API", None)) and (
-        resized_filepath := await save_file(
-            resizer_api,
-            "POST",
-            timeout=120,
-            files={"upload_file": filepath.open("rb")},
-        )
-    ):
-        return resized_filepath
-
-
-async def process_image(update: Update, filepath: Path) -> Optional[Path]:
-    update_id = update.update_id
-    log.info("[%d] Processing an image...", update_id)
-    # check if file size > 10 MB
-    if (filesize := os.stat(filepath).st_size) > MAX_PHOTO_FILE_SIZE:
-        log.debug("[%d] File size: %d.", update_id, filesize)
-        return await resize_image(filepath)
-    # check if width + height > 10000
-    with Image.open(filepath) as image:
-        log.debug("[%d] Original: %d x %d.", update_id, *image.size)
-        log.debug("[%d] Size sum: %d.", update_id, sum(image.size))
-        if sum(image.size) > MAX_PHOTO_SIZE_SUM:
-            return await resize_image(filepath)
-    return filepath
-
-
-async def choose_twitter_video(
-    update: Update,
-    content: TweetContent,
-) -> Optional[str]:
-    for link, size in zip(content.links, content.sizes, strict=False):
-        if size > 50 << 20:
-            await send_error(update, "Sorry, file is *too huge*\\!")
-            await send_reply(update, f"[Download link]({link})\\.")
-            await send_reply(update, "Trying to get smaller version\\.\\.\\.")
-            continue
-        return link
-    return
 
 
 async def send_collection(
@@ -683,6 +544,8 @@ async def send_youtube_short(
             thumbpath = await save_file(video.thumb)
             thumbname = await make_thumb_name(filename, thumbpath)
             thumbpath = move_file(thumbpath, storage_folder / thumbname)
+            if await crop_thumbnail(thumbpath, videoinfo[0], videoinfo[1]):
+                log.info("[%d] Successfully cropped thumbnail.", update_id)
             storage.add(thumbpath)
             files.append(
                 InputMediaVideo(

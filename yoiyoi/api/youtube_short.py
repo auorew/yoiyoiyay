@@ -94,7 +94,7 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
             "source": link.link,
             "id": link.id,
             "title": snippet["title"],
-            "thumb": snippet["thumbnails"]["medium"]["url"],
+            "thumb": snippet["thumbnails"]["maxres"]["url"],
             "desc": snippet["description"],
             "channel_name": snippet["channelTitle"],
             "channel_id": snippet["channelId"],
