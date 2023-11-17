@@ -39,6 +39,15 @@ ytdlp_ops = {
     "forcejson": True,
 }
 
+# youtube API thumbnail quality
+YT_QUALITY = ["maxres", "standard", "high", "medium", "default"]
+
+
+def get_ytdlp_thumbnail(info: dict) -> dict:
+    for quality in YT_QUALITY:
+        if info.get(quality, None):
+            return info[quality]["url"]
+
 
 def parse_duration(duration: str):
     if duration and (parsed_duration := re.match(duration_regex, duration)):
@@ -94,7 +103,7 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
             "source": link.link,
             "id": link.id,
             "title": snippet["title"],
-            "thumb": snippet["thumbnails"]["maxres"]["url"],
+            "thumb": get_ytdlp_thumbnail(snippet["thumbnails"]),
             "desc": snippet["description"],
             "channel_name": snippet["channelTitle"],
             "channel_id": snippet["channelId"],
