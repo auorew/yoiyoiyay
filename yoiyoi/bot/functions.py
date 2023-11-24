@@ -129,7 +129,7 @@ async def send_collection(
     update_id = update.update_id
     try:
         message = await get_message(update)
-        quoted = not (chat.delete_link or chat.include_link)
+        quoted = not chat.delete_link
         i, j = 0, 10
         while i < len(files):
             # send media group
@@ -225,7 +225,7 @@ async def send_twitter(
                     await send_error(
                         update,
                         error_text + "contains images the bot couldn't resize\\!",
-                        quote=not (chat.delete_link or chat.include_link),
+                        quote=not chat.delete_link,
                     )
                     return
                 if (imagepath := Path(imagepath)) != filepath:
@@ -252,7 +252,7 @@ async def send_twitter(
                     await send_error(
                         update,
                         error_text + "contains videos the bot couldn't send\\!",
-                        quote=not (chat.delete_link or chat.include_link),
+                        quote=not chat.delete_link,
                     )
                     return
                 filepath = await save_file(videolink)
@@ -265,7 +265,7 @@ async def send_twitter(
                         await send_error(
                             update,
                             error_text + "contains videos the bot couldn't send\\!",
-                            quote=not (chat.delete_link or chat.include_link),
+                            quote=not chat.delete_link,
                         )
                         return
                 else:
@@ -302,7 +302,7 @@ async def send_twitter(
             "can't be found or downloaded\\. "
             "If this seems to be wrong, try again later\\."
         ),
-        quote=not (chat.delete_link or chat.include_link),
+        quote=not chat.delete_link,
     )
 
 
@@ -343,7 +343,7 @@ async def send_instagram(
                     await send_error(
                         update,
                         error_text + "contains images the bot couldn't resize\\!",
-                        quote=not (chat.delete_link or chat.include_link),
+                        quote=not chat.delete_link,
                     )
                     return
                 if (imagepath := Path(imagepath)) != filepath:
@@ -393,7 +393,7 @@ async def send_instagram(
             "can't be found or downloaded\\. "
             "If this seems to be wrong, try again later\\."
         ),
-        quote=not (chat.delete_link or chat.include_link),
+        quote=not chat.delete_link,
     )
 
 
@@ -438,7 +438,7 @@ async def send_tiktok(
                         await send_error(
                             update,
                             error_text + "contains images the bot couldn't resize\\!",
-                            quote=not (chat.delete_link or chat.include_link),
+                            quote=not chat.delete_link,
                         )
                         return
                     if (imagepath := Path(imagepath)) != filepath:
@@ -510,7 +510,7 @@ async def send_tiktok(
     await send_error(
         update,
         error_text,
-        quote=not (chat.delete_link or chat.include_link),
+        quote=not chat.delete_link,
     )
 
 
@@ -580,7 +580,7 @@ async def send_youtube_short(
     await send_error(
         update,
         error_text,
-        quote=not (chat.delete_link or chat.include_link),
+        quote=not chat.delete_link,
     )
 
 
@@ -619,7 +619,7 @@ async def send_pixiv(
                 await send_error(
                     update,
                     error_text + "contains videos the bot couldn't send\\!",
-                    quote=not (chat.delete_link or chat.include_link),
+                    quote=not chat.delete_link,
                 )
                 return
             if (videopath := Path(videopath)) != filepath:
@@ -687,7 +687,7 @@ async def send_pixiv(
                         await send_error(
                             update,
                             error_text + "contains images the bot couldn't resize\\!",
-                            quote=not (chat.delete_link or chat.include_link),
+                            quote=not chat.delete_link,
                         )
                         return
                     if (imagepath := Path(imagepath)) != filepath:
@@ -725,7 +725,7 @@ async def send_pixiv(
     await send_error(
         update,
         error_text,
-        quote=not (chat.delete_link or chat.include_link),
+        quote=not chat.delete_link,
     )
 
 
