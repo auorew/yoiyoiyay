@@ -81,8 +81,8 @@ async def get_url_info(link: str) -> dict:
     ):
         if (
             (url := await get_info)
-            and "@web" not in url
             and (info := re.search(TT["info"], url))
+            and info["author"] != "web"
         ):
             return {**info.groupdict(), "info_source": "urlexpander"}
     else:
@@ -103,6 +103,7 @@ async def get_tiktok_info(link: str) -> dict:
         and response.is_success
         and response.url.path != "/"
         and (info := re.search(TT["info"], response.url.path))
+        and info["author"] != "web"
     ):
         log.debug("TikTok URL: %s.", response.url)
         return {**info.groupdict(), "info_source": "tiktok"}
