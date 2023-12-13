@@ -107,6 +107,28 @@ async def get_tiktok_info(link: str) -> dict:
         return {**info.groupdict(), "info_source": "tiktok"}
 
 
+async def get_ytdlp_basic_info(link: str) -> dict:
+    """Gets basic tiktok info from yt-dlp.
+
+    Args:
+        link (str): formatted tiktok link.
+
+    Returns:
+        dict: tiktok id and author info.
+    """
+    with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
+        try:
+            info = ytdl.extract_info(link)
+        except yt_dlp.utils.DownloadError:
+            log.warning("yt-dlp: Unable to download.")
+            return
+        return {
+            "id": info["id"],
+            "author": info["uploader"],
+            "info_source": "yt-dlp",
+        }
+
+
 async def get_tokcounter_info(basic_info: dict) -> dict:
     """Gets advanced tiktok info from TokCounter.
 
@@ -481,8 +503,9 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
 
     for get_basic_info in asyncio.as_completed(
         (
-            get_tiktok_info(link),  # source
-            get_url_info(link),  # source
+            get_tiktok_info(link),  # original source
+            get_url_info(link),  # link source
+            get_ytdlp_basic_info(link),  # best source
         )
     ):
         if basic_info := await get_basic_info:

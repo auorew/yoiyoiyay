@@ -26,16 +26,18 @@ async def expand_with_urlex(link: str) -> Optional[str]:
         soup = BeautifulSoup(response.text, "html.parser")
         expanded_urls = soup.find_all("a", {"rel": "external nofollow"})
         if not expanded_urls:
+            log.debug("URLEX: No valid response.")
             return
         # process response
         if expanded_url := expanded_urls[0].attrs.get("href", None):
             log.debug("URLEX: %r.", expanded_url)
             return expanded_url
+        log.debug("URLEX: No URL.")
 
 
 async def expand_with_expandurl(link) -> dict:
     if response := await make_request(
-        "https://www.expandurl.net/expand",
+        "https://www.expandurl.net/",
         data={"url": link},
     ):
         # check response
@@ -45,11 +47,13 @@ async def expand_with_expandurl(link) -> dict:
         # check response
         soup = BeautifulSoup(response.text, "lxml")
         if not (expanded_url := soup.find("div", string="Long URL:")):
+            log.debug("ExpandURL: No valid response.")
             return
         # process response
         if expanded_url.parent.a:
             log.debug("ExpandURL: %r.", expanded_url.parent.a.text)
             return expanded_url.parent.a.text
+        log.debug("ExpandURL: No URL.")
 
 
 async def expand_with_checkshorturl(link) -> dict:
@@ -64,8 +68,10 @@ async def expand_with_checkshorturl(link) -> dict:
         # check response
         soup = BeautifulSoup(response.text, "lxml")
         if not (expanded_url := soup.find("p", string="Long URL")):
+            log.debug("CheckShortURL: No valid response.")
             return
         # process response
         if expanded_url.next_sibling.a:
             log.debug("CheckShortURL: %r.", expanded_url.next_sibling.a.text)
             return expanded_url.next_sibling.a.text
+        log.debug("CheckShortURL: No URL.")

@@ -950,13 +950,13 @@ files = [
 
 [[package]]
 name = "logtail-python"
-version = "0.2.7"
+version = "0.2.8"
 description = "Logtail.com client library"
 optional = false
 python-versions = "*"
 files = [
-    {file = "logtail-python-0.2.7.tar.gz", hash = "sha256:9b8e30cbb962c6fc70015bf1ca47cc35f1810a13dcef00327fe215e6d0c4ef23"},
-    {file = "logtail_python-0.2.7-py2.py3-none-any.whl", hash = "sha256:584b66c1f26a18561db4a7ed6670090c3256981697b9bc38394510aa56a3081f"},
+    {file = "logtail-python-0.2.8.tar.gz", hash = "sha256:7a0e887f625969eaa45d942bda81398da012fcd1d440737d3a9385e588c2c414"},
+    {file = "logtail_python-0.2.8-py2.py3-none-any.whl", hash = "sha256:a13441bba97114ef59c23a3508cd5c0e2adfa191ce57d3cfd59e0d1c31786ac2"},
 ]
 
 [package.dependencies]
