@@ -85,8 +85,6 @@ async def get_url_info(link: str) -> dict:
             and info["author"] != "web"
         ):
             return {**info.groupdict(), "info_source": "urlexpander"}
-    else:
-        return
 
 
 async def get_tiktok_info(link: str) -> dict:

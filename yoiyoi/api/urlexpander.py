@@ -21,7 +21,7 @@ async def expand_with_urlex(link: str) -> Optional[str]:
         # check response
         if response.is_error:
             return
-        log.debug("Request to API succeeded.")
+        log.debug("URLEX: Request to API succeeded.")
         # check response
         soup = BeautifulSoup(response.text, "html.parser")
         expanded_urls = soup.find_all("a", {"rel": "external nofollow"})
@@ -29,6 +29,7 @@ async def expand_with_urlex(link: str) -> Optional[str]:
             return
         # process response
         if expanded_url := expanded_urls[0].attrs.get("href", None):
+            log.debug("URLEX: %r.", expanded_url)
             return expanded_url
 
 
@@ -40,13 +41,14 @@ async def expand_with_expandurl(link) -> dict:
         # check response
         if response.is_error:
             return
-        log.debug("Request to API succeeded.")
+        log.debug("ExpandURL: Request to API succeeded.")
         # check response
         soup = BeautifulSoup(response.text, "lxml")
         if not (expanded_url := soup.find("div", string="Long URL:")):
             return
         # process response
         if expanded_url.parent.a:
+            log.debug("ExpandURL: %r.", expanded_url.parent.a.text)
             return expanded_url.parent.a.text
 
 
@@ -58,11 +60,12 @@ async def expand_with_checkshorturl(link) -> dict:
         # check response
         if response.is_error:
             return
-        log.debug("Request to API succeeded.")
+        log.debug("CheckShortURL: Request to API succeeded.")
         # check response
         soup = BeautifulSoup(response.text, "lxml")
         if not (expanded_url := soup.find("p", string="Long URL")):
             return
         # process response
         if expanded_url.next_sibling.a:
+            log.debug("CheckShortURL: %r.", expanded_url.next_sibling.a.text)
             return expanded_url.next_sibling.a.text
