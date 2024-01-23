@@ -193,7 +193,8 @@ async def get_lovetik_info(basic_info: dict) -> dict:
             "Content-Type": "application/x-www-form-urlencoded;" " charset=UTF-8",
             "Referer": f"https://{base}/",
         },
-        data={"query": TT["source"].format(**basic_info)},
+        # fallback source, since /photo/ URLs are not currently supported
+        data={"query": basic_info["fallback"]},
     ):
         # check response
         if response.is_error:
@@ -233,7 +234,8 @@ async def get_ytdlp_info(basic_info: dict) -> dict:
     """
     with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
         try:
-            info = ytdl.extract_info(basic_info["source"])
+            # fallback source, since /photo/ URLs are not currently supported
+            info = ytdl.extract_info(basic_info["fallback"])
         except yt_dlp.utils.DownloadError:
             log.warning("yt-dlp: Unable to download.")
             return
@@ -252,14 +254,15 @@ async def get_ytdlp_links(tiktok_info: dict) -> list[Optional[TikTok]]:
     """Gets video links from yt-dlp.
 
     Args:
-        tiktok_info (str): tiktok info dictionary.
+        tiktok_info (dict): tiktok info dictionary.
 
     Returns:
         list[TikTok]: tiktok video links and sizes.
     """
     content = []
     with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
-        info = ytdl.extract_info(tiktok_info["source"])
+        # fallback source, since /photo/ URLs are not currently supported
+        info = ytdl.extract_info(tiktok_info["fallback"])
         videos = []
         for video_format in info["formats"]:
             if (
@@ -282,7 +285,7 @@ async def get_tokcounter_links(tiktok_info: dict) -> list[TikTok]:
     """Gets video links from TokCounter.
 
     Args:
-        tiktok_info (str): tiktok info dictionary.
+        tiktok_info (dict): tiktok info dictionary.
 
     Returns:
         list[TikTok]: tiktok video links and sizes.
@@ -354,7 +357,7 @@ async def get_tikmate_online_info(tiktok_info: dict) -> list[TikTok]:
             "Referer": f"{base}/",
         },
         data={
-            "url": tiktok_info["source"],
+            "url": tiktok_info["fallback"],
             "token": token,
         },
         proxy=True,
@@ -367,6 +370,9 @@ async def get_tikmate_online_info(tiktok_info: dict) -> list[TikTok]:
         log.debug("Request to API succeeded.")
         data = re.sub(r"<\/?[0-9a-zA-Z \-\=\.\"\'\/\\\|]+>", "", response.text)
         result = dehunter(data)
+        if not result[0]:
+            log.debug("Couldn't obtain HTML!")
+            return
         html = result[0].replace('\\"', '"').replace("\\'", "'")
         log.debug("Obtained HTML: %s", html)
         # process response
@@ -515,6 +521,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
 
     # add source link
     basic_info["source"] = TT["source"].format(**basic_info)
+    basic_info["fallback"] = TT["fallback"].format(**basic_info)
 
     for get_info in asyncio.as_completed(
         (

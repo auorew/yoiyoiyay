@@ -55,6 +55,6 @@ def dehunter(string: bytes | str):
         args["input"], args["delim"], int(args["offset"]), int(args["source"])
     )
     if result := re.search(
-        r"(?P<html><[a-zA-Z]+.+>)?\";[^{]+(?P<status>{ \"status\".+?})?", response
+        r"(?P<html><[a-zA-Z]+.+>)?\s*\";[^{]+(?P<status>{ \"status\".+?})?", response
     ):
         return result["html"], orjson.loads(result["status"]) if result["status"] else {}

@@ -29,6 +29,7 @@ TikTokMedia = namedtuple(
     (
         "source",
         "id",
+        "type",  # str in URL
         "kind",
         "author",
         "author_name",
@@ -37,6 +38,7 @@ TikTokMedia = namedtuple(
         "content",
         "info_source",
         "advinfo_source",
+        "fallback",  # fallback source URL for API
     ),
 )
 
