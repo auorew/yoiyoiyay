@@ -144,7 +144,7 @@ LINKS = {
         )
         """,
         "info": r"(?:\@(?P<author>[\w\.]+)\/(?P<type>video|photo)\/(?P<id>\d+))",
-        "link": "https://www.tiktok.com/@web/{type}/{id}",
+        "link": "https://www.tiktok.com/@web/video/{id}",
         "source": "https://www.tiktok.com/@{author}/{type}/{id}",
         "fallback": "https://www.tiktok.com/@{author}/video/{id}",
         "type": LinkType.TIKTOK,
