@@ -63,6 +63,14 @@ TikTok = TypedDict("TikTok", link=TikTokURL, size=TikTokSize)
 REGEX_TIKMATE_ONLINE = re.compile(r"\.app_(?P<name>\w+)\.(?P<extension>\w{3,4})$")
 
 
+def update_new(old_dict: dict, new_dict: dict):
+    for key, value in old_dict.items():
+        if value is None:
+            del old_dict[key]
+    for key in new_dict.keys() - old_dict.keys():
+        old_dict[key] = new_dict[key]
+
+
 async def get_url_info(link: str) -> dict:
     """Gets tiktok info from TikTok with URL expanders.
 
@@ -125,7 +133,37 @@ async def get_ytdlp_basic_info(link: str) -> dict:
         return {
             "id": info["id"],
             "author": info["uploader"],
+            "type": "photo" if info["video_ext"] == "none" else "video",
             "info_source": "yt-dlp",
+        }
+
+
+async def get_tiktok_thumbnail(basic_info: dict) -> dict:
+    if response := await make_request.retry_with(stop=stop_after_attempt(1))(
+        url=f'https://www.tiktok.com/oembed?url={basic_info["source"]}',
+        method="GET",
+    ):
+        # check response
+        if response.is_error:
+            log.warning("Request to API failed: %s.", response)
+            log.debug("Response: %s", response.content)
+            return
+        log.debug("Request to API succeeded.")
+        try:
+            info = orjson.loads(response.content)
+        except orjson.JSONDecodeError:
+            log.warning("Couldn't decode json response: %r.", response.content)
+            return
+        log.debug("JSON: %r.", info)
+        # process response
+        return {
+            "thumb": info["thumbnail_url"],
+            "kind": TikTokMediaKind.VIDEO
+            if info["type"] == "video"
+            else TikTokMediaKind.SLIDESHOW,
+            "author_name": info["author_name"],
+            "desc": info["title"],
+            "advinfo_source": "tiktok_embed",
         }
 
 
@@ -261,8 +299,12 @@ async def get_ytdlp_links(tiktok_info: dict) -> list[Optional[TikTok]]:
     """
     content = []
     with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
-        # fallback source, since /photo/ URLs are not currently supported
-        info = ytdl.extract_info(tiktok_info["fallback"])
+        try:
+            # fallback source, since /photo/ URLs are not currently supported
+            info = ytdl.extract_info(tiktok_info["fallback"])
+        except yt_dlp.utils.DownloadError:
+            log.warning("yt-dlp: Unable to download.")
+            return
         videos = []
         for video_format in info["formats"]:
             if (
@@ -528,10 +570,11 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
             get_ytdlp_info(basic_info),  # best
             get_tokcounter_info(basic_info),  # good
             get_lovetik_info(basic_info),  # okay
+            get_tiktok_thumbnail(basic_info),  # thumbnail
         )
     ):
         if info := await get_info:
-            info.update(basic_info)
+            update_new(info, basic_info)
             if info["thumb"]:
                 break
     else:
