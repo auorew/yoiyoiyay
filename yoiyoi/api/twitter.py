@@ -54,6 +54,9 @@ QUALITY = ("orig", "large", "medium", "small")
 # twitter dictionary
 TWI = LINKS["twitter"]
 
+# tweet URL
+TWEET_URL = "https://twitter.com/web/status"
+
 # set config
 gallery_dl.config.set(
     ("extractor", "twitter", "cookies"),
@@ -120,9 +123,9 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
         if tomb := tweet_info.get("tombstone"):
             error = tomb["text"]["text"]
             if error.startswith("Age-restricted"):
-                log.warning("Age-restricted content.")
+                log.warning("Age-restricted: %s/%s.", TWEET_URL, tweet_id)
             else:
-                log.warning("Dead tweet.")
+                log.warning("Dead tweet: %s/%s.", TWEET_URL, tweet_id)
             return
         if not (user := tweet_info.get("user")):
             log.error("Scraping failed.")
