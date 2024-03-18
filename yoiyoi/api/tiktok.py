@@ -64,8 +64,8 @@ REGEX_TIKMATE_ONLINE = re.compile(r"\.app_(?P<name>\w+)\.(?P<extension>\w{3,4})$
 
 
 def update_new(old_dict: dict, new_dict: dict):
-    for key, value in old_dict.items():
-        if value is None:
+    for key in old_dict.keys():
+        if old_dict[key] is None:
             del old_dict[key]
     for key in new_dict.keys() - old_dict.keys():
         old_dict[key] = new_dict[key]
