@@ -372,7 +372,7 @@ async def get_tikmate_online_info(tiktok_info: dict) -> list[TikTok]:
     log.info("API: TikMate Online.")
     content = []
     # api info
-    base = "https://tikmate.online"
+    base = "https://tikmate.io"
     api = f"{base}/abc.php"
     # get token
     token = ""
@@ -402,6 +402,7 @@ async def get_tikmate_online_info(tiktok_info: dict) -> list[TikTok]:
             "url": tiktok_info["fallback"],
             "token": token,
         },
+        follow_redirects=True,
         proxy=True,
     ):
         # check response
