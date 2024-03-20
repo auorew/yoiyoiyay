@@ -2704,13 +2704,13 @@ multidict = ">=4.0"
 
 [[package]]
 name = "yt-dlp"
-version = "2023.12.30"
-description = "A youtube-dl fork with additional features and patches"
+version = "2024.3.19.232701.dev0"
+description = "A feature-rich command-line audio/video downloader"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "yt-dlp-2023.12.30.tar.gz", hash = "sha256:a11862e57721b0a0f0883dfeb5a4d79ba213a2d4c45e1880e9fd70f8e6570c38"},
-    {file = "yt_dlp-2023.12.30-py2.py3-none-any.whl", hash = "sha256:c00d9a71d64472ad441bcaa1ec0c3797d6e60c9f934f270096a96fe51657e7b3"},
+    {file = "yt_dlp-2024.3.19.232701.dev0-py3-none-any.whl", hash = "sha256:6e74419b014b49fd6a2b170fa2c8f46533bb8427a706e3f3880b3f8054a4cabf"},
+    {file = "yt_dlp-2024.3.19.232701.dev0.tar.gz", hash = "sha256:c4f66e99e2ceb0a1375bfd2d51bd8d4e21d6dc1f3ba524f9747148be403893dc"},
 ]
 
 [package.dependencies]
@@ -2723,7 +2723,16 @@ requests = ">=2.31.0,<3"
 urllib3 = ">=1.26.17,<3"
 websockets = ">=12.0"
 
+[package.extras]
+build = ["build", "hatchling", "pip", "wheel"]
+curl-cffi = ["curl-cffi (==0.5.10)"]
+dev = ["flake8", "isort", "pytest"]
+py2exe = ["py2exe (>=0.12)"]
+pyinstaller = ["pyinstaller (>=6.3)"]
+pyinstaller-macos = ["pyinstaller (==5.13.2)"]
+secretstorage = ["cffi", "secretstorage"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11,<3.12"
-content-hash = "16079037305dbb1d25fdae593840bd47a10e3eaada6d9155c13c1aed7fca1176"
+content-hash = "7c69a5cff9e1cbb17f5e25ae3762c164320b70902583041016cea9f5951f1c1d"
