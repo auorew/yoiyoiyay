@@ -1,5 +1,6 @@
 """TikTok module"""
 import asyncio
+import json
 import logging
 import re
 
@@ -64,7 +65,7 @@ REGEX_TIKMATE_ONLINE = re.compile(r"\.app_(?P<name>\w+)\.(?P<extension>\w{3,4})$
 
 
 def update_new(old_dict: dict, new_dict: dict):
-    for key in old_dict.keys():
+    for key in tuple(old_dict):
         if old_dict[key] is None:
             del old_dict[key]
     for key in new_dict.keys() - old_dict.keys():
@@ -130,6 +131,15 @@ async def get_ytdlp_basic_info(link: str) -> dict:
         except yt_dlp.utils.DownloadError:
             log.warning("yt-dlp: Unable to download.")
             return
+        except json.JSONDecodeError:
+            log.warning("yt-dlp: Unable to decode.")
+            return
+        except Exception as exception:
+            log.warning(
+                "yt-dlp: Failed because of %s: %r.",
+                exception.__class__.__name__,
+                exception,
+            )
         return {
             "id": info["id"],
             "author": info["uploader"],
