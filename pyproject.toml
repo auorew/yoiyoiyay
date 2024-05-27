@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "YoiYoi Bot"
-version = "4.4"
+version = "4.6"
 description = "This is a bot for downloading tiktok, twitter and instagram content."
 authors = ["auorew <auuorew@gmail.com>"]
 readme = "README.md"
