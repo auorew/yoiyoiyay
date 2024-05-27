@@ -47,6 +47,7 @@ TikTokVideo = namedtuple(
     (
         "link",
         "size",
+        "extra",
     ),
 )
 

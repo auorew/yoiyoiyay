@@ -4,6 +4,7 @@ import json
 import logging
 import re
 
+from http.cookies import SimpleCookie
 from typing import Optional, TypedDict
 
 # parse json
@@ -318,16 +319,21 @@ async def get_ytdlp_links(tiktok_info: dict) -> list[Optional[TikTok]]:
         videos = []
         for video_format in info["formats"]:
             if (
-                video_format["height"]
+                video_format.get("height")
                 and video_format["vcodec"] != "none"
                 and video_format["acodec"] != "none"
             ):
                 videos.append(video_format)
         for video in sorted(videos, key=lambda x: x["height"], reverse=True):
+            cookie = SimpleCookie()
+            cookie.load(video["cookies"])
+            cookies = {key: morsel.value for key, morsel in cookie.items()}
+
             content.append(
                 TikTokVideo(
                     video["url"],
                     video["filesize"] or video["filesize_approx"] or 0,
+                    {"cookies": cookies, "headers": video["http_headers"]},
                 )
             )
     return content
@@ -372,7 +378,7 @@ async def get_tokcounter_links(tiktok_info: dict) -> list[TikTok]:
         _link = info["video"]["downloadUrl"]
         if _size := await get_file_size(_link):
             for _ in range(2):
-                content.append(TikTokVideo(_link, _size))
+                content.append(TikTokVideo(_link, _size, {}))
         if not content:
             log.warning("No content.")
     return content
@@ -436,7 +442,7 @@ async def get_tikmate_online_info(tiktok_info: dict) -> list[TikTok]:
         if videos and photos:
             for video in videos:
                 if _size := await get_file_size(video["href"]):
-                    content.append(TikTokVideo(video["href"], _size))
+                    content.append(TikTokVideo(video["href"], _size, {}))
             for photo in photos:
                 _prev = photo.img["src"]
                 _link = photo.div.a["href"]
@@ -494,7 +500,7 @@ async def get_tikmate_app_links(tiktok_info: dict) -> list[TikTok]:
         for _param in ("?hd=1", ""):
             _link = tikmate.format(info["token"], info["id"], _param)
             if _size := await get_file_size(_link):
-                content.append(TikTokVideo(_link, _size))
+                content.append(TikTokVideo(_link, _size, {}))
         if not content:
             log.warning("No content.")
     return content
@@ -544,7 +550,7 @@ async def get_lovetik_links(tiktok_info: dict) -> list[TikTok]:
         _link = info["links"][0]["a"]
         if _size := await get_file_size(_link):
             for i in range(2):
-                content.append(TikTokVideo(_link, _size))
+                content.append(TikTokVideo(_link, _size, {}))
         if not content:
             log.warning("No content.")
     return content
@@ -596,10 +602,10 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     if info["kind"] == TikTokMediaKind.VIDEO:
         log.info("TikTok type: video.")
         for get_links in (
+            # get_ytdlp_links,  # good
             get_tikmate_app_links,  # good
             get_tokcounter_links,  # good
             get_lovetik_links,  # good
-            get_ytdlp_links,  # good
         ):
             if content := await get_links(info):
                 return TikTokMedia(**info, content=content)

@@ -463,12 +463,12 @@ async def send_tiktok(
                 # get next 10 photos/docs
                 i, j = j, j + 10
         else:
-            videos = media.content[:2]
+            videos = media.content
             # check size
             filepath = None
             for vid in videos:
                 if 0 < vid.size < 50 << 20:
-                    filepath = await save_file(vid.link)
+                    filepath = await save_file(vid.link, "GET", **vid.extra)
                     break
             else:
                 # if file is too big

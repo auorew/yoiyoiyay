@@ -4,7 +4,7 @@ import re
 import tempfile
 
 from contextlib import asynccontextmanager
-from typing import Any, Optional
+from typing import Any, AsyncIterator, Optional
 from urllib.parse import unquote
 
 # http requests
@@ -219,7 +219,7 @@ async def stream_response(
     cookies: dict = None,
     proxy: bool = False,
     **kwargs: Any,
-):
+) -> AsyncIterator[httpx.Response]:
     try:
         async with get_async_client(proxy) as client:
             if not headers:
@@ -250,7 +250,7 @@ async def stream_response(
 
 
 @asynccontextmanager
-async def get_content(url: str, chunk_size: int = 1024, **kwargs) -> bytes:
+async def get_content(url: str, chunk_size: int = 1024, **kwargs) -> AsyncIterator[bytes]:
     try:
         async with stream_response(url, **kwargs) as response:
             yield response.aiter_bytes(chunk_size)
@@ -260,6 +260,7 @@ async def get_content(url: str, chunk_size: int = 1024, **kwargs) -> bytes:
             exception.__class__.__name__,
             exception,
         )
+        return b""
 
 
 @retry_request
