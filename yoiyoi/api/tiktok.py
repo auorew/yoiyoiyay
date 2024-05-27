@@ -292,7 +292,7 @@ async def get_ytdlp_info(basic_info: dict) -> dict:
             "kind": TikTokMediaKind.SLIDESHOW
             if info["video_ext"] == "none"
             else TikTokMediaKind.VIDEO,
-            "author_name": info["creator"],
+            "author_name": info["uploader"],
             "desc": info["description"],
             "advinfo_source": "yt-dlp",
         }
