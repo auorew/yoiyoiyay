@@ -260,7 +260,6 @@ async def get_content(url: str, chunk_size: int = 1024, **kwargs) -> AsyncIterat
             exception.__class__.__name__,
             exception,
         )
-        return b""
 
 
 @retry_request
