@@ -4,7 +4,7 @@ import logging
 import os
 import re
 
-from random import getrandbits, randrange
+from random import getrandbits
 
 # download from any network now
 import gallery_dl
@@ -49,6 +49,20 @@ async def get_snapinsta_links(link: str) -> list[InstaMedia]:
     # api info
     base = "https://snapinsta.app"
     api = f"{base}/action2.php"
+    # get token
+    token = ""
+    if response := await make_request(url=base, method="GET"):
+        # check response
+        if response.is_error:
+            return results
+        for el in BeautifulSoup(response.content, "html.parser").find_all(
+            "input", {"name": "token"}
+        ):
+            if token := el["value"]:
+                log.debug("Got token.")
+    if not token:
+        return results
+    # form request
     boundary = 29 * "-" + str(getrandbits(99))
     data = (
         (boundary + "\r\n").join(
@@ -57,6 +71,7 @@ async def get_snapinsta_links(link: str) -> list[InstaMedia]:
                 f'Content-Disposition: form-data; name="url"\r\n\r\n{link}\r\n',
                 'Content-Disposition: form-data; name="action"\r\n\r\npost\r\n',
                 'Content-Disposition: form-data; name="lang"\r\n\r\n\r\n',
+                f'Content-Disposition: form-data; name="token"\r\n\r\n{token}\r\n',
             ]
         )
         + boundary
@@ -81,7 +96,7 @@ async def get_snapinsta_links(link: str) -> list[InstaMedia]:
         log.debug("Request to API succeeded.")
         result = dehunter(response.content)
         log.debug("Result: %s.", result[1])
-        if result[1]["status"] != "success":
+        if not result[1]["status"].startswith("success"):
             return results
         # process response
         html = result[0].replace('\\"', '"').replace("\\'", "'")
@@ -182,69 +197,6 @@ async def get_saveinsta_links(link: str) -> list[InstaMedia]:
     return results
 
 
-async def get_sssinstagram_links(link: str) -> list[InstaMedia]:
-    """Gets links from SSSInstagram.
-
-    Args:
-        link (str): instagram link.
-
-    Returns:
-        list[InstaMedia]: list of instagram media.
-    """
-    log.info("API: SSSInstagram.")
-    results = []
-    # api info
-    base = "https://sssinstagram.com"
-    api = f"{base}/r"
-    # send request
-    if response := await make_request(
-        url=api,
-        method="POST",
-        headers={**FAKE_HEADERS, "Content-Type": "application/json"},
-        xsrf="X-XSRF-TOKEN",
-        referer=base,
-        data=orjson.dumps({"link": f"{link}/", "token": ""}),
-        proxy=True,
-    ):
-        # check response
-        if response.is_error:
-            return results
-        log.debug("Request to API succeeded.")
-        try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
-            log.warning("Couldn't decode json response: %r.", response.content)
-            return results
-        log.debug("JSON: %r.", info)
-        if info["data"]["status"] != 1:
-            log.warning("Couldn't get content.")
-            return results  # no info found
-        # process response
-        items = info["data"].get("items", [info["data"]])
-        for item in items:
-            if item["urls"][0]["extension"] == "mp4":  # 'GraphVideo'
-                results.append(
-                    InstaMedia(
-                        link,
-                        item["pictureUrl"],
-                        item["urls"][0]["urlDownloadable"],
-                        "video",
-                        "",
-                    ),
-                )
-            else:  # 'GraphImage'
-                results.append(
-                    InstaMedia(
-                        link,
-                        item["pictureUrl"],
-                        item["urls"][0]["url"],
-                        "image",
-                        "",
-                    ),
-                )
-    return results
-
-
 async def get_igdownloader_links(link: str) -> list[InstaMedia]:
     """Gets links from IG Downloader.
 
@@ -301,50 +253,6 @@ async def get_igdownloader_links(link: str) -> list[InstaMedia]:
     return results
 
 
-async def get_gallery_dl_links(link: str) -> list[InstaMedia]:
-    """Gets links from gallery-dl.
-
-    Args:
-        link (str): instagram link.
-
-    Returns:
-        list[InstaMedia]: list of instagram media.
-    """
-    log.info("API: gallery-dl.")
-    await ig_queue.put(link)
-    results = []
-    try:
-        (
-            data_job := gallery_dl.job.DataJob(
-                link,
-                file=os.devnull,
-            )
-        ).run()
-        if not ((output := data_job.data) and output[0] != "HttpError"):
-            log.error("Instagram API: No data.")
-            return
-        # info = output[0][1]
-        # process response
-        for media in output[1:]:
-            item = media[2]
-            results.append(
-                InstaMedia(
-                    link,
-                    item["display_url"],
-                    item["video_url"] or item["display_url"],
-                    "video" if item["video_url"] else "image",
-                    "",
-                ),
-            )
-    except gallery_dl.exception.StopExtraction:
-        log.error("Instagram API: Invalid data.")
-    finally:
-        await asyncio.sleep(randrange(25, 65))
-        ig_queue.task_done()
-        await ig_queue.get()
-        return results
-
-
 async def get_instagram_links(link: str) -> list[InstaMedia]:
     """Gets links for media using provided by link.
 
@@ -358,8 +266,6 @@ async def get_instagram_links(link: str) -> list[InstaMedia]:
         get_snapinsta_links,  # good
         get_saveinsta_links,  # good
         get_igdownloader_links,  # okay
-        get_sssinstagram_links,  # okay
-        get_gallery_dl_links,  # extra slow, but best
     ):
         if content := await get_links(link):
             return content
