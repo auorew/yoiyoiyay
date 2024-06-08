@@ -42,9 +42,9 @@ async def get_pixiv_media(illust: dict, get_sizes: bool = False) -> PixivMedia:
     if illust.type == "ugoira":
         if not (
             response := await make_request(
-                "https://ugoira.huggy.moe/api/illusts/queue",
+                "https://ugoira.com/api/illusts/queue",
                 headers={**FAKE_HEADERS, "Content-Type": "application/json"},
-                referer="https://ugoira.huggy.moe/",
+                referer="https://ugoira.com/",
                 data=orjson.dumps({"text": str(illust.id)}),
             )
         ):
