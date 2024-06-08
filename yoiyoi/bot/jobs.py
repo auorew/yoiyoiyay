@@ -30,6 +30,9 @@ class GetProxy:
         "https://www.sslproxies.org/",
         "https://free-proxy-list.net/",
     )
+    free_proxy_api = (
+        "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=protocolipport&format=text",
+    )
     test_url = "https://www.google.com"
 
     def __init__(
@@ -50,11 +53,11 @@ class GetProxy:
         await self.get_proxy()
         return self.working_proxy
 
-    async def test_proxy(self, proxy_addr, proxy_port, proxy_country):
+    async def test_proxy(self, proxy_protocol, proxy_addr, proxy_port):
         try:
-            proxy = f"http://{proxy_addr}:{proxy_port}"
+            proxy = f"{proxy_protocol}://{proxy_addr}:{proxy_port}"
             async with httpx.AsyncClient(
-                proxies=proxy,
+                proxy=proxy,
                 timeout=self.timeout,
                 follow_redirects=True,
             ) as client:
@@ -80,7 +83,7 @@ class GetProxy:
                     raise httpx.RequestError("Tiktok: Couldn't get")
                 log.trace("GetProxy: Tiktok: %r.", orjson.loads(api_response.content))
                 self.working_proxy.add(proxy)
-                self.proxy_list.add(f"{proxy} [{proxy_country}]")
+                self.proxy_list.add(proxy)
                 return
         except httpx.ConnectTimeout:
             log.trace("GetProxy: Tiktok: Timed out.")
@@ -97,6 +100,7 @@ class GetProxy:
         except Exception as ex:
             log.trace("GetProxy: [%s] %s.", type(ex), ex)
 
+
     async def get_proxy(self):
         try:
             async with httpx.AsyncClient() as client:
@@ -106,7 +110,13 @@ class GetProxy:
                     container = soup.find_all("div", {"class": "fpl-list"})
                     variants = set()
                     for row in container[0].table.tbody:
-                        variants.add(tuple(row.find_all(text=True)[:3]))
+                        ip, port, country_code, country_name, anon, google, https, checked = (el.text for el in row.find_all('td'))
+                        if https == 'yes':
+                            variants.add(('http', ip, port))
+                for source in self.free_proxy_api:
+                    page = await client.get(source)
+                    for proxy in page.text.split():
+                        variants.add(tuple(proxy.replace('//', '').split(':')))
                 tasks = []
                 for row_id, variant in enumerate(variants, 1):
                     if not self.country or variant[2] in self.country:
@@ -134,6 +144,6 @@ async def get_proxy(_: CallbackContext):
     PROXY_SET.update(await proxy_getter.get())
     if PROXY_SET:
         log.debug("GetProxy: Proxies: %s.", ", ".join(proxy_getter.proxy_list))
-        PROXY["https://"] = PROXY_SET.pop()
+        PROXY["active"] = PROXY_SET.pop()
     else:
         log.debug("GetProxy: No proxies.")

@@ -85,17 +85,17 @@ def wait_fixed_time(retry_state: RetryCallState) -> int:
         ProxyError | ConnectTimeout | ReadError | ReadTimeout | RemoteProtocolError,
     ):
         # proxy errors
-        if (retry_state.kwargs.get("proxy")) and PROXY["https://"]:
+        if (retry_state.kwargs.get("proxy")) and PROXY["active"]:
             log.warning(
                 "Connection to proxy [%s] failed, because of %s: %r.",
-                PROXY["https://"],
+                PROXY["active"],
                 exception.__class__.__name__,
                 exception,
             )
             if retry_state.attempt_number == RETRY_MAX_TRIES or not PROXY_SET:
-                PROXY["https://"] = None
+                PROXY["active"] = None
             else:
-                PROXY["https://"] = PROXY_SET.pop()
+                PROXY["active"] = PROXY_SET.pop()
             return RETRY_PROXY_MAX_TIMEOUT
         # connection errors
         return RETRY_MAX_TIMEOUT / 5
@@ -137,8 +137,8 @@ def retry_request(func):
 @asynccontextmanager
 async def get_async_client(proxy: bool = False):
     try:
-        proxies = PROXY if proxy and PROXY["https://"] else None
-        async with httpx.AsyncClient(proxies=proxies) as client:
+        proxy = PROXY if proxy and PROXY["active"] else None
+        async with httpx.AsyncClient(proxy=proxy) as client:
             yield client
     except Exception as exception:
         log.warning(
@@ -177,8 +177,8 @@ async def make_request(
     Returns:
         httpx.Response: response
     """
-    proxies = PROXY if proxy and PROXY["https://"] else None
-    async with httpx.AsyncClient(proxies=proxies) as client:
+    proxy = PROXY if proxy and PROXY["active"] else None
+    async with httpx.AsyncClient(proxy=proxy) as client:
         if not headers:
             headers = FAKE_HEADERS.copy()
         # get cookies in session

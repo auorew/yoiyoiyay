@@ -15,5 +15,5 @@ PROXY_TIMEOUT = 1.5
 PROXY_LIMIT = 20
 
 # define proxy dictionary
-PROXY = {"https://": None}
+PROXY = {"active": None}
 PROXY_SET = set()
