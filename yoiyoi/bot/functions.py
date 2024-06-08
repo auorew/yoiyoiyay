@@ -22,7 +22,7 @@ from telegram.constants import MessageLimit as ML
 from telegram.error import BadRequest
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 # link types and other info
 from ..api import LinkType, TikTokMediaKind
@@ -729,12 +729,15 @@ async def send_pixiv(
     )
 
 
-async def process_link(update: Update, _: CallbackContext) -> None:
+async def process_link(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
     """Answers to user's links
 
     Args:
         update (Update): current update
-        _ (CallbackContext): current context
+        _ (ContextTypes): current context
     """
     notify(update, function="process_link")
     update_id = update.update_id

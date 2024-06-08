@@ -13,7 +13,7 @@ import orjson
 from bs4 import BeautifulSoup
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 # get proxy dict and constant
 from ..extra import PROXY, PROXY_CID, PROXY_LIMIT, PROXY_SET, PROXY_TIMEOUT
@@ -100,7 +100,6 @@ class GetProxy:
         except Exception as ex:
             log.trace("GetProxy: [%s] %s.", type(ex), ex)
 
-
     async def get_proxy(self):
         try:
             async with httpx.AsyncClient() as client:
@@ -110,13 +109,22 @@ class GetProxy:
                     container = soup.find_all("div", {"class": "fpl-list"})
                     variants = set()
                     for row in container[0].table.tbody:
-                        ip, port, country_code, country_name, anon, google, https, checked = (el.text for el in row.find_all('td'))
-                        if https == 'yes':
-                            variants.add(('http', ip, port))
+                        (
+                            ip,
+                            port,
+                            country_code,
+                            country_name,
+                            anon,
+                            google,
+                            https,
+                            checked,
+                        ) = (el.text for el in row.find_all("td"))
+                        if https == "yes":
+                            variants.add(("http", ip, port))
                 for source in self.free_proxy_api:
                     page = await client.get(source)
                     for proxy in page.text.split():
-                        variants.add(tuple(proxy.replace('//', '').split(':')))
+                        variants.add(tuple(proxy.replace("//", "").split(":")))
                 tasks = []
                 for row_id, variant in enumerate(variants, 1):
                     if not self.country or variant[2] in self.country:
@@ -135,11 +143,13 @@ class GetProxy:
 proxy_getter = GetProxy(PROXY_CID, PROXY_TIMEOUT, PROXY_LIMIT)
 
 
-async def get_proxy(_: CallbackContext):
+async def get_proxy(
+    context: ContextTypes.DEFAULT_TYPE,
+):
     """Get working proxy or nothing
 
     Args:
-        _ (CallbackContext): callback context (not used)
+        _ (ContextTypes): callback context (not used)
     """
     PROXY_SET.update(await proxy_getter.get())
     if PROXY_SET:

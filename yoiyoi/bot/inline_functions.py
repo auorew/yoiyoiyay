@@ -26,7 +26,7 @@ from telegram.constants import ParseMode as PM
 from telegram.error import BadRequest
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 # link types and other info
 from ..api import LinkType
@@ -490,7 +490,10 @@ async def inline_youtube_short(
     )
 
 
-async def inliner(update: Update, context: CallbackContext) -> None:
+async def inliner(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
     """Answers to inline input
 
     Args:
