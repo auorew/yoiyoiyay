@@ -741,7 +741,7 @@ async def process_link(update: Update, _: CallbackContext) -> None:
     # get current chat
     chat = await update_chat(update.effective_chat)
     # check if message is forwarded and if chat should ignore it
-    if update.effective_message.forward_date and chat.ignore_fw:
+    if update.effective_message.forward_origin and chat.ignore_fw:
         return
     # get media group id
     media_group_id = update.effective_message.media_group_id
