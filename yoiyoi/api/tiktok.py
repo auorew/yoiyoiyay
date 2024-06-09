@@ -581,6 +581,11 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     # add source link
     basic_info["source"] = TT["source"].format(**basic_info)
     basic_info["fallback"] = TT["fallback"].format(**basic_info)
+    basic_info["kind"] = (
+        TikTokMediaKind.SLIDESHOW
+        if "photo" in basic_info["source"]
+        else TikTokMediaKind.VIDEO
+    )
 
     for get_info in asyncio.as_completed(
         (

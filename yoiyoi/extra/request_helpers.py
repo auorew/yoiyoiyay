@@ -137,8 +137,8 @@ def retry_request(func):
 @asynccontextmanager
 async def get_async_client(proxy: bool = False):
     try:
-        proxy = PROXY["active"] if proxy and PROXY["active"] else None
-        async with httpx.AsyncClient(proxy=proxy) as client:
+        my_proxy = PROXY["active"] if proxy and PROXY["active"] else None
+        async with httpx.AsyncClient(proxy=my_proxy) as client:
             yield client
     except Exception as exception:
         log.warning(
@@ -177,8 +177,8 @@ async def make_request(
     Returns:
         httpx.Response: response
     """
-    proxy = PROXY["active"] if proxy and PROXY["active"] else None
-    async with httpx.AsyncClient(proxy=proxy) as client:
+    my_proxy = PROXY["active"] if proxy and PROXY["active"] else None
+    async with httpx.AsyncClient(proxy=my_proxy) as client:
         if not headers:
             headers = FAKE_HEADERS.copy()
         # get cookies in session
