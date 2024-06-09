@@ -137,7 +137,7 @@ def retry_request(func):
 @asynccontextmanager
 async def get_async_client(proxy: bool = False):
     try:
-        proxy = PROXY if proxy and PROXY["active"] else None
+        proxy = PROXY["active"] if proxy and PROXY["active"] else None
         async with httpx.AsyncClient(proxy=proxy) as client:
             yield client
     except Exception as exception:
@@ -177,7 +177,7 @@ async def make_request(
     Returns:
         httpx.Response: response
     """
-    proxy = PROXY if proxy and PROXY["active"] else None
+    proxy = PROXY["active"] if proxy and PROXY["active"] else None
     async with httpx.AsyncClient(proxy=proxy) as client:
         if not headers:
             headers = FAKE_HEADERS.copy()
