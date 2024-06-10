@@ -152,13 +152,13 @@ async def get_ytdlp_basic_info(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
-    info = await get_ytdlp_info(link)
-    return {
-        "id": info["id"],
-        "author": info["uploader"],
-        "type": "photo" if info["video_ext"] == "none" else "video",
-        "info_source": "yt-dlp",
-    }
+    if info := await get_ytdlp_info(link):
+        return {
+            "id": info["id"],
+            "author": info["uploader"],
+            "type": "photo" if info["video_ext"] == "none" else "video",
+            "info_source": "yt-dlp",
+        }
 
 
 async def get_tiktok_thumbnail(basic_info: dict) -> dict:
@@ -316,7 +316,8 @@ async def get_ytdlp_links(tiktok_info: dict) -> list[Optional[TikTok]]:
         list[TikTok]: tiktok video links and sizes.
     """
     content = []
-    info = await get_ytdlp_info(tiktok_info["original_link"])
+    if not (info := await get_ytdlp_info(tiktok_info["original_link"])):
+        return content
     videos = []
     for video_format in info["formats"]:
         if (
