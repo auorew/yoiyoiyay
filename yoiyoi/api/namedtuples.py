@@ -39,6 +39,7 @@ TikTokMedia = namedtuple(
         "info_source",
         "advinfo_source",
         "fallback",  # fallback source URL for API
+        "original_link",  # for caching
     ),
 )
 

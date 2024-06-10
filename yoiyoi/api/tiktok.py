@@ -13,6 +13,9 @@ import orjson
 # yt-dlp
 import yt_dlp
 
+# async caching
+from aiocache import cached
+
 # beautiful soup
 from bs4 import BeautifulSoup
 
@@ -73,6 +76,29 @@ def update_new(old_dict: dict, new_dict: dict):
         old_dict[key] = new_dict[key]
 
 
+@cached(
+    ttl=15,
+    key_builder=lambda fn, *a, **kw: a[0],
+    skip_cache_func=lambda r: r is None,
+)
+async def get_ytdlp_info(link: str) -> dict:
+    with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
+        try:
+            return ytdl.extract_info(link)
+        except yt_dlp.utils.DownloadError:
+            log.warning("yt-dlp: Unable to download.")
+            return
+        except json.JSONDecodeError:
+            log.warning("yt-dlp: Unable to decode.")
+            return
+        except Exception as exception:
+            log.warning(
+                "yt-dlp: Failed because of %s: %r.",
+                exception.__class__.__name__,
+                exception,
+            )
+
+
 async def get_url_info(link: str) -> dict:
     """Gets tiktok info from TikTok with URL expanders.
 
@@ -126,27 +152,13 @@ async def get_ytdlp_basic_info(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
-    with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
-        try:
-            info = ytdl.extract_info(link)
-        except yt_dlp.utils.DownloadError:
-            log.warning("yt-dlp: Unable to download.")
-            return
-        except json.JSONDecodeError:
-            log.warning("yt-dlp: Unable to decode.")
-            return
-        except Exception as exception:
-            log.warning(
-                "yt-dlp: Failed because of %s: %r.",
-                exception.__class__.__name__,
-                exception,
-            )
-        return {
-            "id": info["id"],
-            "author": info["uploader"],
-            "type": "photo" if info["video_ext"] == "none" else "video",
-            "info_source": "yt-dlp",
-        }
+    info = await get_ytdlp_info(link)
+    return {
+        "id": info["id"],
+        "author": info["uploader"],
+        "type": "photo" if info["video_ext"] == "none" else "video",
+        "info_source": "yt-dlp",
+    }
 
 
 async def get_tiktok_thumbnail(basic_info: dict) -> dict:
@@ -272,7 +284,7 @@ async def get_lovetik_info(basic_info: dict) -> dict:
         }
 
 
-async def get_ytdlp_info(basic_info: dict) -> dict:
+async def get_ytdlp_advanced_info(basic_info: dict) -> dict:
     """Gets advanced tiktok info from yt-dlp.
 
     Args:
@@ -281,13 +293,8 @@ async def get_ytdlp_info(basic_info: dict) -> dict:
     Returns:
         dict: advanced tiktok info.
     """
-    with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
-        try:
-            # fallback source, since /photo/ URLs are not currently supported
-            info = ytdl.extract_info(basic_info["fallback"])
-        except yt_dlp.utils.DownloadError:
-            log.warning("yt-dlp: Unable to download.")
-            return
+    # fallback source, since /photo/ URLs are not currently supported
+    if info := await get_ytdlp_info(basic_info["original_link"]):
         return {
             "thumb": info["thumbnails"][0]["url"],
             "kind": TikTokMediaKind.SLIDESHOW
@@ -309,33 +316,28 @@ async def get_ytdlp_links(tiktok_info: dict) -> list[Optional[TikTok]]:
         list[TikTok]: tiktok video links and sizes.
     """
     content = []
-    with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
-        try:
-            # fallback source, since /photo/ URLs are not currently supported
-            info = ytdl.extract_info(tiktok_info["fallback"])
-        except yt_dlp.utils.DownloadError:
-            log.warning("yt-dlp: Unable to download.")
-            return
-        videos = []
-        for video_format in info["formats"]:
-            if (
-                video_format.get("height")
-                and video_format["vcodec"] != "none"
-                and video_format["acodec"] != "none"
-            ):
-                videos.append(video_format)
-        for video in sorted(videos, key=lambda x: x["height"], reverse=True):
-            cookie = SimpleCookie()
-            cookie.load(video["cookies"])
-            cookies = {key: morsel.value for key, morsel in cookie.items()}
-
-            content.append(
-                TikTokVideo(
-                    video["url"],
-                    video["filesize"] or video["filesize_approx"] or 0,
-                    {"cookies": cookies, "headers": video["http_headers"]},
-                )
+    info = await get_ytdlp_info(tiktok_info["original_link"])
+    videos = []
+    for video_format in info["formats"]:
+        if (
+            video_format.get("height")
+            and video_format.get("vcodec")
+            and video_format.get("vcodec") != "none"
+            and video_format.get("acodec")
+            and video_format.get("acodec") != "none"
+        ):
+            videos.append(video_format)
+    for video in sorted(videos, key=lambda x: x["height"], reverse=True):
+        cookie = SimpleCookie()
+        cookie.load(video["cookies"])
+        cookies = {key: morsel.value for key, morsel in cookie.items()}
+        content.append(
+            TikTokVideo(
+                video["url"],
+                video["filesize"] or video["filesize_approx"] or 0,
+                {"cookies": cookies, "headers": video["http_headers"]},
             )
+        )
     return content
 
 
@@ -579,6 +581,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
         return
 
     # add source link
+    basic_info["original_link"] = link
     basic_info["source"] = TT["source"].format(**basic_info)
     basic_info["fallback"] = TT["fallback"].format(**basic_info)
     basic_info["kind"] = (
@@ -589,7 +592,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
 
     for get_info in asyncio.as_completed(
         (
-            get_ytdlp_info(basic_info),  # best
+            get_ytdlp_advanced_info(basic_info),  # best
             get_tokcounter_info(basic_info),  # good
             get_lovetik_info(basic_info),  # okay
             get_tiktok_thumbnail(basic_info),  # thumbnail
@@ -597,7 +600,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     ):
         if info := await get_info:
             update_new(info, basic_info)
-            if info["thumb"]:
+            if info.get("thumb"):
                 break
     else:
         return
