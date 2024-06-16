@@ -36,6 +36,8 @@ from ..api.namedtuples import (
     PixivContent,
     PixivMedia,
     TikTokMedia,
+    TikTokPhoto,
+    TikTokVideo,
     TweetContent,
     TweetMedia,
     YouTubeShortMedia,
@@ -420,10 +422,10 @@ async def send_tiktok(
         storage_folder = Path(CACHE_DIR / str(update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         if media.kind == TikTokMediaKind.SLIDESHOW and chat.tt_slide_mode == 1:
-            media_photos = media.content[2:]
+            photos = list(filter(lambda x: isinstance(x, TikTokPhoto), media.content))
             i, j = 0, 10
-            while i < len(media_photos):
-                for idx, media_photo in enumerate(media_photos[i:j], i):
+            while i < len(photos):
+                for idx, media_photo in enumerate(photos[i:j], i):
                     filelink = media_photo.link
                     filepath = await save_file(filelink)
                     if not (filename := media_photo.name):
@@ -463,17 +465,29 @@ async def send_tiktok(
                 # get next 10 photos/docs
                 i, j = j, j + 10
         else:
-            videos = media.content
+            videos = list(filter(lambda x: isinstance(x, TikTokVideo), media.content))
             # check size
             filepath = None
-            for vid in videos:
-                if 0 < vid.size < 50 << 20:
-                    filepath = await save_file(vid.link, "GET", **vid.extra)
-                    break
+            if not videos:
+                if media.kind == TikTokMediaKind.SLIDESHOW:
+                    error_text += (
+                        "can't be sent, because didn't find rendered video\\! "
+                        "Consider changing TikTok mode to slideshow mode with "
+                        "/tiktok\\_mode command\\."
+                    )
+                    log.error("[%d] Can's send as video.", update_id)
+                else:
+                    error_text += "can't be sent, because didn't find any video\\!"
+                    log.error("[%d] Can's send as video.", update_id)
             else:
-                # if file is too big
-                error_text += "can't be sent, because video file is too big\\!"
-                log.error("[%d] Video file is too big.", update_id)
+                for vid in videos:
+                    if 0 < vid.size < 50 << 20:
+                        filepath = await save_file(vid.link, "GET", **vid.extra)
+                        break
+                else:
+                    # if file is too big
+                    error_text += "can't be sent, because video file is too big\\!"
+                    log.error("[%d] Video file is too big.", update_id)
             # upload video if any
             if filepath:
                 filename = await join_file_name(str(media.id), filepath)

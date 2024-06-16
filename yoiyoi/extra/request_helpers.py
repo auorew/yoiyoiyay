@@ -318,12 +318,14 @@ async def get_file_name(
     group: str = "name",
     **kwargs,
 ) -> str:
+    file_name = ""
     if file_headers := await get_file_headers(url, **kwargs):
-        file_name = file_headers.get("Content-Disposition", "")
-        if matched := re.search(pattern, file_name):
-            return matched[group]
-        return re.sub(INVALID_CHARS, "", file_name)
-    return ""
+        if file_name := file_headers.get("Content-Disposition", ""):
+            if matched := re.search(pattern, file_name):
+                file_name = matched[group]
+        elif matched := re.search(pattern, url):
+            file_name = matched[group]
+    return re.sub(INVALID_CHARS, "", file_name)
 
 
 @cached(ttl=15, key="url")
