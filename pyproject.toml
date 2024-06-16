@@ -33,6 +33,7 @@ pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
 sqlalchemy-serializer = "^1.4.12"
 httpx = {extras = ["socks"], version = "^0.27.0"}
+pillow-heif = "^0.16.0"
 
 [tool.poetry.group.dev.dependencies]
 isort = "^5.13.2"

@@ -12,6 +12,9 @@ import orjson
 # working with images
 from PIL import Image
 
+# working with heif (just in case)
+from pillow_heif import register_heif_opener
+
 # telegram core bot api
 from telegram import Update
 
@@ -32,6 +35,9 @@ from ..extra.utils import get_file_chunk, replace_file
 
 # setup logger
 log = logging.getLogger(__name__)
+
+# enable heif support for pillow
+register_heif_opener()
 
 
 async def crop_thumbnail(thumbpath: Path, video_width: int, video_height: int):
