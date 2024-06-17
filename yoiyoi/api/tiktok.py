@@ -5,6 +5,7 @@ import logging
 import re
 
 from http.cookies import SimpleCookie
+from random import getrandbits
 from typing import Optional, TypedDict
 
 # parse json
@@ -64,6 +65,9 @@ TikTokURL = str
 TikTokSize = int
 TikTok = TypedDict("TikTok", link=TikTokURL, size=TikTokSize)
 
+# tikmate link
+TIKMATE_LINK = "https://tikmate.app/download/{0}/{1}.mp4{2}"
+
 # regex
 REGEX_TIKMATE_ONLINE = re.compile(r"\.app_(?P<name>\w+)\.(?P<extension>\w{3,4})$")
 REGEX_COBALT_TOOLS = re.compile(
@@ -100,6 +104,51 @@ async def get_ytdlp_info(link: str) -> dict:
                 exception.__class__.__name__,
                 exception,
             )
+
+
+async def get_tikmate_app_info(link: str) -> dict:
+    # api info
+    base = "tikmate.app"
+    api = f"https://api.{base}/api/lookup"
+    # form request
+    boundary = 29 * "-" + str(getrandbits(99))
+    data = "\r\n".join(
+        (
+            boundary,
+            'Content-Disposition: form-data; name="url"',
+            "",
+            link,
+            boundary + "--\r\n",
+        )
+    )
+    # send request
+    if response := await make_request(
+        url=api,
+        headers={
+            **FAKE_HEADERS,
+            "Content-Type": f"multipart/form-data; boundary={boundary[2:]}",
+            "Origin": f"https://{base}",
+            "Referer": f"https://{base}/",
+        },
+        data=data,
+        proxy=True,
+    ):
+        # check response
+        if response.is_error:
+            log.warning("Request to API failed: %s.", response)
+            log.debug("Response: %s", response.content)
+            return
+        log.debug("Request to API succeeded.")
+        try:
+            info = orjson.loads(response.content)
+        except orjson.JSONDecodeError:
+            log.warning("Couldn't decode json response: %r.", response.content)
+            return
+        log.debug("JSON: %r.", info)
+        if not info["success"]:
+            log.warning("Couldn't find tiktok video.")
+            return
+        return info
 
 
 async def get_url_info(link: str) -> dict:
@@ -161,6 +210,27 @@ async def get_ytdlp_basic_info(link: str) -> dict:
             "author": info["uploader"],
             "type": "photo" if info["video_ext"] == "none" else "video",
             "info_source": "yt-dlp",
+        }
+
+
+async def get_tikmate_info(link: str) -> dict:
+    """Gets tiktok info from TMATE.
+
+    Args:
+        link (str): formatted tiktok link.
+
+    Returns:
+        dict: tiktok id and author info.
+    """
+    if (info := await get_tikmate_app_info(link)) and info.get("success"):
+        return {
+            "id": info.get("id"),
+            "author": info.get("author_id"),
+            "author_name": info.get("author_name"),
+            "type": "photo" if len(info.get("token", "")) > 100 else "video",
+            "thumb": info.get("cover"),
+            "desc": info.get("desc"),
+            "info_source": "tikmate.app",
         }
 
 
@@ -395,40 +465,11 @@ async def get_tikmate_app_links(tiktok_info: dict) -> list[TikTok]:
     """
     log.info("API: TikMate App.")
     content = []
-    # api info
-    base = "tikmate.app"
-    api = f"https://api.{base}/api/lookup"
-    tikmate = "https://tikmate.app/download/{0}/{1}.mp4{2}"
-    # send request
-    if response := await make_request(
-        url=api,
-        headers={
-            **FAKE_HEADERS,
-            "Content-Type": "application/x-www-form-urlencoded;" " charset=UTF-8",
-            "Referer": f"https://{base}/",
-        },
-        data={"url": tiktok_info["source"]},
-        proxy=True,
-    ):
-        # check response
-        if response.is_error:
-            log.warning("Request to API failed: %s.", response)
-            log.debug("Response: %s", response.content)
-            return
-        log.debug("Request to API succeeded.")
-        try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
-            log.warning("Couldn't decode json response: %r.", response.content)
-            return
-        log.debug("JSON: %r.", info)
-        if not info["success"]:
-            log.warning("Couldn't find tiktok video.")
-            return
+    if info := await get_tikmate_app_info(tiktok_info["original_link"]):
         # process response
         log.debug("Getting links...")
         for _param in ("?hd=1", ""):
-            _link = tikmate.format(info["token"], info["id"], _param)
+            _link = TIKMATE_LINK.format(info["token"], info["id"], _param)
             if _size := await get_file_size(_link):
                 content.append(TikTokVideo(_link, _size, {}))
         if not content:
@@ -614,6 +655,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
             get_tiktok_info(link),  # original source
             get_url_info(link),  # link source
             get_ytdlp_basic_info(link),  # best source
+            get_tikmate_info(link),  # nice source
         )
     ):
         if basic_info := await get_basic_info:
@@ -627,7 +669,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     basic_info["fallback"] = TT["fallback"].format(**basic_info)
     basic_info["kind"] = (
         TikTokMediaKind.SLIDESHOW
-        if "photo" in basic_info["source"]
+        if basic_info["type"] == "photo"
         else TikTokMediaKind.VIDEO
     )
 
