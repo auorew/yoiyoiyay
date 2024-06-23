@@ -97,7 +97,7 @@ async def count_audio_stream(update: Update, filepath: Path) -> bool:
     return len(result["streams"])
 
 
-async def process_video(update: Update, filepath: Path) -> Optional[Path]:
+async def process_video(update: Update, filepath: Path) -> Path:
     update_id = update.update_id
     log.info("[%d] Processing a video...", update_id)
     # if more than 0 audio streams then quit

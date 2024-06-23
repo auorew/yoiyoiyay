@@ -1,7 +1,6 @@
 """Bot Functions"""
 import asyncio
 import logging
-import os
 
 from pathlib import Path
 from typing import Optional
@@ -56,7 +55,7 @@ from ..api.twitter import get_twitter_links
 from ..api.youtube_short import get_youtube_short_links
 
 # get constants and pyrogram app
-from ..bot import CACHE_DIR, MAX_GIF_FILE_SIZE, QUEUE_SIZE, PixivParse
+from ..bot import CACHE_DIR, QUEUE_SIZE, PixivParse
 
 # bot formatters
 from ..bot.formatters import (
@@ -261,15 +260,14 @@ async def send_twitter(
                 filename = await make_file_name("twitter", videolink, filepath)
                 filepath = move_file(filepath, storage_folder / filename)
                 storage.add(filepath)
-                if media.type == "gif" or os.stat(filepath).st_size < MAX_GIF_FILE_SIZE:
-                    if not (videopath := await process_video(update, filepath)):
-                        log.error("[%d] Couldn't add sound to video.", update.update_id)
-                        await send_error(
-                            update,
-                            error_text + "contains videos the bot couldn't send\\!",
-                            quote=not chat.delete_link,
-                        )
-                        return
+                if not (videopath := await process_video(update, filepath)):
+                    log.error("[%d] Couldn't add sound to video.", update.update_id)
+                    await send_error(
+                        update,
+                        error_text + "contains videos the bot couldn't send\\!",
+                        quote=not chat.delete_link,
+                    )
+                    return
                 else:
                     videopath = filepath
                 if (videopath := Path(videopath)) != filepath:
@@ -636,7 +634,7 @@ async def send_pixiv(
                     quote=not chat.delete_link,
                 )
                 return
-            if (videopath := Path(videopath)) != filepath:
+            if videopath != filepath:
                 storage.add(videopath)
             videoinfo = await get_video_info(videopath)
             thumbpath = await save_file(media.thumb, headers=PIXIV_HEADERS)
