@@ -268,9 +268,7 @@ async def send_twitter(
                         quote=not chat.delete_link,
                     )
                     return
-                else:
-                    videopath = filepath
-                if (videopath := Path(videopath)) != filepath:
+                if videopath != filepath:
                     storage.add(videopath)
                 videoinfo = await get_video_info(videopath)
                 thumbpath = await save_file(media.thumb)
