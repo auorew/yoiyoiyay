@@ -20,7 +20,7 @@ from ..api.namedtuples import PixivContent, PixivMedia
 from ..extra.request_helpers import (
     FAKE_HEADERS,
     PIXIV_HEADERS,
-    get_file_size,
+    get_content_size,
     make_request,
     retry_request,
 )
@@ -84,8 +84,8 @@ async def get_pixiv_media(illust: dict, get_sizes: bool = False) -> PixivMedia:
     content = []
     for illust_info in illust_list:
         if get_sizes:
-            original_size = await get_file_size(illust_info[1], PIXIV_HEADERS)
-            thumb_size = await get_file_size(illust_info[2], PIXIV_HEADERS)
+            original_size = await get_content_size(illust_info[1], PIXIV_HEADERS)
+            thumb_size = await get_content_size(illust_info[2], PIXIV_HEADERS)
         else:
             original_size, thumb_size = 0, 0
         content.append(

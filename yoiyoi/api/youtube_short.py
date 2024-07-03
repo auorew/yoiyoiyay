@@ -21,7 +21,7 @@ from ..api import LINKS
 from ..api.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
 
 # fake headers and request helpers
-from ..extra.request_helpers import FAKE_HEADERS, get_file_size, make_request
+from ..extra.request_helpers import FAKE_HEADERS, get_content_size, make_request
 
 # setup logger
 log = logging.getLogger(__name__)
@@ -176,7 +176,7 @@ async def get_ytshorts_links(link: Link) -> list[Optional[YouTubeShortContent]]:
         videos = info["data"]["video_formats"][1:]
         for video in filter(lambda video: video.get("url"), videos):
             _link = video["url"]
-            content.append(YouTubeShortContent(_link, await get_file_size(_link)))
+            content.append(YouTubeShortContent(_link, await get_content_size(_link)))
     return content
 
 
@@ -214,7 +214,7 @@ async def get_10downloader_links(link: Link) -> list[Optional[YouTubeShortConten
         soup = BeautifulSoup(response.content, "html.parser")
         for download_link in soup.find_all("a", class_="downloadBtn")[:2]:
             if download_link["download"].endswith("mp4"):
-                if (_size := await get_file_size(_link := download_link["href"])) > 0:
+                if (_size := await get_content_size(_link := download_link["href"])) > 0:
                     content.append(YouTubeShortContent(_link, _size))
     return content
 

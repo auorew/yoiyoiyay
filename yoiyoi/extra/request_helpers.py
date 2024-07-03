@@ -295,7 +295,7 @@ async def get_cookies(url: str, **kwargs) -> Optional[httpx.Cookies]:
 
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
-async def get_file_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
+async def get_content_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
     return (
         # try HEAD request
         await get_headers(url, method="HEAD", **kwargs)
@@ -305,21 +305,21 @@ async def get_file_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
 
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
-async def get_file_size(url: str, headers=FAKE_HEADERS, **kwargs) -> int:
-    if file_headers := await get_file_headers(url, headers=headers, **kwargs):
+async def get_content_size(url: str, headers=FAKE_HEADERS, **kwargs) -> int:
+    if file_headers := await get_content_headers(url, headers=headers, **kwargs):
         return int(file_headers.get("Content-Length", 0))
     return 0
 
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
-async def get_file_name(
+async def get_content_name(
     url: str,
     pattern: re.Pattern,
     group: str = "name",
     **kwargs,
 ) -> str:
     file_name = ""
-    if file_headers := await get_file_headers(url, **kwargs):
+    if file_headers := await get_content_headers(url, **kwargs):
         if file_name := file_headers.get("Content-Disposition", ""):
             if matched := re.search(pattern, file_name):
                 file_name = matched[group]
@@ -328,12 +328,17 @@ async def get_file_name(
     return re.sub(INVALID_CHARS, "", file_name)
 
 
-@cached(ttl=15, key="url")
 @retry_request
-async def get_file_type(url: str, mime=True, **kwargs) -> Optional[str]:
-    async with stream_response(url, "GET", **kwargs) as response:
-        chunk = await anext(response.aiter_bytes(1024))
+async def get_content_type(url: str, mime=True, **kwargs) -> Optional[str]:
+    async with get_content(url, **kwargs) as content_iterator:
+        chunk = await anext(content_iterator)
         return magic.from_buffer(chunk, mime=mime)
+
+
+@retry_request
+async def get_content_extension(url: str, **kwargs) -> Optional[str]:
+    if mime_type := await get_content_type(url, mime=True):
+        return mime_type.split("/")[-1]
 
 
 async def get_file_info(
@@ -343,9 +348,9 @@ async def get_file_info(
     group: str = None,
 ) -> dict:
     info = {}
-    if size and (file_size := await get_file_size(url)):
+    if size and (file_size := await get_content_size(url)):
         info["size"] = file_size
-    if pattern and group and (file_name := await get_file_name(url, pattern, group)):
+    if pattern and group and (file_name := await get_content_name(url, pattern, group)):
         info["name"] = file_name
     return info
 

@@ -65,7 +65,7 @@ from ..db.models import Chat
 from ..db.updaters import update_chat
 
 # get file size
-from ..extra.request_helpers import get_file_size
+from ..extra.request_helpers import get_content_size
 
 # media styles
 from ..extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
@@ -350,7 +350,7 @@ async def inline_instagram(
                 "description": item.source,
                 "caption": item.source if user.include_link else None,
             }
-            result_size = await get_file_size(item.link)
+            result_size = await get_content_size(item.link)
             if item.type == "image" and result_size < 10 << 20:
                 results.append(
                     InlineQueryResultCachedPhoto(

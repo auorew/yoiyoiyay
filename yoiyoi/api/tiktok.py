@@ -32,8 +32,9 @@ from ..api.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
 # fake headers and request helpers
 from ..extra.request_helpers import (
     FAKE_HEADERS,
-    get_file_name,
-    get_file_size,
+    get_content_extension,
+    get_content_name,
+    get_content_size,
     make_request,
 )
 
@@ -373,7 +374,7 @@ async def get_ytdlp_advanced_info(basic_info: dict) -> dict:
         }
 
 
-async def get_ytdlp_links(tiktok_info: dict) -> list[Optional[TikTok]]:
+async def get_links_ytdlp(tiktok_info: dict) -> list[Optional[TikTok]]:
     """Gets video links from yt-dlp.
 
     Args:
@@ -382,6 +383,7 @@ async def get_ytdlp_links(tiktok_info: dict) -> list[Optional[TikTok]]:
     Returns:
         list[TikTok]: tiktok video links and sizes.
     """
+    log.info("API: YouTube-DLP.")
     content = []
     if not (info := await get_ytdlp_info(tiktok_info["original_link"])):
         return content
@@ -409,7 +411,7 @@ async def get_ytdlp_links(tiktok_info: dict) -> list[Optional[TikTok]]:
     return content
 
 
-async def get_tokcounter_links(tiktok_info: dict) -> list[TikTok]:
+async def get_links_tokcounter(tiktok_info: dict) -> list[TikTok]:
     """Gets video links from TokCounter.
 
     Args:
@@ -446,7 +448,14 @@ async def get_tokcounter_links(tiktok_info: dict) -> list[TikTok]:
         # process response
         log.debug("Getting links...")
         _link = info["video"]["downloadUrl"]
-        if _size := await get_file_size(_link):
+        if _ext := await get_content_extension(_link):
+            log.info("Video extension: %s.", _ext)
+            if _ext == "html":
+                log.warning("Can't download video in html format.")
+                return content
+        else:
+            log.info("Couldn't get video extension.")
+        if _size := await get_content_size(_link):
             for _ in range(2):
                 content.append(TikTokVideo(_link, _size, {}))
         if not content:
@@ -454,7 +463,7 @@ async def get_tokcounter_links(tiktok_info: dict) -> list[TikTok]:
     return content
 
 
-async def get_tikmate_app_links(tiktok_info: dict) -> list[TikTok]:
+async def get_links_tikmate_app(tiktok_info: dict) -> list[TikTok]:
     """Gets video links from TikMate.
 
     Args:
@@ -470,14 +479,21 @@ async def get_tikmate_app_links(tiktok_info: dict) -> list[TikTok]:
         log.debug("Getting links...")
         for _param in ("?hd=1", ""):
             _link = TIKMATE_LINK.format(info["token"], info["id"], _param)
-            if _size := await get_file_size(_link):
+            if _ext := await get_content_extension(_link):
+                log.info("Video extension: %s.", _ext)
+                if _ext == "html":
+                    log.warning("Can't download video in html format.")
+                    continue
+            else:
+                log.info("Couldn't get video extension.")
+            if _size := await get_content_size(_link):
                 content.append(TikTokVideo(_link, _size, {}))
         if not content:
             log.warning("No content.")
     return content
 
 
-async def get_lovetik_links(tiktok_info: dict) -> list[TikTok]:
+async def get_links_lovetik(tiktok_info: dict) -> list[TikTok]:
     """Gets video links from LoveTik.
 
     Args:
@@ -519,7 +535,14 @@ async def get_lovetik_links(tiktok_info: dict) -> list[TikTok]:
         # process response
         log.debug("Getting links...")
         _link = info["links"][0]["a"]
-        if _size := await get_file_size(_link):
+        if _ext := await get_content_extension(_link):
+            log.info("Video extension: %s.", _ext)
+            if _ext == "html":
+                log.warning("Can't download video in html format.")
+                return content
+        else:
+            log.info("Couldn't get video extension.")
+        if _size := await get_content_size(_link):
             for _ in range(2):
                 content.append(TikTokVideo(_link, _size, {}))
         if not content:
@@ -527,7 +550,7 @@ async def get_lovetik_links(tiktok_info: dict) -> list[TikTok]:
     return content
 
 
-async def get_tikmate_io_media(
+async def get_media_links_tikmate_io(
     tiktok_info: dict,
 ) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
     log.info("API: TikMate Online.")
@@ -586,18 +609,18 @@ async def get_tikmate_io_media(
         photos = soup.find_all("div", class_="card")
         if videos and photos:
             for video in videos:
-                if _size := await get_file_size(video["href"]):
+                if _size := await get_content_size(video["href"]):
                     content_videos.append(TikTokVideo(video["href"], _size, {}))
             for photo in photos:
                 _prev = photo.img["src"]
                 _link = photo.div.a["href"]
-                _size = await get_file_size(_link)
-                _name = await get_file_name(_link, REGEX_TIKMATE_ONLINE)
+                _size = await get_content_size(_link)
+                _name = await get_content_name(_link, REGEX_TIKMATE_ONLINE)
                 content_images.append(TikTokPhoto(_link, _size, _prev, _name))
     return content_videos, content_images
 
 
-async def get_cobalt_media(tiktok_info: dict) -> Optional[TikTokPhoto]:
+async def get_media_links_cobalt(tiktok_info: dict) -> Optional[TikTokPhoto]:
     log.info("API: Cobalt.")
     content_images = []
     # api info
@@ -632,8 +655,8 @@ async def get_cobalt_media(tiktok_info: dict) -> Optional[TikTokPhoto]:
         for photo in info["picker"]:
             _prev = photo["url"]
             _link = photo["url"]
-            _size = await get_file_size(_link)
-            _name = await get_file_name(_link, REGEX_COBALT_TOOLS)
+            _size = await get_content_size(_link)
+            _name = await get_content_name(_link, REGEX_COBALT_TOOLS)
             content_images.append(TikTokPhoto(_link, _size, _prev, _name))
         if not content_images:
             log.warning("No content.")
@@ -693,10 +716,10 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     if info["kind"] == TikTokMediaKind.VIDEO:
         log.info("TikTok type: video.")
         for get_links in (
-            get_ytdlp_links,  # good
-            get_tikmate_app_links,  # good
-            get_tokcounter_links,  # good
-            get_lovetik_links,  # good
+            get_links_ytdlp,  # good
+            get_links_tikmate_app,  # good
+            get_links_tokcounter,  # good
+            get_links_lovetik,  # good
         ):
             if content := await get_links(info):
                 return TikTokMedia(**info, content=content)
@@ -704,8 +727,8 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     else:
         log.info("TikTok type: slideshow.")
         content_videos, content_images = [], []
-        if content := await get_tikmate_io_media(info):
+        if content := await get_media_links_tikmate_io(info):
             content_videos, content_images = content[0], content[1]
         if not content_images:
-            content_images = await get_cobalt_media(info)
+            content_images = await get_media_links_cobalt(info)
         return TikTokMedia(**info, content=[*content_videos, *content_images])

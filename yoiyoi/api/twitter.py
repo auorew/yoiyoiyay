@@ -43,7 +43,7 @@ from ..api.namedtuples import TweetContent, TweetMedia
 from ..bot.formatters import unescape_html
 
 # fake headers and request helpers
-from ..extra.request_helpers import get_file_size, make_request
+from ..extra.request_helpers import get_content_size, make_request
 
 # get logger
 log = logging.getLogger(__name__)
@@ -455,7 +455,7 @@ async def process_twitter_medium(medium: Medium) -> Optional[TweetContent]:
         return TweetContent(
             "photo",
             links,
-            tuple([await get_file_size(link) for link in links]),
+            tuple([await get_content_size(link) for link in links]),
             medium.previewUrl,
         )
     elif isinstance(medium, Video) or isinstance(medium, Gif):
@@ -471,7 +471,7 @@ async def process_twitter_medium(medium: Medium) -> Optional[TweetContent]:
         return TweetContent(
             "gif" if len(medium.variants) == 1 else "video",
             links,
-            tuple([await get_file_size(link) for link in links]),
+            tuple([await get_content_size(link) for link in links]),
             medium.thumbnailUrl,
         )
     else:

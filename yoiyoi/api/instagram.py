@@ -19,7 +19,7 @@ from bs4 import BeautifulSoup
 from ..api.namedtuples import InstaMedia
 
 # request helpers
-from ..extra.request_helpers import FAKE_HEADERS, get_file_name, make_request
+from ..extra.request_helpers import FAKE_HEADERS, get_content_name, make_request
 
 # deobfuscate js response
 from .dehunter import dehunter
@@ -104,7 +104,7 @@ async def get_snapinsta_links(link: str) -> list[InstaMedia]:
         content = soup.find_all("div", class_="download-content")
         for media in content:
             url = media.find("a", {"data-event": "click_download_btn"})
-            name = await get_file_name(url["href"], REGEX_SNAPINSTA, "name")
+            name = await get_content_name(url["href"], REGEX_SNAPINSTA, "name")
             if len(name) > 1:
                 name = name[1:].replace("_video_dashinit", "")
             results.append(
@@ -184,7 +184,7 @@ async def get_saveinsta_links(link: str) -> list[InstaMedia]:
         content = soup.find_all("div", class_="download-items")
         for media in content:
             url = media.find("div", class_="download-items__btn").a
-            name = await get_file_name(url["href"], REGEX_SAVEINSTA, "name")
+            name = await get_content_name(url["href"], REGEX_SAVEINSTA, "name")
             results.append(
                 InstaMedia(
                     link,

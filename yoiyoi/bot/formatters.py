@@ -208,7 +208,7 @@ def extract_file_ext_from_bytes(file: bytes):
     # try magic
     try:
         log.debug("Extract ext: trying libmagic...")
-        if mime_type := magic.from_buffer(file, mime=True).split("/")[1]:
+        if mime_type := magic.from_buffer(file, mime=True).split("/")[-1]:
             if mime_type != NO_EXT:
                 log.info("Extract ext: extension: %s...", mime_type)
                 return mime_type
@@ -235,7 +235,7 @@ def extract_file_ext_from_bytes(file: bytes):
                 log.warning(f"Error: {stderr.decode('utf-8')}")
             else:
                 format_info = stdout.decode("utf-8")
-                mime_type = format_info.strip().split(": ")[1].split("/")[1]
+                mime_type = format_info.strip().split(": ")[1].split("/")[-1]
                 if mime_type != NO_EXT:
                     log.info("Extract ext: extension: %s...", mime_type)
                 return mime_type
@@ -259,7 +259,7 @@ def extract_file_ext(file: str | bytes) -> str:
     try:
         log.debug("Extract ext: trying libmagic...")
         if magic_output := magic.from_file(file, mime=True):
-            mime_type = magic_output.split("/")[1]
+            mime_type = magic_output.split("/")[-1]
             if mime_type != NO_EXT:
                 log.info("Extract ext: extension: %s...", mime_type)
                 return mime_type
@@ -280,7 +280,7 @@ def extract_file_ext(file: str | bytes) -> str:
                 log.warning(f"Error: {output.stderr.decode('utf-8')}")
             else:
                 format_info = output.stdout.decode("utf-8")
-                mime_type = format_info.strip().split(": ")[1].split("/")[1]
+                mime_type = format_info.strip().split(": ")[1].split("/")[-1]
                 if mime_type != NO_EXT:
                     log.info("Extract ext: extension: %s...", mime_type)
                     return mime_type
