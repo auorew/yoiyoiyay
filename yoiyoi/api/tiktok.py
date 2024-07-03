@@ -716,7 +716,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     if info["kind"] == TikTokMediaKind.VIDEO:
         log.info("TikTok type: video.")
         for get_links in (
-            get_links_ytdlp,  # good
+            # get_links_ytdlp,  # good
             get_links_tikmate_app,  # good
             get_links_tokcounter,  # good
             get_links_lovetik,  # good
