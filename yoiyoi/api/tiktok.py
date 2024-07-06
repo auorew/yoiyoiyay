@@ -401,6 +401,12 @@ async def get_links_ytdlp(tiktok_info: dict) -> list[Optional[TikTok]]:
         cookie = SimpleCookie()
         cookie.load(video["cookies"])
         cookies = {key: morsel.value for key, morsel in cookie.items()}
+        extra = {"cookies": cookies, "headers": video["http_headers"], "method": "GET"}
+        if _ext := await get_content_extension(video["url"], **extra):
+            log.info("Video extension: %s.", _ext)
+            if _ext == "html":
+                log.warning("Can't download video in html format.")
+                continue
         content.append(
             TikTokVideo(
                 video["url"],
@@ -716,7 +722,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     if info["kind"] == TikTokMediaKind.VIDEO:
         log.info("TikTok type: video.")
         for get_links in (
-            # get_links_ytdlp,  # good
+            get_links_ytdlp,  # good
             get_links_tikmate_app,  # good
             get_links_tokcounter,  # good
             get_links_lovetik,  # good

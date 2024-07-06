@@ -337,7 +337,7 @@ async def get_content_type(url: str, mime=True, **kwargs) -> Optional[str]:
 
 @retry_request
 async def get_content_extension(url: str, **kwargs) -> Optional[str]:
-    if mime_type := await get_content_type(url, mime=True):
+    if mime_type := await get_content_type(url, mime=True, **kwargs):
         return mime_type.split("/")[-1]
 
 
