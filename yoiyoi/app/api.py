@@ -1,4 +1,5 @@
 """Web Application"""
+
 import logging
 import os
 

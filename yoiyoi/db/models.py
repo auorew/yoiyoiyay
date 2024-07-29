@@ -1,4 +1,5 @@
 """Database schema"""
+
 from typing import Annotated, Optional
 
 # sqlalchemy modules

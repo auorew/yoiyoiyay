@@ -1,4 +1,5 @@
 """Bot switchers"""
+
 import logging
 
 from typing import Optional

@@ -1,4 +1,5 @@
 """Getters module"""
+
 import logging
 
 # working with database

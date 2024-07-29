@@ -1,4 +1,5 @@
 """Namedtuple module"""
+
 from collections import namedtuple
 
 # main namedtuple for any links

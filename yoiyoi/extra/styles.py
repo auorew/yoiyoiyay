@@ -1,4 +1,5 @@
 """Styles module"""
+
 from abc import ABC, abstractmethod
 from html import escape as escape_html
 

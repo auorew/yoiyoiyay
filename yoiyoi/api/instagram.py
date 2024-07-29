@@ -1,4 +1,5 @@
 """Instagram module"""
+
 import asyncio
 import logging
 import os

@@ -1,4 +1,5 @@
 """TikTok module"""
+
 import asyncio
 import json
 import logging

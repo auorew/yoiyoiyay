@@ -5,6 +5,7 @@ Revises: 08cccf6bbe79
 Create Date: 2022-06-24 20:15:55.176420
 
 """
+
 from alembic import op
 
 # revision identifiers, used by Alembic.

@@ -1,4 +1,5 @@
 """YouTube Short module"""
+
 import logging
 import re
 import time

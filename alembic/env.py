@@ -1,4 +1,5 @@
 """Alembic environment"""
+
 import logging
 import os
 import sys

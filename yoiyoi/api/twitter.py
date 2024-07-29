@@ -1,4 +1,5 @@
 """Twitter module"""
+
 import logging
 import os
 import re
@@ -187,28 +188,33 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
             ]
             or None,
             quotedTweet=quote_info,
-            media=[
-                Photo(
-                    previewUrl=medium["media_url_https"],
-                    fullUrl=medium["media_url_https"],
-                )
-                if medium["type"] == "photo"
-                else Video(
-                    thumbnailUrl=medium["media_url_https"],
-                    variants=[
-                        VideoVariant(
-                            url=variant["url"],
-                            contentType=variant["content_type"],
-                            bitrate=variant.get("bitrate"),
+            media=(
+                [
+                    (
+                        Photo(
+                            previewUrl=medium["media_url_https"],
+                            fullUrl=medium["media_url_https"],
                         )
-                        for variant in medium["video_info"]["variants"]
-                    ],
-                    duration=(medium["video_info"].get("duration_millis") or 0) / 1000,
-                )
-                for medium in media_info
-            ]
-            if media_info
-            else None,
+                        if medium["type"] == "photo"
+                        else Video(
+                            thumbnailUrl=medium["media_url_https"],
+                            variants=[
+                                VideoVariant(
+                                    url=variant["url"],
+                                    contentType=variant["content_type"],
+                                    bitrate=variant.get("bitrate"),
+                                )
+                                for variant in medium["video_info"]["variants"]
+                            ],
+                            duration=(medium["video_info"].get("duration_millis") or 0)
+                            / 1000,
+                        )
+                    )
+                    for medium in media_info
+                ]
+                if media_info
+                else None
+            ),
         )
 
 
@@ -263,52 +269,58 @@ async def get_info_from_web_services(tweet_id: int) -> Optional[dict]:
                 )
             ]
             or None,
-            quotedTweet=Tweet(
-                url=next(
-                    (
-                        url["expanded_url"]
-                        for url in tweet_info["urls"]
-                        if quote["id"] in url["expanded_url"]
+            quotedTweet=(
+                Tweet(
+                    url=next(
+                        (
+                            url["expanded_url"]
+                            for url in tweet_info["urls"]
+                            if quote["id"] in url["expanded_url"]
+                        ),
+                        None,
                     ),
-                    None,
-                ),
-                date=parse(quote["created_at"]),
-                rawContent=quote["text"],
-                renderedContent=quote["text"],
-                id=quote["id"],
-                user=User(
-                    username=None,
-                    id=None,
-                    displayname=None,
-                ),
-                replyCount=quote["reply_count"],
-                retweetCount=quote["retweet_count"],
-                likeCount=quote["like_count"],
-                quoteCount=0,
-                conversationId=quote["id"],
-                lang="",
-            )
-            if quote
-            else None,
-            media=[
-                Photo(previewUrl=medium["url"], fullUrl=medium["url"])
-                if medium["type"] == "photo"
-                else Video(
-                    thumbnailUrl=medium["preview_image_url"],
-                    variants=[
-                        VideoVariant(
-                            url=variant["url"],
-                            contentType=variant["content_type"],
-                            bitrate=variant.get("bit_rate"),
-                        )
-                        for variant in medium["variants"]
-                    ],
-                    duration=(medium.get("duration_ms") or 0) / 1000,
+                    date=parse(quote["created_at"]),
+                    rawContent=quote["text"],
+                    renderedContent=quote["text"],
+                    id=quote["id"],
+                    user=User(
+                        username=None,
+                        id=None,
+                        displayname=None,
+                    ),
+                    replyCount=quote["reply_count"],
+                    retweetCount=quote["retweet_count"],
+                    likeCount=quote["like_count"],
+                    quoteCount=0,
+                    conversationId=quote["id"],
+                    lang="",
                 )
-                for medium in media
-            ]
-            if media
-            else None,
+                if quote
+                else None
+            ),
+            media=(
+                [
+                    (
+                        Photo(previewUrl=medium["url"], fullUrl=medium["url"])
+                        if medium["type"] == "photo"
+                        else Video(
+                            thumbnailUrl=medium["preview_image_url"],
+                            variants=[
+                                VideoVariant(
+                                    url=variant["url"],
+                                    contentType=variant["content_type"],
+                                    bitrate=variant.get("bit_rate"),
+                                )
+                                for variant in medium["variants"]
+                            ],
+                            duration=(medium.get("duration_ms") or 0) / 1000,
+                        )
+                    )
+                    for medium in media
+                ]
+                if media
+                else None
+            ),
         )
     log.warning("No response from twitter API.")
 
@@ -412,28 +424,33 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
             ]
             or None,
             quotedTweet=quote_info,
-            media=[
-                Photo(
-                    previewUrl=medium["media_url_https"],
-                    fullUrl=medium["media_url_https"],
-                )
-                if medium["type"] == "photo"
-                else Video(
-                    thumbnailUrl=medium["media_url_https"],
-                    variants=[
-                        VideoVariant(
-                            url=variant["url"],
-                            contentType=variant["content_type"],
-                            bitrate=variant.get("bitrate"),
+            media=(
+                [
+                    (
+                        Photo(
+                            previewUrl=medium["media_url_https"],
+                            fullUrl=medium["media_url_https"],
                         )
-                        for variant in medium["video_info"]["variants"]
-                    ],
-                    duration=(medium["video_info"].get("duration_millis") or 0) / 1000,
-                )
-                for medium in media_info
-            ]
-            if media_info
-            else None,
+                        if medium["type"] == "photo"
+                        else Video(
+                            thumbnailUrl=medium["media_url_https"],
+                            variants=[
+                                VideoVariant(
+                                    url=variant["url"],
+                                    contentType=variant["content_type"],
+                                    bitrate=variant.get("bitrate"),
+                                )
+                                for variant in medium["video_info"]["variants"]
+                            ],
+                            duration=(medium["video_info"].get("duration_millis") or 0)
+                            / 1000,
+                        )
+                    )
+                    for medium in media_info
+                ]
+                if media_info
+                else None
+            ),
         )
 
 

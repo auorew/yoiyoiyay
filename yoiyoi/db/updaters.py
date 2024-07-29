@@ -1,4 +1,5 @@
 """Database updaters"""
+
 import logging
 
 # telegram core bot api

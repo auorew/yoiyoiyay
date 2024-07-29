@@ -1,4 +1,5 @@
 """Pixiv module"""
+
 import logging
 import os
 

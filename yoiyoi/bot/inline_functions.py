@@ -1,4 +1,5 @@
 """Bot Inline Functions"""
+
 import asyncio
 import logging
 import os
@@ -305,9 +306,11 @@ async def inline_pixiv(
                         photo_file_id=await get_cached_media(
                             bot,
                             "photo",
-                            illust.original
-                            if illust.original_size < 10 << 20
-                            else illust.thumb,
+                            (
+                                illust.original
+                                if illust.original_size < 10 << 20
+                                else illust.thumb
+                            ),
                         ),
                     ),
                 )
