@@ -25,28 +25,28 @@ from bs4 import BeautifulSoup
 from tenacity import stop_after_attempt
 
 # link types and other info
-from ..api import LINKS, TikTokMediaKind
+from yoiyoi.api import LINKS, TikTokMediaKind
+
+# deobfuscate js response
+from yoiyoi.api.dehunter import dehunter
 
 # TikTokVideo namedtuple
-from ..api.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
+from yoiyoi.api.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
+
+# url expanders
+from yoiyoi.api.urlexpander import (
+    expand_with_checkshorturl,
+    expand_with_expandurl,
+    expand_with_urlex,
+)
 
 # fake headers and request helpers
-from ..extra.request_helpers import (
+from yoiyoi.extra.request_helpers import (
     FAKE_HEADERS,
     get_content_extension,
     get_content_name,
     get_content_size,
     make_request,
-)
-
-# deobfuscate js response
-from .dehunter import dehunter
-
-# url expanders
-from .urlexpander import (
-    expand_with_checkshorturl,
-    expand_with_expandurl,
-    expand_with_urlex,
 )
 
 # setup logger

@@ -2,7 +2,6 @@
 
 import base64
 import logging
-import os
 
 from pathlib import Path
 
@@ -15,11 +14,12 @@ import orjson
 # telegram core bot api extension
 from telegram.ext import Application
 
-# logger file handler
-from ..extra.loggers import FILE_HANDLER
-
 # retry requests
-from ..extra.request_helpers import retry_request
+from yoiyoi.extra.loggers import get_log_filename
+from yoiyoi.extra.request_helpers import retry_request
+
+# settings
+from yoiyoi.extra.settings import bot_settings, log_settings
 
 # setup logger
 log = logging.getLogger(__name__)
@@ -49,13 +49,13 @@ async def upload_to_cloud(file: Path, link: str) -> None:
 
 async def upload_log(_: Application) -> None:
     """Upload log file"""
-    if not FILE_HANDLER:
-        log.error("No such file!")
+    if not log_settings.file.enable:
+        log.error("No logging to file!")
         return
-    if not (link := os.environ.get("GD_LOG", None)):
+    if not (link := bot_settings.gd_log):
         log.error("No log upload link.")
         return
-    if (file := Path(FILE_HANDLER.baseFilename)).exists():
+    if (file := get_log_filename()).exists():
         try:
             await upload_to_cloud(file, link)
         except httpx.ConnectTimeout:

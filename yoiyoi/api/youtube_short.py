@@ -16,13 +16,13 @@ import yt_dlp
 from bs4 import BeautifulSoup
 
 # link types and other info
-from ..api import LINKS
+from yoiyoi.api import LINKS
 
 # YouTubeShortMedia namedtuple
-from ..api.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
+from yoiyoi.api.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
 
 # fake headers and request helpers
-from ..extra.request_helpers import FAKE_HEADERS, get_content_size, make_request
+from yoiyoi.extra.request_helpers import FAKE_HEADERS, get_content_size, make_request
 
 # setup logger
 log = logging.getLogger(__name__)

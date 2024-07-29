@@ -19,19 +19,22 @@ from pillow_heif import register_heif_opener
 from telegram import Update
 
 # TweetContent namedtuples
-from ..api.namedtuples import TweetContent
+from yoiyoi.api.namedtuples import TweetContent
 
 # get constants
-from ..bot import MAX_PHOTO_FILE_SIZE, MAX_PHOTO_SIZE_SUM
+from yoiyoi.bot import MAX_PHOTO_FILE_SIZE, MAX_PHOTO_SIZE_SUM
 
 # bot senders
-from ..bot.senders import send_error, send_reply
+from yoiyoi.bot.senders import send_error, send_reply
 
 # get file size
-from ..extra.request_helpers import save_file
+from yoiyoi.extra.request_helpers import save_file
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # extra utilities
-from ..extra.utils import get_file_chunk, replace_file
+from yoiyoi.extra.utils import get_file_chunk, replace_file
 
 # setup logger
 log = logging.getLogger(__name__)
@@ -66,9 +69,8 @@ async def crop_thumbnail(thumbpath: Path, video_width: int, video_height: int):
     return True
 
 
-async def count_audio_stream(update: Update, filepath: Path) -> bool:
-    update_id = update.update_id
-    log.info("[%d] Checking for audio streams...", update_id)
+async def count_audio_stream(filepath: Path) -> bool:
+    log.info("Checking for audio streams...")
     # fmt: off
     ffprobe_command = [
         "ffprobe",
@@ -79,38 +81,37 @@ async def count_audio_stream(update: Update, filepath: Path) -> bool:
         str(filepath),
     ]
     # fmt: on
-    log.debug("[%d] ffprobe command: %s.", update_id, " ".join(ffprobe_command))
+    log.debug("ffprobe command: %s.", " ".join(ffprobe_command))
     process = await asyncio.create_subprocess_exec(
         *ffprobe_command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     if await process.wait() != 0:
-        log.warning("[%d] ffprobe command failed.", update_id)
+        log.warning("ffprobe command failed.")
     try:
         output = await process.stdout.read()
         result = orjson.loads(output)
     except orjson.JSONDecodeError:
-        log.warning("[%d] Couldn't parse output: %s.", update_id, output)
-        log.warning("[%d] Assuming 0 audio streams...", update_id)
+        log.warning("Couldn't parse output: %s.", output)
+        log.warning("Assuming 0 audio streams...")
         return 0
     return len(result["streams"])
 
 
-async def process_video(update: Update, filepath: Path) -> Path:
-    update_id = update.update_id
-    log.info("[%d] Processing a video...", update_id)
+async def process_video(filepath: Path) -> Path:
+    log.info("Processing a video...")
     # if more than 0 audio streams then quit
-    if await count_audio_stream(update, filepath):
-        log.info("[%d] Found an audio stream!", update_id)
+    if await count_audio_stream(filepath):
+        log.info("Found an audio stream!")
         return filepath
-    log.info("[%d] Found no audio streams!", update_id)
+    log.info("Found no audio streams!")
     # rename and create output path
     result_path = filepath.parent / filepath.name.replace(".mov", ".mp4")
     rename_path = filepath.rename(
         filepath.parent / f"RE_{filepath.name.replace('.mov', '.mp4')}"
     )
-    log.debug("[%d] Output video: %s.", update_id, result_path)
+    log.debug("Output video: %s.", result_path)
     # fmt: off
     ffmpeg_command = (
         "ffmpeg",
@@ -121,26 +122,26 @@ async def process_video(update: Update, filepath: Path) -> Path:
         str(result_path),
     )
     # fmt: on
-    log.debug("[%d] ffmpeg command: %s.", update_id, " ".join(ffmpeg_command))
+    log.debug("ffmpeg command: %s.", " ".join(ffmpeg_command))
     process = await asyncio.create_subprocess_exec(*ffmpeg_command)
     if await process.wait() != 0:
-        log.warning("[%d] ffmpeg command failed.", update_id)
+        log.warning("ffmpeg command failed.")
     original = sha256(get_file_chunk(rename_path)).hexdigest()
     output = sha256(get_file_chunk(result_path)).hexdigest()
-    log.debug("[%d] SHA256 input  hash: %s.", update_id, original)
-    log.debug("[%d] SHA256 output hash: %s.", update_id, output)
+    log.debug("SHA256 input  hash: %s.", original)
+    log.debug("SHA256 output hash: %s.", output)
     if original == output:
-        log.info("[%d] SHA256 hashes are the same, deleting output...", update_id)
+        log.info("SHA256 hashes are the same, deleting output...")
         result_path.unlink(missing_ok=True)
         return rename_path.rename(result_path)
     else:
-        log.info("[%d] SHA256 hashes are different, sending output...", update_id)
+        log.info("SHA256 hashes are different, sending output...")
         rename_path.unlink(missing_ok=True)
         return result_path
 
 
 async def resize_image(filepath: Path):
-    if (resizer_api := os.environ.get("RESIZER_API", None)) and (
+    if (resizer_api := bot_settings.resizer_api) and (
         resized_filepath := await save_file(
             resizer_api,
             "POST",
@@ -151,17 +152,16 @@ async def resize_image(filepath: Path):
         return resized_filepath
 
 
-async def process_image(update: Update, filepath: Path) -> Optional[Path]:
-    update_id = update.update_id
-    log.info("[%d] Processing an image...", update_id)
+async def process_image(filepath: Path) -> Optional[Path]:
+    log.info("Processing an image...")
     # check if file size > 10 MB
     if (filesize := os.stat(filepath).st_size) > MAX_PHOTO_FILE_SIZE:
-        log.debug("[%d] File size: %d.", update_id, filesize)
+        log.debug("File size: %d.", filesize)
         return await resize_image(filepath)
     # check if width + height > 10000
     with Image.open(filepath) as image:
-        log.debug("[%d] Original: %d x %d.", update_id, *image.size)
-        log.debug("[%d] Size sum: %d.", update_id, sum(image.size))
+        log.debug("Original: %d x %d.", *image.size)
+        log.debug("Size sum: %d.", sum(image.size))
         if sum(image.size) > MAX_PHOTO_SIZE_SUM:
             return await resize_image(filepath)
     return filepath

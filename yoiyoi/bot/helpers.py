@@ -29,8 +29,7 @@ def notify(
     """
     if inline:
         log.info(
-            "[%d] {%d} %r invoked inline mode with: %r.",
-            update.update_id,
+            "{%d} %r invoked inline mode with: %r.",
             update.effective_user.id,
             update.effective_user.full_name,
             inline_message,
@@ -39,24 +38,21 @@ def notify(
     chat = update.effective_chat
     if command:
         log.info(
-            "[%d] {%d} %r called command: %r.",
-            update.update_id,
+            "{%d} %r called command: %r.",
             chat.id,
             chat.full_name or chat.title,
             command,
         )
     if function:
         log.info(
-            "[%d] {%d} %r called function: %r.",
-            update.update_id,
+            "{%d} %r called function: %r.",
             chat.id,
             chat.full_name or chat.title,
             function,
         )
     if toggle:
         log.info(
-            "[%d] {%d} %r called toggler: %r is now %s.",
-            update.update_id,
+            "{%d} %r called toggler: %r is now %s.",
             chat.id,
             chat.full_name or chat.title,
             toggle[0],

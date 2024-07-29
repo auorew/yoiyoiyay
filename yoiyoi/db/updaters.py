@@ -6,13 +6,13 @@ import logging
 from telegram import Chat as TGChat
 
 # database engine
-from ..db import Session
+from yoiyoi.db import Session
 
 # database table
-from ..db.models import Chat
+from yoiyoi.db.models import Chat
 
 # media styles
-from ..extra.styles import Style
+from yoiyoi.extra.styles import Style
 
 # get logger
 log = logging.getLogger(__name__)

@@ -1,7 +1,6 @@
 """Pixiv module"""
 
 import logging
-import os
 
 from typing import Optional
 
@@ -12,19 +11,20 @@ import orjson
 from pixivpy_async import AppPixivAPI, PixivClient
 
 # link types, link dictionary
-from ..api import LINKS
+from yoiyoi.api import LINKS
 
 # PixivMedia namedtuple
-from ..api.namedtuples import PixivContent, PixivMedia
+from yoiyoi.api.namedtuples import PixivContent, PixivMedia
 
 # get file size
-from ..extra.request_helpers import (
+from yoiyoi.extra.request_helpers import (
     FAKE_HEADERS,
     PIXIV_HEADERS,
     get_content_size,
     make_request,
     retry_request,
 )
+from yoiyoi.extra.settings import bot_settings
 
 # get logger
 log = logging.getLogger(__name__)
@@ -124,7 +124,7 @@ async def get_pixiv_info(pixiv_id: int) -> PixivMedia:
     """
     async with PixivClient() as client:
         aapi = AppPixivAPI(client=client)
-        await aapi.login(refresh_token=os.environ["PX_REFRESH"])
+        await aapi.login(refresh_token=bot_settings.px_refresh)
         # Doing stuff...
         log.debug("Trying to fetch artwork...")
         json_result = await aapi.illust_detail(pixiv_id)

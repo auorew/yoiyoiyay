@@ -1,7 +1,6 @@
 """Bot Application"""
 
 import logging
-import os
 
 # telegram core bot api
 from telegram import Update
@@ -18,10 +17,10 @@ from telegram.ext import (
 )
 
 # get bot constants
-from ..bot import GET_PROXY, READ_TIMEOUT, WRITE_TIMEOUT
+from yoiyoi.bot import GET_PROXY, READ_TIMEOUT, WRITE_TIMEOUT
 
 # bot commands
-from ..bot.commands import (
+from yoiyoi.bot.commands import (
     channel_commands,
     command_delete_link,
     command_help,
@@ -40,16 +39,19 @@ from ..bot.commands import (
 )
 
 # bot filters
-from ..bot.filters import filter_out
+from yoiyoi.bot.filters import filter_out
 
 # bot functions
-from ..bot.functions import process_link
+from yoiyoi.bot.functions import process_link
 
 # bot inline functions
-from ..bot.inline_functions import inliner
+from yoiyoi.bot.inline_functions import inliner
 
 # bot jobs
-from ..bot.jobs import get_proxy
+from yoiyoi.bot.jobs import get_proxy
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # get logger
 log = logging.getLogger(__name__)
@@ -60,7 +62,7 @@ def create_bot_app() -> Application:
     # create updater & dispatcher
     application = (
         ApplicationBuilder()
-        .token(os.environ["TOKEN"])
+        .token(bot_settings.token)
         .read_timeout(READ_TIMEOUT)
         .write_timeout(WRITE_TIMEOUT)
         .build()

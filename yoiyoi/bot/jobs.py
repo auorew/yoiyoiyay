@@ -17,10 +17,10 @@ from bs4 import BeautifulSoup
 from telegram.ext import ContextTypes
 
 # get proxy dict and constant
-from ..extra import PROXY, PROXY_CID, PROXY_LIMIT, PROXY_SET, PROXY_TIMEOUT
+from yoiyoi.extra import PROXY, PROXY_CID, PROXY_LIMIT, PROXY_SET, PROXY_TIMEOUT
 
 # get fake headers & retry requets
-from ..extra.request_helpers import FAKE_HEADERS
+from yoiyoi.extra.request_helpers import FAKE_HEADERS
 
 # setup logger
 log = logging.getLogger(__name__)

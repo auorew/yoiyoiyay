@@ -9,10 +9,10 @@ from pyrogram.types import Message as PyroMessage
 from telegram import Message, Update
 
 # get constants and pyrogram app
-from ..bot import pyro_app
+from yoiyoi.bot import pyro_app
 
 # retry requets
-from ..extra.request_helpers import retry_request
+from yoiyoi.extra.request_helpers import retry_request
 
 # get logger
 log = logging.getLogger(__name__)

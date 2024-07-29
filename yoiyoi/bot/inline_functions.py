@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 
 from typing import Any, AsyncGenerator, Tuple
 
@@ -30,46 +29,49 @@ from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 # link types and other info
-from ..api import LinkType
+from yoiyoi.api import LinkType
 
 # instagram api
-from ..api.instagram import get_instagram_links
+from yoiyoi.api.instagram import get_instagram_links
 
 # Link namedtuple
-from ..api.namedtuples import Link
+from yoiyoi.api.namedtuples import Link
 
 # pixiv api
-from ..api.pixiv import get_pixiv_links
+from yoiyoi.api.pixiv import get_pixiv_links
 
 # tiktok api
-from ..api.tiktok import get_tiktok_links
+from yoiyoi.api.tiktok import get_tiktok_links
 
 # twitter api
-from ..api.twitter import get_twitter_links
+from yoiyoi.api.twitter import get_twitter_links
 
 # youtube api
-from ..api.youtube_short import get_youtube_short_links
+from yoiyoi.api.youtube_short import get_youtube_short_links
 
 # pixiv parse states
-from ..bot import PixivParse
+from yoiyoi.bot import PixivParse
 
 # bot formatters
-from ..bot.formatters import formatter, pixiv_parse
+from yoiyoi.bot.formatters import formatter, pixiv_parse
 
 # bot helpers
-from ..bot.helpers import notify
+from yoiyoi.bot.helpers import notify
 
 # database table
-from ..db.models import Chat
+from yoiyoi.db.models import Chat
 
 # database helpers
-from ..db.updaters import update_chat
+from yoiyoi.db.updaters import update_chat
 
 # get file size
-from ..extra.request_helpers import get_content_size
+from yoiyoi.extra.request_helpers import get_content_size
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # media styles
-from ..extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
+from yoiyoi.extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
 
 # get logger
 log = logging.getLogger(__name__)
@@ -121,13 +123,13 @@ async def get_cached_media(bot: Bot, kind: str, media_link: str):
     match kind:
         case "photo":
             post = await bot.send_photo(
-                chat_id=os.environ["DUMP"],
+                chat_id=bot_settings.dump,
                 photo=media_link,
             )
             return post.effective_attachment[-1].file_id
         case "video":
             post = await bot.send_video(
-                chat_id=os.environ["DUMP"],
+                chat_id=bot_settings.dump,
                 video=media_link,
             )
             return post.effective_attachment.file_id
@@ -251,7 +253,7 @@ async def inline_pixiv(
             ),
         }
         ids = [1]
-        parsed_ids = await pixiv_parse(update, link.illust, count, MAX_PIXIV_IMAGES)
+        parsed_ids = await pixiv_parse(link.illust, count, MAX_PIXIV_IMAGES)
         if art.type == "ugoira":
             ugoira = art.content[0]
             if ugoira.original_size < 20 << 20:
@@ -504,13 +506,13 @@ async def inliner(
     """
     notify(update, inline=True, inline_message=update.inline_query.query)
     query, results = update.inline_query.query, []
-    if not await anext(formatter(update.update_id, query), None):
+    if not await anext(formatter(query), None):
         log.info("Inline: No query.")
         return
     bot = context.bot
     user = await update_chat(update.effective_user)
     tasks = []
-    async for index, link in aenumerate(formatter(update.update_id, query), 1):
+    async for index, link in aenumerate(formatter(query), 1):
         log.info(
             "Inline: [#%s] Received %s link: %r.",
             index,

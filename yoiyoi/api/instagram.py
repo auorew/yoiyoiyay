@@ -2,13 +2,9 @@
 
 import asyncio
 import logging
-import os
 import re
 
 from random import getrandbits
-
-# download from any network now
-import gallery_dl
 
 # parse json
 import orjson
@@ -16,28 +12,20 @@ import orjson
 # beautiful soup
 from bs4 import BeautifulSoup
 
+# deobfuscate js response
+from yoiyoi.api.dehunter import dehunter
+
 # InstaMedia namedtuple
-from ..api.namedtuples import InstaMedia
+from yoiyoi.api.namedtuples import InstaMedia
 
 # request helpers
-from ..extra.request_helpers import FAKE_HEADERS, get_content_name, make_request
-
-# deobfuscate js response
-from .dehunter import dehunter
+from yoiyoi.extra.request_helpers import FAKE_HEADERS, get_content_name, make_request
 
 # get logger
 log = logging.getLogger(__name__)
 
 # instagram queue
 ig_queue = asyncio.Queue(maxsize=1)
-
-# set config
-gallery_dl.config.set(
-    ("extractor", "instagram", "cookies"),
-    "sessionid",
-    os.environ["IG_TOKEN"],
-)
-gallery_dl.config.set(("extractor", "instagram"), "browser", "firefox:linux")
 
 # regex
 REGEX_SNAPINSTA = re.compile(r"(?P<name>(_video_\w+)|([0-9_n]+))\.\w{3,4}")

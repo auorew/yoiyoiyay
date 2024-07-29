@@ -7,17 +7,17 @@ from typing import Optional
 # telegram core bot api
 from telegram import Update
 
+# notify
+from yoiyoi.bot.helpers import notify
+
 # bot senders
-from ..bot.senders import send_error, send_reply
+from yoiyoi.bot.senders import send_error, send_reply
 
 # database helpers
-from ..db.updaters import cycle_style, switch_style, toggle_field
+from yoiyoi.db.updaters import cycle_style, switch_style, toggle_field
 
 # media styles
-from ..extra.styles import Style
-
-# notify
-from .helpers import notify
+from yoiyoi.extra.styles import Style
 
 # get logger
 log = logging.getLogger(__name__)

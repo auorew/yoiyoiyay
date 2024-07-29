@@ -5,11 +5,11 @@ import logging
 # working with database
 from sqlalchemy import select
 
+# database models
+from yoiyoi.db.models import Chat
+
 # database session
 from . import Session
-
-# database models
-from .models import Chat
 
 # get logger
 log = logging.getLogger(__name__)

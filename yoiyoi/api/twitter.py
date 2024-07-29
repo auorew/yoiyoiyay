@@ -35,16 +35,19 @@ from snscrape.modules.twitter import (
 )
 
 # link types and other info
-from ..api import LINKS
+from yoiyoi.api import LINKS
 
 # TweetMedia & TweetContent namedtuples
-from ..api.namedtuples import TweetContent, TweetMedia
+from yoiyoi.api.namedtuples import TweetContent, TweetMedia
 
 # escape markdown and get file name
-from ..bot.formatters import unescape_html
+from yoiyoi.bot.formatters import unescape_html
 
 # fake headers and request helpers
-from ..extra.request_helpers import get_content_size, make_request
+from yoiyoi.extra.request_helpers import get_content_size, make_request
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # get logger
 log = logging.getLogger(__name__)
@@ -62,7 +65,7 @@ TWEET_URL = "https://twitter.com/web/status"
 gallery_dl.config.set(
     ("extractor", "twitter", "cookies"),
     "auth_token",
-    os.environ["TW_TOKEN"],
+    bot_settings.tw_token,
 )
 gallery_dl.config.set(("extractor", "twitter"), "browser", "firefox:linux")
 

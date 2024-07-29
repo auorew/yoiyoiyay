@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, validates
 from sqlalchemy_serializer import SerializerMixin
 
 # media styles
-from ..extra.styles import (
+from yoiyoi.extra.styles import (
     PixivStyle,
     TikTokMode,
     TikTokStyle,

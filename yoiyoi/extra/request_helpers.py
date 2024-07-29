@@ -30,7 +30,7 @@ from telegram.error import RetryAfter
 from tenacity import AsyncRetrying, RetryCallState, stop_after_attempt
 
 # link types and other info
-from ..extra import (
+from yoiyoi.extra import (
     PROXY,
     PROXY_SET,
     RETRY_MAX_TIMEOUT,

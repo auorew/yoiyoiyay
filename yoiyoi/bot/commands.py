@@ -1,7 +1,6 @@
 """Bot Commands"""
 
 import logging
-import os
 import re
 
 from pathlib import Path
@@ -12,11 +11,23 @@ from telegram import MessageEntity, Update
 # telegram core bot api extension
 from telegram.ext import ContextTypes
 
+# bot helpers
+from yoiyoi.bot.helpers import notify
+
+# bor senders
+from yoiyoi.bot.senders import send_reply
+
+# bot switchers
+from yoiyoi.bot.switchers import change_style, toggler
+
 # database helpers
-from ..db.updaters import update_chat
+from yoiyoi.db.updaters import update_chat
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # media styles
-from ..extra.styles import (
+from yoiyoi.extra.styles import (
     PixivStyle,
     TikTokMode,
     TikTokStyle,
@@ -24,20 +35,11 @@ from ..extra.styles import (
     YouTubeShortStyle,
 )
 
-# bot helpers
-from .helpers import notify
-
-# bor senders
-from .senders import send_reply
-
-# bot switchers
-from .switchers import change_style, toggler
-
 # get logger
 log = logging.getLogger(__name__)
 
 # get help contents
-HELP_MESSAGE = Path(os.environ["HELP_FILE"]).read_text(encoding="utf-8")
+HELP_MESSAGE = Path(bot_settings.help_file).read_text(encoding="utf-8")
 
 
 async def command_start(
@@ -206,13 +208,11 @@ async def channel_commands(
             await channel_commands_dict[command](update, context)
             return
         log.warning(
-            "[%d] Channel commands: Unknown command: /%s.",
-            update.update_id,
-            result["command"],
+            "Channel commands: Unknown command: /%s.",
+            result["command"]
         )
         return
     log.warning(
-        "[%d] Channel commands: No command: %s.",
-        update.update_id,
-        message.text,
+        "Channel commands: No command: %s.",
+        message.text
     )

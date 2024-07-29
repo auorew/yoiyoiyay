@@ -1,7 +1,6 @@
 """Web Application"""
 
 import logging
-import os
 
 # web application
 from fastapi import FastAPI, Request
@@ -13,10 +12,13 @@ from fastapi.responses import JSONResponse
 from telegram import Update
 
 # twitter api
-from ..api.twitter import get_twitter_links
+from yoiyoi.api.twitter import get_twitter_links
 
 # the bot
-from .bot import bot_application
+from yoiyoi.app.bot import bot_application
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # get logger
 log = logging.getLogger(__name__)
@@ -41,11 +43,11 @@ async def health():
 
 @api_application.post("/get_tweet")
 async def get_tweet(api_key: str, tweet_id: int):
-    if api_key == os.environ["API_KEY"]:
+    if api_key == bot_settings.api_key:
         return JSONResponse(await get_twitter_links(tweet_id, json=True))
 
 
-@api_application.post(f'/{os.environ["TOKEN"]}')
+@api_application.post(f"/{bot_settings.token}")
 async def telegram(request: Request):
     await bot_application.update_queue.put(
         Update.de_json(

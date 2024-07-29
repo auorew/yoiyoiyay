@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from html import escape as escape_html
 
 # PixivMedia & TweetMedia namedtuples
-from ..api.namedtuples import PixivMedia, TikTokMedia, TweetMedia, YouTubeShortMedia
+from yoiyoi.api.namedtuples import PixivMedia, TikTokMedia, TweetMedia, YouTubeShortMedia
 
 
 class AbstractSwitcher(ABC):

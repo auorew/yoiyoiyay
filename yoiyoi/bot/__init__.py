@@ -1,17 +1,16 @@
 """Bot module"""
 
-import os
-
-from pathlib import Path
-
 # telegram core bot api extension
 from telegram.ext import Application
 
 # pyrogram app
-from ..app.pyro import pyro_app
+from yoiyoi.app.pyro import pyro_app
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # uploading media
-from ..extra.upload import upload_log
+from yoiyoi.extra.upload import upload_log
 
 # read & write timeouts for bot
 READ_TIMEOUT, WRITE_TIMEOUT = 5, 5
@@ -38,7 +37,7 @@ MAX_PHOTO_FILE_SIZE = 10 << 20
 MAX_GIF_FILE_SIZE = 3 << 20
 
 # cache directory
-CACHE_DIR = Path(".") / os.environ.get("CACHE_DIR", ".cache")
+CACHE_DIR = bot_settings.cache_dir
 
 
 # bot modes

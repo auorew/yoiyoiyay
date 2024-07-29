@@ -25,13 +25,13 @@ from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 # link types and other info
-from ..api import LinkType, TikTokMediaKind
+from yoiyoi.api import LinkType, TikTokMediaKind
 
 # instagram api
-from ..api.instagram import get_instagram_links
+from yoiyoi.api.instagram import get_instagram_links
 
 # Link, PixivContent, TweetContent namedtuples
-from ..api.namedtuples import (
+from yoiyoi.api.namedtuples import (
     Link,
     PixivContent,
     PixivMedia,
@@ -44,22 +44,22 @@ from ..api.namedtuples import (
 )
 
 # pixiv api
-from ..api.pixiv import get_pixiv_links
+from yoiyoi.api.pixiv import get_pixiv_links
 
 # tiktok api
-from ..api.tiktok import get_tiktok_links
+from yoiyoi.api.tiktok import get_tiktok_links
 
 # twitter api
-from ..api.twitter import get_twitter_links
+from yoiyoi.api.twitter import get_twitter_links
 
 # youtube api
-from ..api.youtube_short import get_youtube_short_links
+from yoiyoi.api.youtube_short import get_youtube_short_links
 
 # get constants and pyrogram app
-from ..bot import CACHE_DIR, QUEUE_SIZE, PixivParse
+from yoiyoi.bot import CACHE_DIR, QUEUE_SIZE, PixivParse
 
 # bot formatters
-from ..bot.formatters import (
+from yoiyoi.bot.formatters import (
     esc,
     formatter,
     get_text,
@@ -71,28 +71,39 @@ from ..bot.formatters import (
 )
 
 # bot helpers
-from ..bot.helpers import notify
-
-# bot senders
-from ..bot.senders import get_message, send_error, send_media_group, send_reply
-
-# database table
-from ..db.models import Chat
-
-# database helpers
-from ..db.updaters import update_chat
-
-# get file size
-from ..extra.request_helpers import PIXIV_HEADERS, save_file
-
-# media styles
-from ..extra.styles import PixivStyle, Style, TikTokStyle, TwitterStyle, YouTubeShortStyle
-
-# extra utilities
-from ..extra.utils import delete_files, move_file
+from yoiyoi.bot.helpers import notify
 
 # content processor
-from .processors import choose_twitter_video, crop_thumbnail, process_image, process_video
+from yoiyoi.bot.processors import (
+    choose_twitter_video,
+    crop_thumbnail,
+    process_image,
+    process_video,
+)
+
+# bot senders
+from yoiyoi.bot.senders import get_message, send_error, send_media_group, send_reply
+
+# database table
+from yoiyoi.db.models import Chat
+
+# database helpers
+from yoiyoi.db.updaters import update_chat
+
+# get file size
+from yoiyoi.extra.request_helpers import PIXIV_HEADERS, save_file
+
+# media styles
+from yoiyoi.extra.styles import (
+    PixivStyle,
+    Style,
+    TikTokStyle,
+    TwitterStyle,
+    YouTubeShortStyle,
+)
+
+# extra utilities
+from yoiyoi.extra.utils import delete_files, move_file
 
 # setup logger
 log = logging.getLogger(__name__)
@@ -128,21 +139,20 @@ async def send_collection(
     files: list,
     docs: list = None,
 ):
-    update_id = update.update_id
     try:
         message = await get_message(update)
         quoted = not chat.delete_link
         i, j = 0, 10
         while i < len(files):
             # send media group
-            log.info("[%d] Sending media group...", update_id)
+            log.info("Sending media group...")
             if post := await send_media_group(message, media=files[i:j], quote=quoted):
-                log.info("[%d] Sent media group.", update_id)
+                log.info("Sent media group.")
             # send document group
             if docs and post:
-                log.info("[%d] Sending document group...", update_id)
+                log.info("Sending document group...")
                 if await send_media_group(post[0], media=docs[i:j], quote=True):
-                    log.info("[%d] Sent document group.", update_id)
+                    log.info("Sent document group.")
             # get next 10 photos/docs
             i, j = j, j + 10
         # seems to be successful
@@ -158,7 +168,7 @@ async def send_collection(
         # delete all files
         log.debug("Storage: %s.", storage)
         delete_files(storage)
-        Path(CACHE_DIR / str(update_id)).rmdir()
+        Path(CACHE_DIR / str(update.update_id)).rmdir()
 
 
 async def send_twitter(
@@ -173,18 +183,16 @@ async def send_twitter(
         link (Link): tweet link
         chat (Chat): current chat
     """
-    # notify(update, function="send_twitter")
-    update_id = update.update_id
     error_text = f"[*This twitter content*]({link.link}) "
-    log.info("[%d] Twitter Link: %s.", update_id, link.link)
+    log.info("Twitter Link: %s.", link.link)
     # get media
     if (tweet := await get_twitter_links(link.id)) and (count := len(tweet.content)):
         info = await get_info(link, TwitterStyle, chat, tweet)
         files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update_id))
+        storage_folder = Path(CACHE_DIR / str(update.update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         ids = tuple(range(1, count + 1))
-        parsed_ids = await pixiv_parse(update, link.illust, count)
+        parsed_ids = await pixiv_parse(link.illust, count)
         if link.illust:
             match parsed_ids[0]:
                 case PixivParse.SUCCESS:
@@ -221,9 +229,9 @@ async def send_twitter(
                 filename = await make_file_name("twitter", media.links[0], filepath)
                 filepath = move_file(filepath, storage_folder / filename)
                 storage.add(filepath)
-                log.debug("[%d] Filename: %r.", update_id, filename)
-                if not (imagepath := await process_image(update, filepath)):
-                    log.error("[%d] Couldn't resize image.", update.update_id)
+                log.debug("Filename: %r.", filename)
+                if not (imagepath := await process_image(filepath)):
+                    log.error("Couldn't resize image.")
                     await send_error(
                         update,
                         error_text + "contains images the bot couldn't resize\\!",
@@ -250,7 +258,7 @@ async def send_twitter(
                     )
             else:
                 if not (videolink := await choose_twitter_video(update, media)):
-                    log.error("[%d] Couldn't get links.", update.update_id)
+                    log.error("Couldn't get links.")
                     await send_error(
                         update,
                         error_text + "contains videos the bot couldn't send\\!",
@@ -261,8 +269,8 @@ async def send_twitter(
                 filename = await make_file_name("twitter", videolink, filepath)
                 filepath = move_file(filepath, storage_folder / filename)
                 storage.add(filepath)
-                if not (videopath := await process_video(update, filepath)):
-                    log.error("[%d] Couldn't add sound to video.", update.update_id)
+                if not (videopath := await process_video(filepath)):
+                    log.error("Couldn't add sound to video.")
                     await send_error(
                         update,
                         error_text + "contains videos the bot couldn't send\\!",
@@ -288,12 +296,12 @@ async def send_twitter(
                         duration=videoinfo[2],
                     )
                 )
-        log.debug("[%d] Finished adding to collection.", update_id)
-        log.debug("[%d] Caption: %r.", update_id, info)
+        log.debug("Finished adding to collection.")
+        log.debug("Caption: %r.", info)
         if await send_collection(update, chat, storage, files, docs):
             return
     # if no links returned
-    log.error("[%d] Couldn't get twitter content.", update_id)
+    log.error("Couldn't get twitter content.")
     await send_error(
         update,
         error_text
@@ -317,14 +325,12 @@ async def send_instagram(
         link (Link): instagram link
         chat (Chat): current chat
     """
-    # notify(update, function="send_instagram")
-    update_id = update.update_id
     error_text = f"[*This instagram content*]({link.link}) "
-    log.info("[%d] Instagram Link: %s.", update_id, link.link)
+    log.info("Instagram Link: %s.", link.link)
     # get media
     if media := await get_instagram_links(link.link):
         files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update_id))
+        storage_folder = Path(CACHE_DIR / str(update.update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         info = media[0].source if chat.include_link else None
         for idx, item in enumerate(media):
@@ -335,10 +341,10 @@ async def send_instagram(
                 filename = await join_file_name(filename, filepath)
             filepath = move_file(filepath, storage_folder / filename)
             storage.add(filepath)
-            log.debug("[%d] Filename: %r.", update_id, filename)
+            log.debug("Filename: %r.", filename)
             if item.type == "image":
-                if not (imagepath := await process_image(update, filepath)):
-                    log.error("[%d] Couldn't resize image.", update.update_id)
+                if not (imagepath := await process_image(filepath)):
+                    log.error("Couldn't resize image.")
                     await send_error(
                         update,
                         error_text + "contains images the bot couldn't resize\\!",
@@ -379,12 +385,12 @@ async def send_instagram(
                         duration=videoinfo[2],
                     )
                 )
-        log.debug("[%d] Finished adding to collection.", update_id)
-        log.debug("[%d] Caption: %r.", update_id, info)
+        log.debug("Finished adding to collection.")
+        log.debug("Caption: %r.", info)
         if await send_collection(update, chat, storage, files, docs):
             return
     # if no links returned
-    log.error("[%d] Couldn't get instagram content.", update_id)
+    log.error("Couldn't get instagram content.")
     await send_error(
         update,
         error_text
@@ -408,15 +414,13 @@ async def send_tiktok(
         link (Link): tiktok link
         chat (Chat): current chat
     """
-    # notify(update, function="send_tiktok")
-    update_id = update.update_id
     error_text = f"[*This tiktok content*]({link.link}) "
-    log.info("[%d] TikTok Link: %s.", update_id, link.link)
+    log.info("TikTok Link: %s.", link.link)
     # get media
     if media := await get_tiktok_links(link.link):
         info = await get_info(link, TikTokStyle, chat, media)
         files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update_id))
+        storage_folder = Path(CACHE_DIR / str(update.update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         if media.kind == TikTokMediaKind.SLIDESHOW and chat.tt_slide_mode == 1:
             photos = list(filter(lambda x: isinstance(x, TikTokPhoto), media.content))
@@ -431,9 +435,9 @@ async def send_tiktok(
                         filename = await join_file_name(filename, filepath)
                     filepath = move_file(filepath, storage_folder / filename)
                     storage.add(filepath)
-                    log.debug("[%d] Filename: %r.", update_id, filename)
-                    if not (imagepath := await process_image(update, filepath)):
-                        log.error("[%d] Couldn't resize image.", update.update_id)
+                    log.debug("Filename: %r.", filename)
+                    if not (imagepath := await process_image(filepath)):
+                        log.error("Couldn't resize image.")
                         await send_error(
                             update,
                             error_text + "contains images the bot couldn't resize\\!",
@@ -472,10 +476,10 @@ async def send_tiktok(
                         "Consider changing TikTok mode to slideshow mode with "
                         "/tiktok\\_mode command\\."
                     )
-                    log.error("[%d] Can's send as video.", update_id)
+                    log.error("Can's send as video.")
                 else:
                     error_text += "can't be sent, because didn't find any video\\!"
-                    log.error("[%d] Can's send as video.", update_id)
+                    log.error("Can's send as video.")
             else:
                 for vid in videos:
                     if 0 < vid.size < 50 << 20:
@@ -484,7 +488,7 @@ async def send_tiktok(
                 else:
                     # if file is too big
                     error_text += "can't be sent, because video file is too big\\!"
-                    log.error("[%d] Video file is too big.", update_id)
+                    log.error("Video file is too big.")
             # upload video if any
             if filepath:
                 filename = await join_file_name(str(media.id), filepath)
@@ -507,13 +511,13 @@ async def send_tiktok(
                     )
                 )
         if files:
-            log.debug("[%d] Finished adding to collection.", update_id)
-            log.debug("[%d] Caption: %r.", update_id, info)
+            log.debug("Finished adding to collection.")
+            log.debug("Caption: %r.", info)
             if await send_collection(update, chat, storage, files, docs):
                 return
     # if there is no video
     else:
-        log.error("[%d] Couldn't get tiktok content.", update_id)
+        log.error("Couldn't get tiktok content.")
         error_text += (
             "can't be found or downloaded\\! If this seems to be wrong, try "
             "again later\\."
@@ -537,15 +541,13 @@ async def send_youtube_short(
         link (Link): youtube short link
         chat (Chat): current chat
     """
-    # notify(update, function="send_youtube_short")
-    update_id = update.update_id
     error_text = f"[*This youtube content*]({link.link}) "
-    log.info("[%d] YouTube Short Link: %s.", update_id, link.link)
+    log.info("YouTube Short Link: %s.", link.link)
     # get media
     if video := await get_youtube_short_links(link):
         info = await get_info(link, YouTubeShortStyle, chat, video)
         files, storage = [], set()
-        storage_folder = Path(CACHE_DIR / str(update_id))
+        storage_folder = Path(CACHE_DIR / str(update.update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         filepath = None
         for vid in video.content:
@@ -555,7 +557,7 @@ async def send_youtube_short(
         else:
             # if file is too big
             error_text += "can't be sent, because video file is too big\\!"
-            log.error("[%d] Video file is too big.", update_id)
+            log.error("Video file is too big.")
         # upload video if any
         if filepath:
             filename = await join_file_name(video.id, filepath)
@@ -566,7 +568,7 @@ async def send_youtube_short(
             thumbname = await make_thumb_name(filename, thumbpath)
             thumbpath = move_file(thumbpath, storage_folder / thumbname)
             if await crop_thumbnail(thumbpath, videoinfo[0], videoinfo[1]):
-                log.info("[%d] Successfully cropped thumbnail.", update_id)
+                log.info("Successfully cropped thumbnail.")
             storage.add(thumbpath)
             files.append(
                 InputMediaVideo(
@@ -579,12 +581,12 @@ async def send_youtube_short(
                     duration=videoinfo[2],
                 )
             )
-            log.debug("[%d] Finished adding to collection.", update_id)
-            log.debug("[%d] Caption: %r.", update_id, info)
+            log.debug("Finished adding to collection.")
+            log.debug("Caption: %r.", info)
             if await send_collection(update, chat, storage, files):
                 return
     # if there is no video
-    log.error("[%d] Couldn't get youtube short content.", update_id)
+    log.error("Couldn't get youtube short content.")
     error_text += (
         "can't be found or downloaded\\! If this seems to be wrong, try " "again later\\."
     )
@@ -607,26 +609,24 @@ async def send_pixiv(
         link (Link): pixiv artwork link
         chat (Chat): current chat
     """
-    # notify(update, function="send_pixiv")
-    update_id = update.update_id
     error_text = f"[*This pixiv content*]({link.link}) "
-    log.info("[%d] Pixiv Link: %s.", update_id, link.link)
+    log.info("Pixiv Link: %s.", link.link)
     # get media
     if (art := await get_pixiv_links(link.id)) and (count := len(art.content)):
         info = await get_info(link, PixivStyle, chat, art)
         files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update_id))
+        storage_folder = Path(CACHE_DIR / str(update.update_id))
         storage_folder.mkdir(parents=True, exist_ok=True)
         ids = [1]
-        parsed_ids = await pixiv_parse(update, link.illust, count)
+        parsed_ids = await pixiv_parse(link.illust, count)
         if art.type == "ugoira":
             media: PixivContent = art.content[0]
             filepath = await save_file(media.original)
             filename = await make_file_name("pixiv", media.original, filepath)
             filepath = move_file(filepath, storage_folder / filename)
             storage.add(filepath)
-            if not (videopath := await process_video(update, filepath)):
-                log.error("[%d] Couldn't add sound to video.", update.update_id)
+            if not (videopath := await process_video(filepath)):
+                log.error("Couldn't add sound to video.")
                 await send_error(
                     update,
                     error_text + "contains videos the bot couldn't send\\!",
@@ -692,9 +692,9 @@ async def send_pixiv(
                     filename = await make_file_name("pixiv", filelink, filepath)
                     filepath = move_file(filepath, storage_folder / filename)
                     storage.add(filepath)
-                    log.debug("[%d] Filename: %r.", update_id, filename)
-                    if not (imagepath := await process_image(update, filepath)):
-                        log.error("[%d] Couldn't resize image.", update.update_id)
+                    log.debug("Filename: %r.", filename)
+                    if not (imagepath := await process_image(filepath)):
+                        log.error("Couldn't resize image.")
                         await send_error(
                             update,
                             error_text + "contains images the bot couldn't resize\\!",
@@ -723,12 +723,12 @@ async def send_pixiv(
                 # get next 10 photos/docs
                 i, j = j, j + 10
         if files:
-            log.debug("[%d] Finished adding to collection.", update_id)
-            log.debug("[%d] Caption: %r.", update_id, info)
+            log.debug("Finished adding to collection.")
+            log.debug("Caption: %r.", info)
             if await send_collection(update, chat, storage, files, docs):
                 return
     else:
-        log.error("[%d] Couldn't get pixiv content.", update_id)
+        log.error("Couldn't get pixiv content.")
         error_text += (
             "can't be found or downloaded\\. If this seems to be wrong, try "
             "again later\\."
@@ -751,7 +751,6 @@ async def process_link(
         _ (ContextTypes): current context
     """
     notify(update, function="process_link")
-    update_id = update.update_id
     # get current chat
     chat = await update_chat(update.effective_chat)
     # check if message is forwarded and if chat should ignore it
@@ -766,8 +765,8 @@ async def process_link(
         # check for text
         if text := await get_text(update):
             # add media group id if needed
-            log.debug("[%d] Received text: %r.", update_id, text)
-            async for link in formatter(update_id, text):
+            log.debug("Received text: %r.", text)
+            async for link in formatter(text):
                 if not should_delete:
                     should_delete = True
                     if media_group_id:

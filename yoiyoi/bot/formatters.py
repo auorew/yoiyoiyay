@@ -21,14 +21,14 @@ from telegram import Update
 # escape markdown
 from telegram.helpers import escape_markdown
 
-# pixiv parse states
-from yoiyoi.bot import PixivParse
-
 # link types and other info
-from ..api import LINKS
+from yoiyoi.api import LINKS
 
 # Link namedtuple
-from ..api.namedtuples import Link
+from yoiyoi.api.namedtuples import Link
+
+# pixiv parse states
+from yoiyoi.bot import PixivParse
 
 # escaping markdown v2
 esc = partial(escape_markdown, version=2)
@@ -56,14 +56,12 @@ async def unescape_html(text: str) -> str:
 
 
 async def pixiv_parse(
-    update: Update,
     text: str,
     count: int,
     max_amount: int = 10,
 ) -> tuple[int, tuple[int]]:
     if not (text and count):
         return (PixivParse.NO_INFO, [])
-    update_id = update.update_id
     ids = []
     for number in re.finditer(pixiv_number, text):
         n1 = int(number.group("n1"))
@@ -79,9 +77,8 @@ async def pixiv_parse(
     # check if all numbers within range
     if max(ids) > count or min(ids) < 1:
         log.error(
-            "[%d] Pixiv Parse: Not within range: [1-%d].",
-            update_id,
-            count,
+            "Pixiv Parse: Not within range: [1-%d].",
+            count
         )
         return (
             PixivParse.NOT_WITHIN_RANGE,
@@ -90,20 +87,18 @@ async def pixiv_parse(
     # check if there's more than 10 numbers
     if len(ids) > max_amount:
         log.error(
-            "[%d] Pixiv Parse: Can't choose more than %d files.",
-            update_id,
-            max_amount,
+            "Pixiv Parse: Can't choose more than %d files.",
+            max_amount
         )
         return (PixivParse.OUT_OF_RANGE, tuple(ids[:max_amount]))
-    log.debug("[%d] Pixiv Parse: Chosen artworks: %r.", update_id, ids)
+    log.debug("Pixiv Parse: Chosen artworks: %r.", ids)
     return (PixivParse.SUCCESS, tuple(ids))
 
 
-async def formatter(update_id: int, query: str) -> AsyncGenerator[Link, None]:
+async def formatter(query: str) -> AsyncGenerator[Link, None]:
     """Exctracts links from text and formats them
 
     Args:
-        update_id (int): update id
         query (str): text
 
     Returns:
@@ -116,7 +111,7 @@ async def formatter(update_id: int, query: str) -> AsyncGenerator[Link, None]:
             # dictionary keys = format args
             matched = link.groupdict()
             _link = re_type["link"].format(**matched)
-            log.debug("[%d] Received %s link: %r.", update_id, re_key, _link)
+            log.debug("Received %s link: %r.", re_key, _link)
             # add to response list
             yield Link(
                 re_type["type"],

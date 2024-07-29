@@ -6,7 +6,7 @@ from typing import Optional
 from bs4 import BeautifulSoup
 
 # making requests
-from ..extra.request_helpers import make_request
+from yoiyoi.extra.request_helpers import make_request
 
 # setup logger
 log = logging.getLogger(__name__)
