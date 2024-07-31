@@ -76,20 +76,14 @@ async def pixiv_parse(
     ids = list(dict.fromkeys(ids))  # can't use set() because of order
     # check if all numbers within range
     if max(ids) > count or min(ids) < 1:
-        log.error(
-            "Pixiv Parse: Not within range: [1-%d].",
-            count
-        )
+        log.error("Pixiv Parse: Not within range: [1-%d].", count)
         return (
             PixivParse.NOT_WITHIN_RANGE,
             tuple(filter(lambda x: 1 <= x <= count, ids))[:max_amount],
         )
     # check if there's more than 10 numbers
     if len(ids) > max_amount:
-        log.error(
-            "Pixiv Parse: Can't choose more than %d files.",
-            max_amount
-        )
+        log.error("Pixiv Parse: Can't choose more than %d files.", max_amount)
         return (PixivParse.OUT_OF_RANGE, tuple(ids[:max_amount]))
     log.debug("Pixiv Parse: Chosen artworks: %r.", ids)
     return (PixivParse.SUCCESS, tuple(ids))

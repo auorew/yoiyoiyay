@@ -207,12 +207,6 @@ async def channel_commands(
             context.args = message.text.split(" ")[1:]
             await channel_commands_dict[command](update, context)
             return
-        log.warning(
-            "Channel commands: Unknown command: /%s.",
-            result["command"]
-        )
+        log.warning("Channel commands: Unknown command: /%s.", result["command"])
         return
-    log.warning(
-        "Channel commands: No command: %s.",
-        message.text
-    )
+    log.warning("Channel commands: No command: %s.", message.text)

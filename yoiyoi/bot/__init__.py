@@ -22,7 +22,7 @@ QUEUE_SIZE = 3
 JOB_KWARGS = {"misfire_grace_time": 30}
 
 # start time and intervals
-GET_PROXY = {"first": 5, "interval": 10 * 60, "job_kwargs": JOB_KWARGS}
+GET_PROXY = {"first": 5, "interval": 30 * 60, "job_kwargs": JOB_KWARGS}
 
 # telegram image max size
 MAX_SIZE = (2560, 2560)
