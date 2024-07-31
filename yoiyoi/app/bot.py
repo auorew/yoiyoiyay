@@ -222,7 +222,12 @@ def create_bot_app() -> Application:
     )
 
     # add inliner
-    application.add_handler(InlineQueryHandler(inliner))
+    application.add_handler(
+        InlineQueryHandler(
+            callback=inliner,
+            block=False,
+        )
+    )
 
     # get job queue and ping other bots
     jobs = application.job_queue

@@ -11,6 +11,9 @@ from telegram import MessageEntity, Update
 # telegram core bot api extension
 from telegram.ext import ContextTypes
 
+# bot filters
+from yoiyoi.bot.filters import clear_context
+
 # bot helpers
 from yoiyoi.bot.helpers import notify
 
@@ -42,6 +45,7 @@ log = logging.getLogger(__name__)
 HELP_MESSAGE = Path(bot_settings.help_file).read_text(encoding="utf-8")
 
 
+@clear_context()
 async def command_start(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -56,6 +60,7 @@ async def command_start(
     )
 
 
+@clear_context()
 async def command_help(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -65,6 +70,7 @@ async def command_help(
     await send_reply(update, text=HELP_MESSAGE)
 
 
+@clear_context()
 async def command_twitter_hd(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -74,6 +80,7 @@ async def command_twitter_hd(
     await toggler(update, mode="Twitter HD", field="tw_orig")
 
 
+@clear_context()
 async def command_pixiv_hd(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -83,6 +90,7 @@ async def command_pixiv_hd(
     await toggler(update, mode="Pixiv HD", field="px_orig")
 
 
+@clear_context()
 async def command_instagram_hd(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -92,6 +100,7 @@ async def command_instagram_hd(
     await toggler(update, mode="Instagram HD", field="in_orig")
 
 
+@clear_context()
 async def command_tiktok_hd(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -101,6 +110,7 @@ async def command_tiktok_hd(
     await toggler(update, mode="TikTok HD", field="tt_orig")
 
 
+@clear_context()
 async def command_include_link(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -110,6 +120,7 @@ async def command_include_link(
     await toggler(update, mode="Including source", field="include_link")
 
 
+@clear_context()
 async def command_ignore_fw(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -119,6 +130,7 @@ async def command_ignore_fw(
     await toggler(update, mode="Ignoring forwarded messages", field="ignore_fw")
 
 
+@clear_context()
 async def command_delete_link(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -128,6 +140,7 @@ async def command_delete_link(
     await toggler(update, mode="Deleting source messages", field="delete_link")
 
 
+@clear_context()
 async def command_pixiv_style(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -137,6 +150,7 @@ async def command_pixiv_style(
     await change_style(update, style=PixivStyle, args=context.args)
 
 
+@clear_context()
 async def command_tiktok_style(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
@@ -145,6 +159,7 @@ async def command_tiktok_style(
     await change_style(update, style=TikTokStyle, args=context.args)
 
 
+@clear_context()
 async def command_twitter_style(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -154,6 +169,7 @@ async def command_twitter_style(
     await change_style(update, style=TwitterStyle, args=context.args)
 
 
+@clear_context()
 async def command_youtube_short_style(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -163,6 +179,7 @@ async def command_youtube_short_style(
     await change_style(update, style=YouTubeShortStyle, args=context.args)
 
 
+@clear_context()
 async def command_tiktok_mode(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -189,6 +206,7 @@ channel_commands_dict = {
 }
 
 
+@clear_context()
 async def channel_commands(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,

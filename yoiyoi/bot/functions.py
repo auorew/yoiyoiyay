@@ -58,6 +58,9 @@ from yoiyoi.api.youtube_short import get_youtube_short_links
 # get constants and pyrogram app
 from yoiyoi.bot import CACHE_DIR, QUEUE_SIZE, PixivParse
 
+# bot filters
+from yoiyoi.bot.filters import clear_context
+
 # bot formatters
 from yoiyoi.bot.formatters import (
     esc,
@@ -740,6 +743,7 @@ async def send_pixiv(
     )
 
 
+@clear_context()
 async def process_link(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,

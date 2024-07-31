@@ -52,6 +52,9 @@ from yoiyoi.api.youtube_short import get_youtube_short_links
 # pixiv parse states
 from yoiyoi.bot import PixivParse
 
+# bot filters
+from yoiyoi.bot.filters import clear_context
+
 # bot formatters
 from yoiyoi.bot.formatters import formatter, pixiv_parse
 
@@ -495,6 +498,7 @@ async def inline_youtube_short(
     )
 
 
+@clear_context()
 async def inliner(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,

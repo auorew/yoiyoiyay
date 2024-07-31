@@ -1,5 +1,7 @@
 """Filter functions module"""
 
+import functools
+
 # telegram core bot api
 from telegram import Update
 
@@ -22,3 +24,16 @@ async def filter_out(
     chat = update.effective_chat or update.effective_user
     if await check_if_banned(chat.id):
         raise ApplicationHandlerStop
+
+
+def clear_context():
+    def wrapper(func):
+        @functools.wraps(func)
+        async def wrapped(*args, **kwargs):
+            result = await func(*args, **kwargs)
+            update_id.set(0)
+            return result
+
+        return wrapped
+
+    return wrapper
