@@ -399,9 +399,14 @@ async def get_links_ytdlp(tiktok_info: dict) -> list[Optional[TikTok]]:
         ):
             videos.append(video_format)
     for video in sorted(videos, key=lambda x: x["height"], reverse=True):
-        cookie = SimpleCookie()
-        cookie.load(video["cookies"])
-        cookies = {key: morsel.value for key, morsel in cookie.items()}
+        cookies = {}
+        if video_cookies := video.get("cookies"):
+            log.info("Cookies found!")
+            cookie = SimpleCookie()
+            cookie.load(video_cookies)
+            cookies = {key: morsel.value for key, morsel in cookie.items()}
+        else:
+            log.info("No cookies found!")
         extra = {"cookies": cookies, "headers": video["http_headers"], "method": "GET"}
         if _ext := await get_content_extension(video["url"], **extra):
             log.info("Video extension: %s.", _ext)
