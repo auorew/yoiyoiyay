@@ -122,19 +122,26 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
         list[Optional[YouTubeShortContent]]: youtube short content namedtuple.
     """
     content = []
-    with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
-        info = ytdl.extract_info(link.link)
-        videos = []
-        for video_format in info["formats"]:
-            if video_format["vcodec"] != "none" and video_format["acodec"] != "none":
-                videos.append(video_format)
-        for video in sorted(videos, key=lambda x: x["height"], reverse=True):
-            content.append(
-                YouTubeShortContent(
-                    video["url"],
-                    video["filesize"] or video["filesize_approx"] or 0,
+    try:
+        with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
+            info = ytdl.extract_info(link.link)
+            videos = []
+            for video_format in info["formats"]:
+                if video_format["vcodec"] != "none" and video_format["acodec"] != "none":
+                    videos.append(video_format)
+            for video in sorted(videos, key=lambda x: x["height"], reverse=True):
+                content.append(
+                    YouTubeShortContent(
+                        video["url"],
+                        video["filesize"] or video["filesize_approx"] or 0,
+                    )
                 )
-            )
+    except Exception as exception:
+        log.warning(
+            "yt-dlp: Failed because of %s: %r.",
+            exception.__class__.__name__,
+            exception,
+        )
     return content
 
 
