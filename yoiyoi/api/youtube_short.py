@@ -21,6 +21,9 @@ from yoiyoi.api import LINKS
 # YouTubeShortMedia namedtuple
 from yoiyoi.api.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
 
+# any extra data
+from yoiyoi.extra import PROXY, PROXY_SET
+
 # fake headers and request helpers
 from yoiyoi.extra.request_helpers import FAKE_HEADERS, get_content_size, make_request
 
@@ -112,6 +115,29 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
         }
 
 
+async def get_ytdlp_with_proxy(link: Link):
+    attempt = 0
+    while PROXY_SET and attempt < 5:
+        if not PROXY["active"]:
+            if not PROXY_SET:
+                return
+            PROXY["active"] = PROXY_SET.pop()
+        try:
+            with yt_dlp.YoutubeDL({**ytdlp_ops, "proxy": PROXY["active"]}) as ytdl:
+                return ytdl.extract_info(link.link)
+        except Exception as exception:
+            attempt += 1
+            log.warning(
+                "yt-dlp: Failed because of %s: %r.",
+                exception.__class__.__name__,
+                exception,
+            )
+            if not PROXY_SET:
+                PROXY["active"] = None
+            else:
+                PROXY["active"] = PROXY_SET.pop()
+
+
 async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
     """Gets links from YTShorts.
 
@@ -123,19 +149,20 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
     """
     content = []
     try:
-        with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
-            info = ytdl.extract_info(link.link)
-            videos = []
-            for video_format in info["formats"]:
-                if video_format["vcodec"] != "none" and video_format["acodec"] != "none":
-                    videos.append(video_format)
-            for video in sorted(videos, key=lambda x: x["height"], reverse=True):
-                content.append(
-                    YouTubeShortContent(
-                        video["url"],
-                        video["filesize"] or video["filesize_approx"] or 0,
-                    )
+        if not (info := await get_ytdlp_with_proxy(link)):
+            log.warning("Got no data from yt-dlp!")
+            return content
+        videos = []
+        for video_format in info["formats"]:
+            if video_format["vcodec"] != "none" and video_format["acodec"] != "none":
+                videos.append(video_format)
+        for video in sorted(videos, key=lambda x: x["height"], reverse=True):
+            content.append(
+                YouTubeShortContent(
+                    video["url"],
+                    video["filesize"] or video["filesize_approx"] or 0,
                 )
+            )
     except Exception as exception:
         log.warning(
             "yt-dlp: Failed because of %s: %r.",
