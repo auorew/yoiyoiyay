@@ -366,20 +366,34 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
         quote_info = None
         quote = data.get("quoted_status_result", None)
         if quote and "tombstone" not in quote["result"]:
-            qinfo = quote["result"]["legacy"]
-            if len(api_data) > 1 and quote["result"]["rest_id"] == api_data[1]["rest_id"]:
+            if "tweet" in quote["result"]:
+                if "legacy" in quote["result"]["tweet"]:
+                    qinfo = quote["result"]["tweet"]["legacy"]
+                    qid = quote["result"]["tweet"].get("rest_id")
+                    qcore = quote["result"]["tweet"]["core"]
+            else:
+                qinfo = quote["result"].get("legacy")
+                qid = quote["result"].get("rest_id")
+                qcore = None
+            if not qinfo:
+                log.debug("No quote was found: %s.", quote["result"])
+                return
+            if len(api_data) > 1 and qid == api_data[1]["rest_id"]:
                 quoted_user_info = api_data[1]["core"]["user_results"]["result"]["legacy"]
                 quoted_user = User(
                     username=quoted_user_info["screen_name"],
                     id=int(api_data[1]["legacy"]["user_id_str"]),
                     displayname=quoted_user_info["name"],
                 )
-            else:
+            elif qcore:
+                quser = qcore["user_results"]["result"]
                 quoted_user = User(
-                    username=None,
-                    id=int(api_data[1]["legacy"]["user_id_str"]),
-                    displayname=None,
+                    username=quser["legacy"]["screen_name"],
+                    id=int(quser["rest_id"]),
+                    displayname=quser["legacy"]["name"],
                 )
+            else:
+                quoted_user = None
             quote_info = Tweet(
                 url=tweet_info["quoted_status_permalink"]["expanded"],
                 date=parse(qinfo["created_at"]),
