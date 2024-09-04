@@ -374,7 +374,11 @@ async def get_ytdlp_advanced_info(basic_info: dict) -> dict:
     if info := await get_ytdlp_info(basic_info["original_link"]):
         log.debug("YouTube Advanced Info: %r.", info)
         return {
-            "thumb": info["thumbnails"][0]["url"],
+            "thumb": (
+                None
+                if len(info.get("thumbnails") or []) < 1
+                else info["thumbnails"][0]["url"]
+            ),
             "author_name": info["uploader"],
             "desc": info["description"],
             "advinfo_source": "yt-dlp",
