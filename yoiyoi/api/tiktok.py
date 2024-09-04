@@ -207,6 +207,7 @@ async def get_ytdlp_basic_info(link: str) -> dict:
         dict: tiktok id and author info.
     """
     if info := await get_ytdlp_info(link):
+        log.debug("YouTube Basic Info: %r.", info)
         return {
             "id": info["id"],
             "author": info["uploader"],
@@ -225,6 +226,7 @@ async def get_tikmate_info(link: str) -> dict:
         dict: tiktok id and author info.
     """
     if (info := await get_tikmate_app_info(link)) and info.get("success"):
+        log.debug("TikMate Info: %r.", info)
         return {
             "id": info.get("id"),
             "author": info.get("author_id"),
@@ -257,6 +259,7 @@ async def get_tiktok_thumbnail(basic_info: dict) -> dict:
             log.warning("TikTok Embed: Hidden content.")
             return
         # process response
+        log.debug("TikTok Thumbnail Info: %r.", info)
         return {
             "thumb": info["thumbnail_url"],
             "author_name": info["author_name"],
@@ -298,6 +301,7 @@ async def get_tokcounter_info(basic_info: dict) -> dict:
             log.warning("Couldn't find tiktok video.")
             return
         # process response
+        log.debug("TokCounter Info: %r.", info)
         return {
             "thumb": None,  # info['video']['cover'] is animated
             "author_name": info["author"]["name"],
@@ -348,6 +352,7 @@ async def get_lovetik_info(basic_info: dict) -> dict:
             log.warning("TikTok Embed: Hidden content.")
             return
         # process response
+        log.debug("LoveTik Info: %r.", info)
         return {
             "thumb": info["cover"],
             "author_name": info["author_name"],
@@ -367,6 +372,7 @@ async def get_ytdlp_advanced_info(basic_info: dict) -> dict:
     """
     # fallback source, since /photo/ URLs are not currently supported
     if info := await get_ytdlp_info(basic_info["original_link"]):
+        log.debug("YouTube Advanced Info: %r.", info)
         return {
             "thumb": info["thumbnails"][0]["url"],
             "author_name": info["uploader"],
@@ -711,9 +717,9 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     for get_info in asyncio.as_completed(
         (
             get_ytdlp_advanced_info(basic_info),  # best
-            get_tokcounter_info(basic_info),  # good
-            get_lovetik_info(basic_info),  # okay
-            get_tiktok_thumbnail(basic_info),  # thumbnail
+            # get_tokcounter_info(basic_info),  # good
+            # get_lovetik_info(basic_info),  # okay
+            # get_tiktok_thumbnail(basic_info),  # thumbnail
         )
     ):
         if info := await get_info:
