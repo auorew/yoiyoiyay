@@ -18,9 +18,6 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK on
 # Create workdir
 WORKDIR /app
 
-# Copy files
-COPY . .
-
 # Install pipenv and compilation dependencies
 RUN apt-get update && \
     apt-get -y install \
@@ -36,8 +33,11 @@ RUN pip3 install --upgrade wheel setuptools
 # Install poetry
 RUN pip3 install poetry
 
+# Copy files
+COPY . .
+
 # Install app dependencies
-RUN poetry install --without dev
+RUN poetry install --without dev --no-interaction --no-ansi
 
 # Run app
 CMD poetry run python3 /app/main.py ;
