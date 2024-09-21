@@ -24,7 +24,8 @@ RUN apt-get update && \
         python3-dev \
         libmagic-dev \
         file \
-        ffmpeg
+        ffmpeg \
+        yt-dlp
 
 # Update pip
 RUN python3 -m pip install --upgrade pip
