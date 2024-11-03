@@ -54,24 +54,3 @@ async def expand_with_expandurl(link) -> dict:
             log.debug("ExpandURL: %r.", expanded_url.parent.a.text)
             return expanded_url.parent.a.text
         log.debug("ExpandURL: No URL.")
-
-
-async def expand_with_checkshorturl(link) -> dict:
-    if response := await make_request(
-        "https://checkshorturl.com/",
-        data={"links": link},
-    ):
-        # check response
-        if response.is_error:
-            return
-        log.debug("CheckShortURL: Request to API succeeded.")
-        # check response
-        soup = BeautifulSoup(response.text, "lxml")
-        if not (expanded_url := soup.find("p", string="Long URL")):
-            log.debug("CheckShortURL: No valid response.")
-            return
-        # process response
-        if expanded_url.next_sibling.a:
-            log.debug("CheckShortURL: %r.", expanded_url.next_sibling.a.text)
-            return expanded_url.next_sibling.a.text
-        log.debug("CheckShortURL: No URL.")

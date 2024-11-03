@@ -34,11 +34,7 @@ from yoiyoi.api.dehunter import dehunter
 from yoiyoi.api.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
 
 # url expanders
-from yoiyoi.api.urlexpander import (
-    expand_with_checkshorturl,
-    expand_with_expandurl,
-    expand_with_urlex,
-)
+from yoiyoi.api.urlexpander import expand_with_expandurl, expand_with_urlex
 
 # fake headers and request helpers
 from yoiyoi.extra.request_helpers import (
@@ -164,7 +160,6 @@ async def get_url_info(link: str) -> dict:
     """
     for get_info in asyncio.as_completed(
         (
-            expand_with_checkshorturl(link),  # good
             expand_with_expandurl(link),  # good
             expand_with_urlex(link),  # okay
         )
@@ -698,9 +693,9 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     for get_basic_info in asyncio.as_completed(
         (
             get_tiktok_info(link),  # original source
-            get_url_info(link),  # link source
             get_ytdlp_basic_info(link),  # best source
             get_tikmate_info(link),  # nice source
+            get_url_info(link),  # link source
         )
     ):
         if basic_info := await get_basic_info:
@@ -721,9 +716,9 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     for get_info in asyncio.as_completed(
         (
             get_ytdlp_advanced_info(basic_info),  # best
-            # get_tokcounter_info(basic_info),  # good
-            # get_lovetik_info(basic_info),  # okay
-            # get_tiktok_thumbnail(basic_info),  # thumbnail
+            get_tokcounter_info(basic_info),  # good
+            get_lovetik_info(basic_info),  # okay
+            get_tiktok_thumbnail(basic_info),  # thumbnail
         )
     ):
         if info := await get_info:
@@ -732,6 +727,14 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
                 break
     else:
         return
+
+    basic_info["source"] = TT["source"].format(**basic_info)
+    basic_info["fallback"] = TT["fallback"].format(**basic_info)
+    basic_info["kind"] = (
+        TikTokMediaKind.SLIDESHOW
+        if basic_info["type"] == "photo"
+        else TikTokMediaKind.VIDEO
+    )
 
     log.info("TikTok info: %s.", info)
 
