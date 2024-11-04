@@ -637,20 +637,44 @@ async def get_media_links_tikmate_io(
     return content_videos, content_images
 
 
-async def get_media_links_cobalt(tiktok_info: dict) -> Optional[TikTokPhoto]:
-    log.info("API: Cobalt.")
-    content_images = []
+async def get_media_links_snaptik(
+    tiktok_info: dict,
+) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
+    log.info("API: SnapTik.")
+    content_videos, content_images = [], []
     # api info
-    base = "cobalt.tools"
-    api = f"https://api.{base}/api/json"
+    base = "https://snaptik.app"
+    api = f"{base}/abc2.php"
+    # get token
+    token = ""
+    if response := await make_request(url=base, method="GET", proxy=True):
+        # check response
+        if response.is_error:
+            log.warning("Request to the website failed: %s.", response)
+            log.debug("Response: %s", response.content)
+            return
+        token_el = BeautifulSoup(response.content, "html.parser").find(
+            "input", {"name": "token"}
+        )
+        if not token_el:
+            log.warning("Obtaining token failed.")
+            return
+        token = token_el["value"]
     # send request
     if response := await make_request(
         url=api,
         headers={
-            "Accept": "application/json",
-            "Content-Type": "application/json",
+            **FAKE_HEADERS,
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": base,
+            "Referer": f"{base}/",
         },
-        json={"url": tiktok_info["source"]},
+        data={
+            "url": tiktok_info["fallback"],
+            "token": token,
+        },
+        follow_redirects=True,
+        proxy=True,
     ):
         # check response
         if response.is_error:
@@ -658,26 +682,24 @@ async def get_media_links_cobalt(tiktok_info: dict) -> Optional[TikTokPhoto]:
             log.debug("Response: %s", response.content)
             return
         log.debug("Request to API succeeded.")
-        try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
-            log.warning("Couldn't decode json response: %r.", response.content)
+        data = re.sub(r"<\/?[0-9a-zA-Z \-\=\.\"\'\/\\\|]+>", "", response.text)
+        result = dehunter(data)
+        if not result[0]:
+            log.debug("Couldn't obtain HTML!")
             return
-        log.debug("JSON: %r.", info)
-        if info["status"] != "picker":
-            log.warning("Couldn't find tiktok photos.")
-            return
+        html = result[0].replace('\\"', '"').replace("\\'", "'")
+        log.debug("Obtained HTML: %s", html)
         # process response
         log.debug("Getting links...")
-        for photo in info["picker"]:
-            _prev = photo["url"]
-            _link = photo["url"]
+        soup = BeautifulSoup(html, "html.parser")
+        photos = soup.find_all("div", class_="photo")
+        for photo in photos:
+            _prev = photo.img["src"]
+            _link = photo.div.a["href"]
             _size = await get_content_size(_link)
-            _name = await get_content_name(_link, REGEX_COBALT_TOOLS)
+            _name = await get_content_name(_link, REGEX_TIKMATE_ONLINE)
             content_images.append(TikTokPhoto(_link, _size, _prev, _name))
-        if not content_images:
-            log.warning("No content.")
-    return content_images
+    return content_videos, content_images
 
 
 async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
@@ -755,5 +777,6 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
         if content := await get_media_links_tikmate_io(info):
             content_videos, content_images = content[0], content[1]
         if not content_images:
-            content_images = await get_media_links_cobalt(info)
+            _, _images = await get_media_links_snaptik(info)
+            content_images = _images
         return TikTokMedia(**info, content=[*content_videos, *content_images])
