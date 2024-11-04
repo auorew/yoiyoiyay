@@ -712,15 +712,13 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
         Optional[TikTokMedia]: full tiktok info.
     """
 
-    for get_basic_info in asyncio.as_completed(
-        (
-            get_tiktok_info(link),  # original source
-            get_ytdlp_basic_info(link),  # best source
-            get_tikmate_info(link),  # nice source
-            get_url_info(link),  # link source
-        )
+    for get_basic_info in (
+        get_tiktok_info,  # original source
+        get_ytdlp_basic_info,  # best source
+        get_tikmate_info,  # nice source
+        get_url_info,  # link source
     ):
-        if basic_info := await get_basic_info:
+        if basic_info := await get_basic_info(link):
             break
     else:
         return
@@ -735,15 +733,13 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
         else TikTokMediaKind.VIDEO
     )
 
-    for get_info in asyncio.as_completed(
-        (
-            get_ytdlp_advanced_info(basic_info),  # best
-            get_tokcounter_info(basic_info),  # good
-            get_lovetik_info(basic_info),  # okay
-            get_tiktok_thumbnail(basic_info),  # thumbnail
-        )
+    for get_info in (
+        get_ytdlp_advanced_info,  # best
+        get_tokcounter_info,  # good
+        get_lovetik_info,  # okay
+        get_tiktok_thumbnail,  # thumbnail
     ):
-        if info := await get_info:
+        if info := await get_info(basic_info):
             update_new(info, basic_info)
             if info.get("thumb"):
                 break
