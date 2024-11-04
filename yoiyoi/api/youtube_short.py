@@ -117,13 +117,17 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
 
 async def get_ytdlp_with_proxy(link: Link):
     attempt = 0
-    while PROXY_SET and attempt < 5:
+    while attempt < 5:
         if not PROXY["active"]:
-            if not PROXY_SET:
-                return
-            PROXY["active"] = PROXY_SET.pop()
+            if PROXY_SET:
+                PROXY["active"] = PROXY_SET.pop()
         try:
-            with yt_dlp.YoutubeDL({**ytdlp_ops, "proxy": PROXY["active"]}) as ytdl:
+            with yt_dlp.YoutubeDL(
+                {
+                    **ytdlp_ops,
+                    "proxy": PROXY["active"] if PROXY["active"] else None,
+                }
+            ) as ytdl:
                 return ytdl.extract_info(link.link)
         except Exception as exception:
             attempt += 1
@@ -134,6 +138,7 @@ async def get_ytdlp_with_proxy(link: Link):
             )
             if not PROXY_SET:
                 PROXY["active"] = None
+                return
             else:
                 PROXY["active"] = PROXY_SET.pop()
 
