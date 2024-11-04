@@ -5,6 +5,7 @@ import logging
 import re
 
 from random import getrandbits
+from urllib.parse import unquote
 
 # parse json
 import orjson
@@ -29,7 +30,8 @@ ig_queue = asyncio.Queue(maxsize=1)
 
 # regex
 REGEX_SNAPINSTA = re.compile(r"(?P<name>(_video_\w+)|([0-9_n]+))\.\w{3,4}")
-REGEX_SAVEINSTA = re.compile(r"(?P<name>[0-9_n]+)\.\w{3,4}")
+REGEX_SAVEINSTA = re.compile(r"_?(?P<name>[0-9_n]+)\.\w{3,4}[^\w_]")
+REGEX_TITLE_DOWNLOAD = re.compile(r"^Download ")
 
 
 async def get_snapinsta_links(link: str) -> list[InstaMedia]:
@@ -172,14 +174,18 @@ async def get_saveinsta_links(link: str) -> list[InstaMedia]:
         soup = BeautifulSoup(html, "html.parser")
         content = soup.find_all("div", class_="download-items")
         for media in content:
-            url = media.find("div", class_="download-items__btn").a
-            name = await get_content_name(url["href"], REGEX_SAVEINSTA, "name")
+            urls = media.find_all("a", title=REGEX_TITLE_DOWNLOAD)
+            if len(urls) < 2:
+                log.info("Not enough URLs found.")
+                log.debug("Found elements: %s.", urls)
+                return results
+            name = await get_content_name(urls[0]["href"], REGEX_SAVEINSTA, "name")
             results.append(
                 InstaMedia(
                     link,
-                    media.find("img", {"alt": "SaveInsta"})["src"],
-                    url["href"],
-                    "video" if "Video" in url["title"] else "image",
+                    urls[0]["href"],
+                    urls[1]["href"],
+                    "video" if "Video" in urls[1]["title"] else "image",
                     name,
                 ),
             )
@@ -198,16 +204,18 @@ async def get_igdownloader_links(link: str) -> list[InstaMedia]:
     log.info("API: IG Downloader.")
     results = []
     # api info
-    base = "https://igdownloader.app"
+    base = "https://v3.clipdown.app"
+    origin = "https://clipdown.app"
     api = f"{base}/api/ajaxSearch"
     # send request
     if response := await make_request(
         url=api,
-        headers={**FAKE_HEADERS, "Origin": base},
+        headers={**FAKE_HEADERS, "Origin": origin, "Referer": f"{origin}/"},
         data={
-            "recaptchaToken": "",
-            "q": f"{link}/",
+            "q": link,
             "t": "media",
+            "lang": "en",
+            "v": "v2",
         },
         proxy=True,
     ):
@@ -224,19 +232,27 @@ async def get_igdownloader_links(link: str) -> list[InstaMedia]:
         if not (data := info.get("data")):
             log.warning("Couldn't get content.")
             return results  # no info found
+        result = dehunter(data)
         # process response
-        soup = BeautifulSoup(data, "html.parser")
-        for _prev, _link in zip(
-            soup.find_all("img", attrs={"alt": "igdownloader"}),
-            soup.find_all("a", class_="is-success"),
-        ):
+        html = result[0].replace('\\"', '"').replace("\\'", "'")
+        soup = BeautifulSoup(html, "html.parser")
+        content = soup.find_all("div", class_="download-items")
+        for media in content:
+            urls = media.find_all("a", title=REGEX_TITLE_DOWNLOAD)
+            if len(urls) < 2:
+                log.info("Not enough URLs found.")
+                log.debug("Found elements: %s.", urls)
+                return results
+            url_thumb = unquote(urls[0]["href"])
+            url_content = unquote(urls[1]["href"])
+            name = await get_content_name(url_thumb, REGEX_SAVEINSTA, "name")
             results.append(
                 InstaMedia(
                     link,
-                    _prev["src"],
-                    _link["href"],
-                    "video" if "Video" in _link["title"] else "image",
-                    "",
+                    url_thumb,
+                    url_content,
+                    "video" if "Video" in urls[1]["title"] else "image",
+                    name,
                 ),
             )
     return results
@@ -252,8 +268,8 @@ async def get_instagram_links(link: str) -> list[InstaMedia]:
         list[InstaMedia]: list of instagram media.
     """
     for get_links in (
-        get_snapinsta_links,  # good
-        get_saveinsta_links,  # good
+        # get_snapinsta_links,  # good
+        # get_saveinsta_links,  # good
         get_igdownloader_links,  # okay
     ):
         if content := await get_links(link):
