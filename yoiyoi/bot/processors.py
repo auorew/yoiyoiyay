@@ -22,7 +22,15 @@ from telegram import Update
 from yoiyoi.api.namedtuples import TweetContent
 
 # get constants
-from yoiyoi.bot import MAX_PHOTO_FILE_SIZE, MAX_PHOTO_SIZE_SUM
+from yoiyoi.bot import (
+    MAX_PHOTO_FILE_SIZE,
+    MAX_PHOTO_SIZE_SUM,
+    MAX_VIDEO_DURATION,
+    MAX_VIDEO_SIZE,
+)
+
+# bot formatters
+from yoiyoi.bot.formatters import esc
 
 # bot senders
 from yoiyoi.bot.senders import send_error, send_reply
@@ -171,8 +179,18 @@ async def choose_twitter_video(
     update: Update,
     content: TweetContent,
 ) -> Optional[str]:
+    if content.duration > MAX_VIDEO_DURATION:
+        video_links = ", ".join(
+            [f"[\\[*{index}*\\]]({link})" for index, link in enumerate(content.links, 1)]
+        )
+        await send_error(
+            update,
+            f"Sorry, video is *too long*\\: " f"`{esc(str(content.duration))} s`\\! ",
+        )
+        await send_reply(update, f"Here's your download links\\: {video_links}\\.")
+        return
     for link, size in zip(content.links, content.sizes, strict=False):
-        if size > 50 << 20:
+        if size > MAX_VIDEO_SIZE:
             await send_error(update, "Sorry, file is *too huge*\\!")
             await send_reply(update, f"[Download link]({link})\\.")
             await send_reply(update, "Trying to get smaller version\\.\\.\\.")

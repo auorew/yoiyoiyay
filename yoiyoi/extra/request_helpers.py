@@ -309,7 +309,11 @@ async def get_content_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
 async def get_content_size(url: str, headers=FAKE_HEADERS, **kwargs) -> int:
-    if file_headers := await get_content_headers(url, headers=headers, **kwargs):
+    if file_headers := await get_content_headers(
+        url,
+        headers={**headers, "Access-Control-Expose-Headers": "Content-Length"},
+        **kwargs,
+    ):
         return int(file_headers.get("Content-Length", 0))
     return 0
 

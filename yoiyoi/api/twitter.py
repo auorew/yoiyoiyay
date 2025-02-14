@@ -491,6 +491,7 @@ async def process_twitter_medium(medium: Medium) -> Optional[TweetContent]:
             links,
             tuple([await get_content_size(link) for link in links]),
             medium.previewUrl,
+            0,
         )
     elif isinstance(medium, Video) or isinstance(medium, Gif):
         links = tuple(
@@ -507,6 +508,7 @@ async def process_twitter_medium(medium: Medium) -> Optional[TweetContent]:
             links,
             tuple([await get_content_size(link) for link in links]),
             medium.thumbnailUrl,
+            medium.duration,
         )
     else:
         log.critical("Unknown medium format: %s.", medium.__class__.__name__)

@@ -7,41 +7,41 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.11,<3.12"
-python-telegram-bot = {version = "^21.9", extras = ["job-queue", "webhooks"]}
+python = "^3.12,<3.13"
+python-telegram-bot = {version = "^21.10", extras = ["job-queue", "webhooks"]}
 python-dotenv = "^1.0.1"
 sqlalchemy = "2.0.29"
-alembic = "^1.14.0"
+alembic = "^1.14.1"
 sqlalchemy-repr = "^0.1.0"
-tzdata = "^2024.2"
+tzdata = "^2025.1"
 python-magic = {version = "^0.4.27", platform = "linux"}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 tenacity = "^9.0.0"
-beautifulsoup4 = "^4.12.3"
+beautifulsoup4 = "^4.13.3"
 pillow = "^11.1.0"
 logtail-python = "^0.3.0"
 pixivpy-async = "^1.2.14"
 aiocache = "^0.12.0"
-orjson = "^3.10.13"
+orjson = "^3.10.15"
 snscrape = "^0.7.0.20230622"
 python-dateutil = "^2.9.0.post0"
-gallery-dl = "^1.28.2"
+gallery-dl = "^1.28.5"
 psycopg2-binary = "2.9.9"
-yt-dlp = {version = "^2024.12.26.232815.dev0", allow-prereleases = true}
+yt-dlp = {version = "^2025.2.11.232920.dev0", allow-prereleases = true}
 fastapi = "^0.115.0"
-uvicorn = "^0.30.4"
+uvicorn = "0.34.0"
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
 sqlalchemy-serializer = "^1.4.22"
-httpx = {extras = ["socks"], version = "^0.27.0"}
-pillow-heif = "^0.18.0"
+httpx = {version = "0.28.1", extras = ["socks"]}
+pillow-heif = "0.21.0"
 pydantic-settings = "^2.7.1"
 
 [tool.poetry.group.dev.dependencies]
-isort = "^5.13.2"
-black = "^24.10.0"
-ruff = "^0.6.7"
-pre-commit = "^4.0.1"
+isort = "^6.0.0"
+black = "^25.1.0"
+ruff = "^0.9.6"
+pre-commit = "^4.1.0"
 yesqa = "^1.5.0"
 
 [tool.isort]
@@ -61,7 +61,7 @@ include = '\.pyi?$'
 
 [tool.ruff]
 select = ["E", "F"]
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TID", "TRY", "UP", "YTT"]
 ignore = []
 exclude = [
     ".bzr",

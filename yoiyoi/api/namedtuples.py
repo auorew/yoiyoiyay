@@ -107,6 +107,7 @@ TweetContent = namedtuple(
         "links",
         "sizes",
         "thumb",
+        "duration",
     ),
 )
 

@@ -36,6 +36,12 @@ MAX_PHOTO_FILE_SIZE = 10 << 20
 # presumed max gif file size (3 MB)
 MAX_GIF_FILE_SIZE = 3 << 20
 
+# max video duration (15 minutes, in seconds)
+MAX_VIDEO_DURATION = 15 * 60
+
+# max video size (75 MB)
+MAX_VIDEO_SIZE = 75 << 20
+
 # cache directory
 CACHE_DIR = bot_settings.cache_dir
 
