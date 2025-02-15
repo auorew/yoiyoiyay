@@ -48,12 +48,8 @@ ytdlp_ops = {
     "quiet": True,
     "simulate": True,
     "forcejson": True,
-    "cookiefile": (
-        StringIO(
-            Fernet(bot_settings.yt_key).decrypt(bot_settings.yt_cookies.encode()).decode()
-        )
-    ),
 }
+
 
 # youtube API thumbnail quality
 YT_QUALITY = ["maxres", "standard", "high", "medium", "default"]
@@ -137,6 +133,11 @@ async def get_ytdlp_with_proxy(link: Link):
             with yt_dlp.YoutubeDL(
                 {
                     **ytdlp_ops,
+                    "cookiefile": StringIO(
+                        Fernet(bot_settings.yt_key)
+                        .decrypt(bot_settings.yt_cookies.encode())
+                        .decode()
+                    ),
                     "proxy": PROXY["active"] if PROXY["active"] else None,
                 }
             ) as ytdl:
