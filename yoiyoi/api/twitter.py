@@ -62,12 +62,28 @@ TWI = LINKS["twitter"]
 TWEET_URL = "https://twitter.com/web/status"
 
 # set config
+gallery_dl.config.set(("extractor", "twitter"), "browser", "firefox:linux")
+gallery_dl.config.set(("extractor", "twitter"), "csrf", "cookies")
+gallery_dl.config.set(
+    ("extractor", "twitter"),
+    "username",
+    bot_settings.tw_user,
+)
+gallery_dl.config.set(
+    ("extractor", "twitter"),
+    "password",
+    bot_settings.tw_pass,
+)
 gallery_dl.config.set(
     ("extractor", "twitter", "cookies"),
     "auth_token",
     bot_settings.tw_token,
 )
-gallery_dl.config.set(("extractor", "twitter"), "browser", "firefox:linux")
+gallery_dl.config.set(
+    ("extractor", "twitter", "cookies"),
+    "ct0",
+    bot_settings.tw_cookie,
+)
 
 
 async def get_from_public_api(tweet_id: int) -> Optional[Tweet]:
@@ -356,119 +372,123 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
         Optional[Tweet]: tweet dictionary
     """
     if api_data := await get_info_from_twitter_graphql(tweet_id):
-        data = api_data[0]
-        if not (tweet_info := data.get("legacy", None)):
-            log.error("Scraping failed.")
-            return
-        if not (tweet_info["entities"].get("media", None)):
-            log.error("No media.")
-            return
-        quote_info = None
-        quote = data.get("quoted_status_result", None)
-        if quote and "tombstone" not in quote["result"]:
-            if "tweet" in quote["result"]:
-                if "legacy" in quote["result"]["tweet"]:
-                    qinfo = quote["result"]["tweet"]["legacy"]
-                    qid = quote["result"]["tweet"].get("rest_id")
-                    qcore = quote["result"]["tweet"]["core"]
-            else:
-                qinfo = quote["result"].get("legacy")
-                qid = quote["result"].get("rest_id")
-                qcore = None
-            if not qinfo:
-                log.debug("No quote was found: %s.", quote["result"])
+        for data in api_data:
+            if not (tweet_info := data.get("legacy", None)):
+                log.error("Scraping failed.")
                 return
-            if len(api_data) > 1 and qid == api_data[1]["rest_id"]:
-                quoted_user_info = api_data[1]["core"]["user_results"]["result"]["legacy"]
-                quoted_user = User(
-                    username=quoted_user_info["screen_name"],
-                    id=int(api_data[1]["legacy"]["user_id_str"]),
-                    displayname=quoted_user_info["name"],
-                )
-            elif qcore:
-                quser = qcore["user_results"]["result"]
-                quoted_user = User(
-                    username=quser["legacy"]["screen_name"],
-                    id=int(quser["rest_id"]),
-                    displayname=quser["legacy"]["name"],
-                )
-            else:
-                quoted_user = None
-            quote_info = Tweet(
-                url=tweet_info["quoted_status_permalink"]["expanded"],
-                date=parse(qinfo["created_at"]),
-                rawContent=qinfo["full_text"],
-                renderedContent=qinfo["full_text"],
-                id=qinfo["id_str"],
-                user=quoted_user,
-                replyCount=qinfo["reply_count"],
-                retweetCount=qinfo["retweet_count"],
-                likeCount=qinfo["favorite_count"],
-                quoteCount=qinfo["quote_count"],
-                conversationId=qinfo["conversation_id_str"],
-                lang=qinfo["lang"],
-            )
-        media_info = tweet_info["extended_entities"]["media"]
-        user = data["core"]["user_results"]["result"]["legacy"]
-        return Tweet(
-            url=TWI["link"].format(
-                id=tweet_info["id_str"],
-                author=user["screen_name"],
-            ),
-            date=parse(tweet_info["created_at"]),
-            rawContent=tweet_info["full_text"],
-            renderedContent=tweet_info["full_text"],
-            id=tweet_info["id_str"],
-            user=User(
-                username=user["screen_name"],
-                id=tweet_info["user_id_str"],
-                displayname=user["name"],
-            ),
-            replyCount=tweet_info["reply_count"],
-            retweetCount=tweet_info["retweet_count"],
-            likeCount=tweet_info["favorite_count"],
-            quoteCount=tweet_info["quote_count"],
-            conversationId=tweet_info["id_str"],
-            lang=tweet_info["lang"],
-            links=[
-                TextLink(
-                    text=url["display_url"],
-                    url=url["expanded_url"],
-                    tcourl=url["url"],
-                    indices=url["indices"],
-                )
-                for url in tweet_info["entities"]["urls"]
-            ]
-            or None,
-            quotedTweet=quote_info,
-            media=(
-                [
-                    (
-                        Photo(
-                            previewUrl=medium["media_url_https"],
-                            fullUrl=medium["media_url_https"],
-                        )
-                        if medium["type"] == "photo"
-                        else Video(
-                            thumbnailUrl=medium["media_url_https"],
-                            variants=[
-                                VideoVariant(
-                                    url=variant["url"],
-                                    contentType=variant["content_type"],
-                                    bitrate=variant.get("bitrate"),
-                                )
-                                for variant in medium["video_info"]["variants"]
-                            ],
-                            duration=(medium["video_info"].get("duration_millis") or 0)
-                            / 1000,
-                        )
+            if not (tweet_info["entities"].get("media", None)):
+                log.error("No media.")
+                return
+            quote_info = None
+            quote = data.get("quoted_status_result", None)
+            if quote and "tombstone" not in quote["result"]:
+                if "tweet" in quote["result"]:
+                    if "legacy" in quote["result"]["tweet"]:
+                        qinfo = quote["result"]["tweet"]["legacy"]
+                        qid = quote["result"]["tweet"].get("rest_id")
+                        qcore = quote["result"]["tweet"]["core"]
+                else:
+                    qinfo = quote["result"].get("legacy")
+                    qid = quote["result"].get("rest_id")
+                    qcore = None
+                if not qinfo:
+                    log.debug("No quote was found: %s.", quote["result"])
+                    return
+                if len(api_data) > 1 and qid == api_data[1]["rest_id"]:
+                    quoted_user_info = api_data[1]["core"]["user_results"]["result"][
+                        "legacy"
+                    ]
+                    quoted_user = User(
+                        username=quoted_user_info["screen_name"],
+                        id=int(api_data[1]["legacy"]["user_id_str"]),
+                        displayname=quoted_user_info["name"],
                     )
-                    for medium in media_info
+                elif qcore:
+                    quser = qcore["user_results"]["result"]
+                    quoted_user = User(
+                        username=quser["legacy"]["screen_name"],
+                        id=int(quser["rest_id"]),
+                        displayname=quser["legacy"]["name"],
+                    )
+                else:
+                    quoted_user = None
+                quote_info = Tweet(
+                    url=tweet_info["quoted_status_permalink"]["expanded"],
+                    date=parse(qinfo["created_at"]),
+                    rawContent=qinfo["full_text"],
+                    renderedContent=qinfo["full_text"],
+                    id=qinfo["id_str"],
+                    user=quoted_user,
+                    replyCount=qinfo["reply_count"],
+                    retweetCount=qinfo["retweet_count"],
+                    likeCount=qinfo["favorite_count"],
+                    quoteCount=qinfo["quote_count"],
+                    conversationId=qinfo["conversation_id_str"],
+                    lang=qinfo["lang"],
+                )
+            media_info = tweet_info["extended_entities"]["media"]
+            user = data["core"]["user_results"]["result"]["legacy"]
+            return Tweet(
+                url=TWI["link"].format(
+                    id=tweet_info["id_str"],
+                    author=user["screen_name"],
+                ),
+                date=parse(tweet_info["created_at"]),
+                rawContent=tweet_info["full_text"],
+                renderedContent=tweet_info["full_text"],
+                id=tweet_info["id_str"],
+                user=User(
+                    username=user["screen_name"],
+                    id=tweet_info["user_id_str"],
+                    displayname=user["name"],
+                ),
+                replyCount=tweet_info["reply_count"],
+                retweetCount=tweet_info["retweet_count"],
+                likeCount=tweet_info["favorite_count"],
+                quoteCount=tweet_info["quote_count"],
+                conversationId=tweet_info["id_str"],
+                lang=tweet_info["lang"],
+                links=[
+                    TextLink(
+                        text=url["display_url"],
+                        url=url["expanded_url"],
+                        tcourl=url["url"],
+                        indices=url["indices"],
+                    )
+                    for url in tweet_info["entities"]["urls"]
                 ]
-                if media_info
-                else None
-            ),
-        )
+                or None,
+                quotedTweet=quote_info,
+                media=(
+                    [
+                        (
+                            Photo(
+                                previewUrl=medium["media_url_https"],
+                                fullUrl=medium["media_url_https"],
+                            )
+                            if medium["type"] == "photo"
+                            else Video(
+                                thumbnailUrl=medium["media_url_https"],
+                                variants=[
+                                    VideoVariant(
+                                        url=variant["url"],
+                                        contentType=variant["content_type"],
+                                        bitrate=variant.get("bitrate"),
+                                    )
+                                    for variant in medium["video_info"]["variants"]
+                                ],
+                                duration=(
+                                    medium["video_info"].get("duration_millis") or 0
+                                )
+                                / 1000,
+                            )
+                        )
+                        for medium in media_info
+                    ]
+                    if media_info
+                    else None
+                ),
+            )
 
 
 async def process_twitter_medium(medium: Medium) -> Optional[TweetContent]:

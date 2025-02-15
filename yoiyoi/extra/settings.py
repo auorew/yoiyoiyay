@@ -33,6 +33,15 @@ class BotSettings(BaseSettings):
     # twitter [auth_token] (needed for gallery-dl's twitter API)
     tw_token: Optional[str] = Field("")
 
+    # twitter [ct0] (needed for gallery-dl's twitter API)
+    tw_cookie: Optional[str] = Field("")
+
+    # twitter [username] (needed for gallery-dl's twitter API)
+    tw_user: Optional[str] = Field("")
+
+    # twitter [password] (needed for gallery-dl's twitter API)
+    tw_pass: Optional[str] = Field("")
+
     # deprecated! instagram [sessionid] (needed for gallery-dl's instagram API)
     ig_token: Optional[str] = Field("")
 
