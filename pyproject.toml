@@ -36,6 +36,7 @@ sqlalchemy-serializer = "^1.4.22"
 httpx = {version = "0.28.1", extras = ["socks"]}
 pillow-heif = "0.21.0"
 pydantic-settings = "^2.7.1"
+cryptography = "^44.0.1"
 
 [tool.poetry.group.dev.dependencies]
 isort = "^6.0.0"

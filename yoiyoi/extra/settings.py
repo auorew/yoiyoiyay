@@ -45,6 +45,12 @@ class BotSettings(BaseSettings):
     # deprecated! instagram [sessionid] (needed for gallery-dl's instagram API)
     ig_token: Optional[str] = Field("")
 
+    # youtube cookies (needed for yt-dlp's youtube API)
+    yt_cookies: Optional[str] = Field("")
+
+    # youtube cookies key (see above)
+    yt_key: Optional[str]
+
     # pixiv refresh token (needed for pixiv API)
     px_refresh: str
 

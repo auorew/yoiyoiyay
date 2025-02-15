@@ -4,6 +4,7 @@ import logging
 import re
 import time
 
+from io import StringIO
 from typing import Optional
 
 # parse json
@@ -14,6 +15,9 @@ import yt_dlp
 
 # beautiful soup
 from bs4 import BeautifulSoup
+
+# decrypting
+from cryptography.fernet import Fernet
 
 # link types and other info
 from yoiyoi.api import LINKS
@@ -26,6 +30,9 @@ from yoiyoi.extra import PROXY, PROXY_SET
 
 # fake headers and request helpers
 from yoiyoi.extra.request_helpers import FAKE_HEADERS, get_content_size, make_request
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # setup logger
 log = logging.getLogger(__name__)
@@ -41,6 +48,11 @@ ytdlp_ops = {
     "quiet": True,
     "simulate": True,
     "forcejson": True,
+    "cookiefile": (
+        StringIO(
+            Fernet(bot_settings.yt_key).decrypt(bot_settings.yt_cookies.encode()).decode()
+        )
+    ),
 }
 
 # youtube API thumbnail quality
