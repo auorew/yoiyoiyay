@@ -75,14 +75,14 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
         Optional[YouTubeShortMedia]: youtube info.
     """
     base = "https://mattw.io"
-    api = "https://www.googleapis.com/youtube/v3/videos"
+    api = "https://ytapi.apps.mattw.io/v3/videos"
     if response := await make_request(
         url=api,
         method="GET",
         headers={**FAKE_HEADERS, "Origin": base},
         params={
-            "key": "AIzaSyASTMQck-jttF8qy9rtEnt1HyEYw5AmhE8",
-            "quotaUser": "eF6wx17mAsvONQ9fcwfCA7IdXCoMe2TytRSZqzgL",
+            "key": "foo1",
+            "quotaUser": "8zPW8L9nyFzpnJcTHFeFJWAGTxqssC3686F4wKoT",
             "part": "snippet,recordingDetails,status,contentDetails",
             "id": link.id,
             "_": int(time.time() * 1000),
