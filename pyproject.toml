@@ -8,10 +8,10 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11,<3.12"
-python-telegram-bot = {version = "^21.10", extras = ["job-queue", "webhooks"]}
+python-telegram-bot = {version = "^21.11.1", extras = ["job-queue", "webhooks"]}
 python-dotenv = "^1.0.1"
 sqlalchemy = "2.0.29"
-alembic = "^1.14.1"
+alembic = "^1.15.1"
 sqlalchemy-repr = "^0.1.0"
 tzdata = "^2025.1"
 python-magic = {version = "^0.4.27", platform = "linux"}
@@ -25,9 +25,9 @@ aiocache = "^0.12.0"
 orjson = "^3.10.15"
 snscrape = "^0.7.0.20230622"
 python-dateutil = "^2.9.0.post0"
-gallery-dl = {version = "^1.28.5",  allow-prereleases = true}
+gallery-dl = {version = "^1.29.0",  allow-prereleases = true}
 psycopg2-binary = "2.9.9"
-yt-dlp = {version = "^2025.2.11.232920.dev0", allow-prereleases = true}
+yt-dlp = {version = "^2025.3.5.232947.dev0", allow-prereleases = true}
 fastapi = "^0.115.0"
 uvicorn = "0.34.0"
 pyrogram = "^2.0.106"
@@ -35,15 +35,11 @@ tgcrypto = "^1.2.5"
 sqlalchemy-serializer = "^1.4.22"
 httpx = {version = "0.28.1", extras = ["socks"]}
 pillow-heif = "0.21.0"
-pydantic-settings = "^2.7.1"
-cryptography = "^44.0.1"
+pydantic-settings = "^2.8.1"
+cryptography = "^44.0.2"
 
 [tool.poetry.group.dev.dependencies]
-isort = "^6.0.0"
-black = "^25.1.0"
-ruff = "^0.9.6"
 pre-commit = "^4.1.0"
-yesqa = "^1.5.0"
 
 [tool.isort]
 profile = "black"
