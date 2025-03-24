@@ -104,6 +104,8 @@ async def count_audio_stream(filepath: Path) -> bool:
         log.warning("Couldn't parse output: %s.", output)
         log.warning("Assuming 0 audio streams...")
         return 0
+    if not result:
+        return 0
     return len(result["streams"])
 
 
@@ -160,6 +162,18 @@ async def resize_image(filepath: Path):
         return resized_filepath
 
 
+async def convert_image(filepath: Path):
+    if (converter_api := bot_settings.converter_api) and (
+        converter_filepath := await save_file(
+            converter_api,
+            "POST",
+            timeout=120,
+            files={"upload_file": filepath.open("rb")},
+        )
+    ):
+        return converter_filepath
+
+
 async def process_image(filepath: Path) -> Optional[Path]:
     log.info("Processing an image...")
     # check if file size > 10 MB
@@ -197,3 +211,26 @@ async def choose_twitter_video(
             continue
         return link
     return
+
+
+# write a code that will create thumbnail from video file
+async def create_thumbnail(filepath: Path) -> Optional[Path]:
+    log.info("Creating a thumbnail...")
+    # create output path
+    thumbpath = filepath.parent / f"{filepath.stem}.thumb.jpg"
+    # fmt: off
+    ffmpeg_command = (
+        "ffmpeg",
+        "-hide_banner", "-loglevel", "warning",
+        "-i", str(filepath),
+        "-vf", "select=eq(n\,0)",
+        "-frames:v", "1",
+        str(thumbpath),
+    )
+    # fmt: on
+    log.debug("ffmpeg command: %s.", " ".join(ffmpeg_command))
+    process = await asyncio.create_subprocess_exec(*ffmpeg_command)
+    if await process.wait() != 0:
+        log.warning("ffmpeg command failed.")
+        return
+    return thumbpath

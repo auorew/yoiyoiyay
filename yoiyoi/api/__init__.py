@@ -1,25 +1,27 @@
 """API module"""
 
+from enum import Enum, auto
+
 
 # link types
-class LinkType:
+class LinkType(Enum):
     """Represents link types"""
 
-    types = (
-        TWITTER,
-        PIXIV,
-        TIKTOK,
-        INSTAGRAM,
-        YOUTUBE_SHORT,
-    ) = range(5)
+    DISCORD = auto()
+    TWITTER = auto()
+    PIXIV = auto()
+    TIKTOK = auto()
+    INSTAGRAM = auto()
+    YOUTUBE_SHORT = auto()
 
-    names = [
-        "twitter",
-        "pixiv",
-        "tiktok",
-        "instagram",
-        "youtube short",
-    ]
+    _names = {
+        DISCORD: "discord",
+        TWITTER: "twitter",
+        PIXIV: "pixiv",
+        TIKTOK: "tiktok",
+        INSTAGRAM: "instagram",
+        YOUTUBE_SHORT: "youtube short",
+    }
 
     @classmethod
     def get_type(cls, value: int) -> str:
@@ -31,7 +33,7 @@ class LinkType:
         Returns:
             str: link type name
         """
-        return cls.names[value]
+        return cls._names.get(value, "unknown")
 
     @classmethod
     def validate(cls, value: int) -> bool:
@@ -43,19 +45,28 @@ class LinkType:
         Returns:
             bool: existence of link type id
         """
-        return value in cls.types
+        return value in {e.value for e in cls}
 
 
 # tiktok media kind
-class TikTokMediaKind:
-    kinds = (
-        VIDEO,
-        SLIDESHOW,
-    ) = range(2)
+class TikTokMediaKind(Enum):
+    VIDEO = auto()
+    SLIDESHOW = auto()
 
 
 # link dictionary
 LINKS = {
+    "discord": {
+        "re": r"""(?x)
+        (?:
+            (?:discordapp\.(?:(?:com)|(?:net)))\/
+            (?:(?:attachments)|(?:external))\/
+            (?P<id>[\w\-]+)
+        )
+        """,
+        "link": "",
+        "type": LinkType.DISCORD,
+    },
     "twitter": {
         "re": r"""(?x)
             (?:

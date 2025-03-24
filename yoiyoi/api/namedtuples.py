@@ -137,3 +137,13 @@ PixivContent = namedtuple(
         "thumb_size",
     ),
 )
+
+DiscordMedia = namedtuple(
+    "DiscordMedia",
+    (
+        "source",
+        "type",
+        "thumb",
+        "content",
+    ),
+)

@@ -79,6 +79,8 @@ from yoiyoi.bot.helpers import notify
 # content processor
 from yoiyoi.bot.processors import (
     choose_twitter_video,
+    convert_image,
+    create_thumbnail,
     crop_thumbnail,
     process_image,
     process_video,
@@ -94,7 +96,12 @@ from yoiyoi.db.models import Chat
 from yoiyoi.db.updaters import update_chat
 
 # get file size
-from yoiyoi.extra.request_helpers import PIXIV_HEADERS, save_file
+from yoiyoi.extra.request_helpers import (
+    FAKE_HEADERS,
+    PIXIV_HEADERS,
+    get_content_type,
+    save_file,
+)
 
 # media styles
 from yoiyoi.extra.styles import (
@@ -624,7 +631,14 @@ async def send_pixiv(
         parsed_ids = await pixiv_parse(link.illust, count)
         if art.type == "ugoira":
             media: PixivContent = art.content[0]
-            filepath = await save_file(media.original)
+            filepath = await save_file(
+                media.original,
+                headers={
+                    **FAKE_HEADERS,
+                    "Range": "bytes=0-",
+                    "Referer": "https://t-hk.ugoira.com/",
+                },
+            )
             filename = await make_file_name("pixiv", media.original, filepath)
             filepath = move_file(filepath, storage_folder / filename)
             storage.add(filepath)
@@ -743,6 +757,94 @@ async def send_pixiv(
     )
 
 
+async def send_discord(
+    update: Update,
+    link: Link,
+    chat: Chat,
+) -> None:
+    """Sends discord media
+
+    Args:
+        update (Update): current update
+        link (Link): discord media link
+        chat (Chat): current chat
+    """
+    error_text = f"[*This discord content*]({link.link}) "
+    log.info("Discord Link: %s.", link.link)
+    # get media
+    files, storage = [], set()
+    storage_folder = Path(CACHE_DIR / str(update.update_id))
+    storage_folder.mkdir(parents=True, exist_ok=True)
+
+    info = link.link
+    content_type = await get_content_type(link.link, method="GET")
+    if content_type != "text/plain":
+        filepath = await save_file(link.link)
+        tempname = await make_file_name("discord", link.link, filepath)
+        filename = f"{tempname.split('.')[0]}.{tempname.split('.')[-1]}"
+        filepath = move_file(filepath, storage_folder / filename)
+        storage.add(filepath)
+        if content_type.split("/")[0] == "video":
+            thumbpath = await create_thumbnail(filepath)
+            storage.add(thumbpath)
+            videoinfo = await get_video_info(filepath)
+            if videopath := await process_video(filepath):
+                files.append(
+                    InputMediaVideo(
+                        media=videopath,
+                        thumb=thumbpath,
+                        caption=info,
+                        parse_mode=PM.DISABLED,
+                        width=videoinfo[0],
+                        height=videoinfo[1],
+                        duration=videoinfo[2],
+                    )
+                )
+        else:
+            if imagepath := await convert_image(filepath):
+                if (imagepath := Path(imagepath)) != filepath:
+                    imagepath = move_file(
+                        imagepath, storage_folder / f"RE_{filepath.stem}.png"
+                    )
+                    storage.add(imagepath)
+                files.append(
+                    InputMediaPhoto(
+                        media=imagepath,
+                        caption=info,
+                        parse_mode=PM.DISABLED,
+                    )
+                )
+        log.debug("Finished adding to collection.")
+        log.debug("Caption: %r.", info)
+        if await send_collection(update, chat, storage, files):
+            return
+    else:
+        error_text += (
+            "can't be found or downloaded, because it\\'s no longer available\\."
+        )
+
+        # files.append(
+        #     InputMediaVideo(
+        #         media=videopath,
+        #         thumb=thumbpath,
+        #         caption=info,
+        #         parse_mode=PM.HTML,
+        #         width=videoinfo[0],
+        #         height=videoinfo[1],
+        #         duration=videoinfo[2],
+        #     )
+        # )
+
+    # else:
+    #     log.error("Couldn't get pixiv content.")
+
+    # await send_error(
+    #     update,
+    #     error_text,
+    #     quote=not chat.delete_link,
+    # )
+
+
 @clear_context()
 async def process_link(
     update: Update,
@@ -786,6 +888,8 @@ async def process_link(
                         await send_youtube_short(update, link, chat)
                     case LinkType.PIXIV:
                         await send_pixiv(update, link, chat)
+                    case LinkType.DISCORD:
+                        await send_discord(update, link, chat)
                     case _:
                         await send_reply(update, esc(link.link))
         # delete source post media group messages

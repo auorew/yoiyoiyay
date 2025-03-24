@@ -104,7 +104,10 @@ async def formatter(query: str) -> AsyncGenerator[Link, None]:
         for link in re.finditer(re_type["re"], query):
             # dictionary keys = format args
             matched = link.groupdict()
-            _link = re_type["link"].format(**matched)
+            if re_type["link"]:
+                _link = re_type["link"].format(**matched)
+            else:
+                _link = query
             log.debug("Received %s link: %r.", re_key, _link)
             # add to response list
             yield Link(
@@ -189,7 +192,7 @@ def extract_file_name(link_type: str, link: str) -> str:
         str: file name
     """
     if link_type not in LINKS or "file" not in LINKS[link_type]:
-        return link.split("/")[-1].split("?")[-1]
+        return link.split("/")[-1].split("?")[0]
     if matched := re.search(LINKS[link_type]["file"], link):
         return matched["id"]
 

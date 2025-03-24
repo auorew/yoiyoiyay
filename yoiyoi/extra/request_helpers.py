@@ -231,6 +231,8 @@ async def stream_response(
             cookies = cookies if cookies else {}
             if referer and (new_cookies := await get_cookies(referer, headers=headers)):
                 cookies.update(new_cookies)
+            elif matched := re.match("(?P<referer>http(s)?://[^/]+/?)", url):
+                headers["Referer"] = matched.group("referer")
             if xsrf:
                 headers[xsrf] = unquote(cookies["XSRF-TOKEN"])
 
