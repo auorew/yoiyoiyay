@@ -85,6 +85,9 @@ class BotSettings(BaseSettings):
     # image resizer API to send requests to, if memory is limited
     resizer_api: Optional[str]
 
+    # converter API to send requests to, if memory is limited
+    converter_api: Optional[str]
+
     # logtail token
     logtail_token: str = Field("")
 
