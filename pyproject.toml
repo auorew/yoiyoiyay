@@ -10,7 +10,7 @@ package-mode = false
 python = "^3.11,<3.12"
 python-telegram-bot = {version = "^22.0", extras = ["job-queue", "webhooks"]}
 python-dotenv = "^1.1.0"
-sqlalchemy = "2.0.29"
+sqlalchemy = "2.0.40"
 alembic = "^1.15.2"
 sqlalchemy-repr = "^0.1.0"
 tzdata = "^2025.2"
@@ -19,20 +19,19 @@ python-magic-bin = {version = "^0.4.14", platform = "win32"}
 tenacity = "^9.1.2"
 beautifulsoup4 = "^4.13.4"
 pillow = "^11.2.1"
-logtail-python = "^0.3.0"
+logtail-python = "^0.3.3"
 pixivpy-async = "^1.2.14"
-aiocache = "^0.12.0"
+aiocache = "^0.12.3"
 orjson = "^3.10.16"
 snscrape = "^0.7.0.20230622"
 python-dateutil = "^2.9.0.post0"
-gallery-dl = {version = "^1.29.4",  allow-prereleases = true}
-psycopg2-binary = "2.9.9"
-yt-dlp = {version = "^2025.4.25.232910.dev0", allow-prereleases = true}
-fastapi = "^0.115.0"
-uvicorn = "0.34.0"
+gallery-dl = {version = "^1.29.5",  allow-prereleases = true}
+psycopg2-binary = "2.9.10"
+yt-dlp = {version = "^2025.4.26.232923.dev0", allow-prereleases = true}
+fastapi = "^0.115.12"
+uvicorn = "0.34.2"
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
-sqlalchemy-serializer = "^1.4.22"
 httpx = {version = "0.28.1", extras = ["socks"]}
 pillow-heif = "0.22.0"
 pydantic-settings = "^2.9.1"

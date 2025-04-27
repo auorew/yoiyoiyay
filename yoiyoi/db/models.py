@@ -7,9 +7,6 @@ from sqlalchemy import BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
-# serializer
-from sqlalchemy_serializer import SerializerMixin
-
 # media styles
 from yoiyoi.extra.styles import (
     PixivStyle,
@@ -26,7 +23,7 @@ bool0 = Annotated[bool, mapped_column(default=False)]
 bool1 = Annotated[bool, mapped_column(default=True)]
 
 
-class Chat(Base, SerializerMixin):
+class Chat(Base):
     """Table for storing telegram chat data"""
 
     __tablename__ = "chat"
