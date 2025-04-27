@@ -170,3 +170,34 @@ class Chat(Base):
     is_banned: Mapped[bool0]
     # banned reason
     banned_for: Mapped[Optional[str]]
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "name": self.name,
+            "chat_link": self.chat_link,
+            "include_link": self.include_link,
+            "delete_link": self.delete_link,
+            "ignore_fw": self.ignore_fw,
+            "last_info": self.last_info,
+            # ban
+            "is_banned": self.is_banned,
+            "banned_for": self.banned_for,
+            # twitter
+            "tw_orig": self.tw_orig,
+            "tw_style": self.tw_style,
+            # pixiv
+            "px_orig": self.px_orig,
+            "px_style": self.px_style,
+            # instagra,
+            "in_orig": self.in_orig,
+            "in_style": self.in_style,
+            # tiktok
+            "tt_orig": self.tt_orig,
+            "tt_style": self.tt_style,
+            "tt_slide_mode": self.tt_slide_mode,
+            # youtube short
+            "yts_orig": self.yts_orig,
+            "yts_style": self.yts_style,
+        }
