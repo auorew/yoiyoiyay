@@ -25,7 +25,7 @@ aiocache = "^0.12.3"
 orjson = "^3.10.16"
 snscrape = "^0.7.0.20230622"
 python-dateutil = "^2.9.0.post0"
-gallery-dl = {version = "^1.29.5",  allow-prereleases = true}
+gallery-dl = {url = "https://github.com/mikf/gallery-dl/archive/refs/heads/transaction_id.tar.gz"}
 psycopg2-binary = "2.9.10"
 yt-dlp = {version = "^2025.4.26.232923.dev0", allow-prereleases = true}
 fastapi = "^0.115.12"

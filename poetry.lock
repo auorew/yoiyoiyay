@@ -760,22 +760,26 @@ files = [
 ]
 
 [[package]]
-name = "gallery-dl"
+name = "gallery_dl"
 version = "1.29.5"
 description = "Command-line program to download image galleries and collections from several image hosting sites"
 optional = false
 python-versions = ">=3.4"
 groups = ["main"]
 files = [
-    {file = "gallery_dl-1.29.5-py3-none-any.whl", hash = "sha256:aa3bc3e4b39ba0a767db105e7decb06fc1e457b9b9ec56b3724f647e95bdc7fa"},
-    {file = "gallery_dl-1.29.5.tar.gz", hash = "sha256:381a4070414c6393010c1f2f9d6ab6acd6ee2e3ddd29341e46d8daf1025101e3"},
+    {file = "transaction_id.tar.gz", hash = "sha256:fea33e254610879dd3006f489a4c2bc42dd2dd37f71e1411b29570ca484764c4"},
 ]
 
 [package.dependencies]
 requests = ">=2.11.0"
+XClientTransaction = {url = "https://github.com/iSarabjitDhiman/XClientTransaction/archive/refs/heads/master.tar.gz"}
 
 [package.extras]
 video = ["youtube-dl"]
+
+[package.source]
+type = "url"
+url = "https://github.com/mikf/gallery-dl/archive/refs/heads/transaction_id.tar.gz"
 
 [[package]]
 name = "greenlet"
@@ -2755,6 +2759,26 @@ files = [
 ]
 
 [[package]]
+name = "XClientTransaction"
+version = "0.0.2"
+description = "Twitter X-Client-Transaction-Id generator written in python."
+optional = false
+python-versions = ">=3"
+groups = ["main"]
+files = [
+    {file = "master.tar.gz", hash = "sha256:430501cce22a88e7c825301047151fbb4bc1ed80a4c13ec317f8b63fb971ef37"},
+]
+
+[package.dependencies]
+beautifulsoup4 = "*"
+lxml = "*"
+requests = "*"
+
+[package.source]
+type = "url"
+url = "https://github.com/iSarabjitDhiman/XClientTransaction/archive/refs/heads/master.tar.gz"
+
+[[package]]
 name = "yarl"
 version = "1.20.0"
 description = "Yet another URL library"
@@ -2898,4 +2922,4 @@ test = ["pytest (>=8.1,<9.0)", "pytest-rerunfailures (>=14.0,<15.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11,<3.12"
-content-hash = "212f9d5c61323fa9a982c2f085cbcf98399f0bcaf63e86ec001344aadbe60ddd"
+content-hash = "8c9a435a043deabe401e23278b7977cfddaf872e3bbca548e23fc1241929d8fa"
