@@ -299,14 +299,29 @@ async def get_cookies(url: str, **kwargs) -> Optional[httpx.Cookies]:
             return response.cookies
 
 
+async def get_body_length(url: str, chunk_size: int = 8192, **kwargs) -> int:
+    length = 0
+    async with stream_response(url, "GET", **kwargs) as response:
+        async for chunk in response.aiter_bytes(chunk_size=chunk_size):
+            length += len(chunk)
+    return length
+
+
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
 async def get_content_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
-    return (
-        # try HEAD request
-        await get_headers(url, method="HEAD", **kwargs)
-        # try GET request, since HEAD may be forbidden
-        or await get_headers(url, method="GET", **kwargs)
-    )
+    # try HEAD request
+    headers_with_head = await get_headers(url, method="HEAD", **kwargs)
+    # try GET request, since HEAD may be forbidden
+    headers_with_get = await get_headers(url, method="GET", **kwargs)
+    # combine
+    combined_headers = {}
+    if headers_with_head is not None:
+        combined_headers.update(headers_with_head)
+    if headers_with_get is not None:
+        for k, v in headers_with_get.items():
+            if k not in combined_headers:
+                combined_headers[k] = v
+    return httpx.Headers(combined_headers)
 
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
@@ -316,8 +331,10 @@ async def get_content_size(url: str, headers=FAKE_HEADERS, **kwargs) -> int:
         headers={**headers, "Access-Control-Expose-Headers": "Content-Length"},
         **kwargs,
     ):
-        return int(file_headers.get("Content-Length", 0))
-    return 0
+        if size := int(file_headers.get("Content-Length", 0)):
+            return size
+    # just GET it
+    return await get_body_length(url, **kwargs)
 
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])

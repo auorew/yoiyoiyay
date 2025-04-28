@@ -67,9 +67,9 @@ TikTok = TypedDict("TikTok", link=TikTokURL, size=TikTokSize)
 TIKMATE_LINK = "https://tikmate.app/download/{0}/{1}.mp4{2}"
 
 # regex
-REGEX_TIKMATE_ONLINE = re.compile(r"tikmate-io_(?P<name>\w+)\.(?P<extension>\w{3,4})")
-REGEX_TIKGO_ONLINE = re.compile(r"(?P<name>\w+)~[\w\:\-]+\.(?P<extension>\w{3,4})")
-REGEX_SNAPTIK_ONLINE = re.compile(r"snaptik_(?P<name>\w+)\.(?P<extension>\w{3,4})")
+REGEX_TIKTOK_CDN = re.compile(r"(?P<name>\w+)~[\w\:\-]+\.(?P<extension>\w{3,4})")
+REGEX_TIKMATE_IO = re.compile(r"tikmate-io_(?P<name>\w+)\.(?P<extension>\w{3,4})")
+REGEX_SNAPTIK_APP = re.compile(r"snaptik_(?P<name>\w+)\.(?P<extension>\w{3,4})")
 REGEX_COBALT_TOOLS = re.compile(
     r"\/(?P<name>[a-z0-9]+)~([a-z\-]+)\.(?P<extension>[^?]{3,4})"
 )
@@ -569,9 +569,112 @@ async def get_links_lovetik(tiktok_info: dict) -> list[TikTok]:
     return content
 
 
+async def get_links_unduhtiktok(tiktok_info: dict) -> list[TikTok]:
+    """Gets video links from UnduhTiktok.
+
+    Args:
+        tiktok_info (str): tiktok info dictionary.
+
+    Returns:
+        list[TikTok]: tiktok video links and sizes.
+    """
+    log.info("API: UnduhTiktok.")
+    content = []
+    # api info
+    base = "unduhtiktok.com"
+    api = f"https://{base}/wp-content/plugins/app-snaptik/api/tiktok.php"
+
+    cookies = None
+    if cookie := await make_request(
+        "https://unduhtiktok.com/wp-content/plugins/app-snaptik//api/check.php",
+        headers={
+            **FAKE_HEADERS,
+            "Referer": "https://unduhtiktok.com/",
+            "DNT": "1",
+            "Sec-GPC": "1",
+            "Connection": "keep-alive",
+            "Cookie": "pll_language=id",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "Priority": "u=4",
+        },
+    ):
+        if cookie.is_error or not (cookies := cookie.cookies):
+            log.error("No token!")
+            return content
+    if phpsessid := cookies.get("PHPSESSID"):
+        log.info("PHPSESSID: %s", phpsessid)
+        cookies = {
+            "PHPSESSID": phpsessid,
+            "pll_language": "id",
+        }
+    # send request
+    if response := await make_request(
+        url=api,
+        headers={
+            **FAKE_HEADERS,
+            "Content-Type": "application/json",
+            "Origin": "https://unduhtiktok.com",
+            "Connection": "keep-alive",
+            "Referer": "https://unduhtiktok.com/",
+        },
+        cookies=cookies,
+        proxy=True,
+        json={
+            "url": f"https://www.tiktok.com/@web/video/{tiktok_info['id']}",
+        },
+    ):
+        # check response
+        if response.is_error:
+            log.warning("Request to API failed: %s.", response)
+            log.debug("Response: %s", response.content)
+            return
+        log.debug("Request to API succeeded.")
+        try:
+            info = orjson.loads(response.content)
+        except orjson.JSONDecodeError:
+            log.warning("Couldn't decode json response: %r.", response.content)
+            return
+        log.debug("JSON: %r.", info)
+        # video_id = info.get('aweme_id')
+        # dynamic_cover = info.get('dynamic_cover')
+        # desc = info.get('desc')
+        # music = info.get('music')
+        # imagePost: list = info.get('imagePost')
+        # download_display_image: list = info.get('download_display_image')
+        if not (video := info.get("video")):
+            log.warning("Couldn't find tiktok video.")
+            return content
+        # process response
+        log.debug("Getting links...")
+        _link = video
+        if _ext := await get_content_extension(_link, cookies=cookies):
+            log.info("Video extension: %s.", _ext)
+            if _ext == "html":
+                log.warning("Can't download video in html format.")
+                return content
+        else:
+            log.info("Couldn't get video extension.")
+        if _size := await get_content_size(_link, cookies=cookies):
+            for _ in range(2):
+                content.append(TikTokVideo(_link, _size, {"cookies": cookies}))
+        if not content:
+            log.warning("No content.")
+    return content
+
+
 async def get_links_tikgo(
     tiktok_info: dict,
 ) -> list[TikTok]:
+    """Gets video links from TikGo.
+
+    Args:
+        tiktok_info (str): tiktok info dictionary.
+
+    Returns:
+        list[TikTok]: tiktok video links and sizes.
+    """
     log.info("API: TikGo.")
     content = []
     # api info
@@ -690,7 +793,7 @@ async def get_slides_links_tikmate_io(
                 _prev = photo.img["src"]
                 _link = photo.div.a["href"]
                 _size = await get_content_size(_link)
-                _name = await get_content_name(_link, REGEX_SNAPTIK_ONLINE)
+                _name = await get_content_name(_link, REGEX_SNAPTIK_APP)
                 content_images.append(TikTokPhoto(_link, _size, _prev, _name))
     return content_videos, content_images
 
@@ -755,7 +858,7 @@ async def get_slides_links_snaptik(
             _prev = photo.img["src"]
             _link = photo.div.a["href"]
             _size = await get_content_size(_link)
-            _name = await get_content_name(_link, REGEX_SNAPTIK_ONLINE)
+            _name = await get_content_name(_link, REGEX_SNAPTIK_APP)
             content_images.append(TikTokPhoto(_link, _size, _prev, _name))
     return content_videos, content_images
 
@@ -806,8 +909,97 @@ async def get_slides_links_tikgo(
                     _prev = media.get("url")
                     _link = media.get("url")
                     _size = await get_content_size(_link)
-                    _name = await get_content_name(_link, REGEX_TIKGO_ONLINE)
+                    _name = await get_content_name(_link, REGEX_TIKTOK_CDN)
                     content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+    return content_videos, content_images
+
+
+async def get_slides_links_unduhtiktok(tiktok_info: dict) -> list[TikTok]:
+    """Gets video links from UnduhTiktok.
+
+    Args:
+        tiktok_info (str): tiktok info dictionary.
+
+    Returns:
+        list[TikTok]: tiktok video links and sizes.
+    """
+    log.info("API: UnduhTiktok.")
+    content_videos, content_images = [], []
+    # api info
+    base = "unduhtiktok.com"
+    api = f"https://{base}/wp-content/plugins/app-snaptik/api/tiktok.php"
+
+    cookies = None
+    if cookie := await make_request(
+        "https://unduhtiktok.com/wp-content/plugins/app-snaptik//api/check.php",
+        headers={
+            **FAKE_HEADERS,
+            "Referer": "https://unduhtiktok.com/",
+            "DNT": "1",
+            "Sec-GPC": "1",
+            "Connection": "keep-alive",
+            "Cookie": "pll_language=id",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "Priority": "u=4",
+        },
+    ):
+        if cookie.is_error or not (cookies := cookie.cookies):
+            log.error("No token!")
+            return content_videos, content_images
+    if phpsessid := cookies.get("PHPSESSID"):
+        log.info("PHPSESSID: %s", phpsessid)
+        cookies = {
+            "PHPSESSID": phpsessid,
+            "pll_language": "id",
+        }
+    # send request
+    if response := await make_request(
+        url=api,
+        headers={
+            **FAKE_HEADERS,
+            "Content-Type": "application/json",
+            "Origin": "https://unduhtiktok.com",
+            "Connection": "keep-alive",
+            "Referer": "https://unduhtiktok.com/",
+        },
+        cookies=cookies,
+        proxy=True,
+        json={
+            "url": f"https://www.tiktok.com/@web/video/{tiktok_info['id']}",
+        },
+    ):
+        # check response
+        if response.is_error:
+            log.warning("Request to API failed: %s.", response)
+            log.debug("Response: %s", response.content)
+            return content_videos, content_images
+        log.debug("Request to API succeeded.")
+        try:
+            info = orjson.loads(response.content)
+        except orjson.JSONDecodeError:
+            log.warning("Couldn't decode json response: %r.", response.content)
+            return content_videos, content_images
+        log.debug("JSON: %r.", info)
+        # video_id = info.get('aweme_id')
+        # dynamic_cover = info.get('dynamic_cover')
+        # desc = info.get('desc')
+        # music = info.get('music')
+        if not (images := info.get("imagePost")):
+            log.warning("Couldn't find tiktok slides.")
+            return content_videos, content_images
+        if not (previews := info.get("download_display_image")):
+            log.warning("Couldn't find tiktok previews.")
+            previews = list(images)
+        # process response
+        log.debug("Getting links...")
+        for image, preview in zip(images, previews):
+            _prev = preview
+            _link = image
+            _size = await get_content_size(_link)
+            _name = await get_content_name(_link, REGEX_TIKTOK_CDN)
+            content_images.append(TikTokPhoto(_link, _size, _prev, _name))
     return content_videos, content_images
 
 
@@ -873,6 +1065,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
             get_links_tikgo,  # good
             get_links_tokcounter,  # good
             get_links_lovetik,  # good
+            get_links_unduhtiktok,  # okay
         ):
             if content := await get_links(info):
                 return TikTokMedia(**info, content=content)
@@ -887,5 +1080,8 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
             content_images = _images
         if not content_images:
             _, _images = await get_slides_links_tikgo(info)
+            content_images = _images
+        if not content_images:
+            _, _images = await get_slides_links_unduhtiktok(info)
             content_images = _images
         return TikTokMedia(**info, content=[*content_videos, *content_images])
