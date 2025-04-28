@@ -67,7 +67,9 @@ TikTok = TypedDict("TikTok", link=TikTokURL, size=TikTokSize)
 TIKMATE_LINK = "https://tikmate.app/download/{0}/{1}.mp4{2}"
 
 # regex
-REGEX_TIKMATE_ONLINE = re.compile(r"\.app_(?P<name>\w+)\.(?P<extension>\w{3,4})$")
+REGEX_TIKMATE_ONLINE = re.compile(r"tikmate-io_(?P<name>\w+)\.(?P<extension>\w{3,4})")
+REGEX_TIKGO_ONLINE = re.compile(r"(?P<name>\w+)~[\w\:\-]+\.(?P<extension>\w{3,4})")
+REGEX_SNAPTIK_ONLINE = re.compile(r"snaptik_(?P<name>\w+)\.(?P<extension>\w{3,4})")
 REGEX_COBALT_TOOLS = re.compile(
     r"\/(?P<name>[a-z0-9]+)~([a-z\-]+)\.(?P<extension>[^?]{3,4})"
 )
@@ -412,7 +414,7 @@ async def get_links_ytdlp(tiktok_info: dict) -> list[Optional[TikTok]]:
             cookies = {key: morsel.value for key, morsel in cookie.items()}
         else:
             log.info("No cookies found!")
-        extra = {"cookies": cookies, "headers": video["http_headers"], "method": "GET"}
+        extra = {"cookies": cookies, "headers": video["http_headers"]}
         if _ext := await get_content_extension(video["url"], **extra):
             log.info("Video extension: %s.", _ext)
             if _ext == "html":
@@ -567,7 +569,62 @@ async def get_links_lovetik(tiktok_info: dict) -> list[TikTok]:
     return content
 
 
-async def get_media_links_tikmate_io(
+async def get_links_tikgo(
+    tiktok_info: dict,
+) -> list[TikTok]:
+    log.info("API: TikGo.")
+    content = []
+    # api info
+    base = "https://tikgo.me"
+    api = f"{base}/api/"
+    # send request
+    if response := await make_request(
+        url=api,
+        headers={
+            **FAKE_HEADERS,
+            "Referer": f"{base}/slide",
+            "Content-Type": "application/json",
+            "Origin": base,
+            "Connection": "keep-alive",
+        },
+        json={
+            "url": tiktok_info["fallback"],
+        },
+        follow_redirects=True,
+        proxy=True,
+    ):
+        # check response
+        if response.is_error:
+            log.warning("Request to API failed: %s.", response)
+            log.debug("Response: %s", response.content)
+            return
+        log.debug("Request to API succeeded.")
+        try:
+            info = orjson.loads(response.content)
+        except orjson.JSONDecodeError:
+            log.warning("Couldn't decode json response: %r.", response.content)
+            return
+        # if metadata := info.get("metadata"):
+        #     title = metadata.get("title")
+        #     author = metadata.get("author")
+        #     thumb = metadata.get("thumbnail")
+        #     duration = metadata.get("duration")
+        if medias := info.get("medias"):
+            for media in medias:
+                if media.get("type") == "video":
+                    if _ext := await get_content_extension(media["url"]):
+                        log.info("Video extension: %s.", _ext)
+                        if _ext == "html":
+                            log.warning("Can't download video in html format.")
+                            continue
+                    else:
+                        log.info("Couldn't get video extension.")
+                    if _size := await get_content_size(media["url"]):
+                        content.append(TikTokVideo(media["url"], _size, {}))
+    return content
+
+
+async def get_slides_links_tikmate_io(
     tiktok_info: dict,
 ) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
     log.info("API: TikMate Online.")
@@ -598,6 +655,7 @@ async def get_media_links_tikmate_io(
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": base,
             "Referer": f"{base}/",
+            "Upgrade-Insecure-Requests": "1",
         },
         data={
             "url": tiktok_info["fallback"],
@@ -632,12 +690,12 @@ async def get_media_links_tikmate_io(
                 _prev = photo.img["src"]
                 _link = photo.div.a["href"]
                 _size = await get_content_size(_link)
-                _name = await get_content_name(_link, REGEX_TIKMATE_ONLINE)
+                _name = await get_content_name(_link, REGEX_SNAPTIK_ONLINE)
                 content_images.append(TikTokPhoto(_link, _size, _prev, _name))
     return content_videos, content_images
 
 
-async def get_media_links_snaptik(
+async def get_slides_links_snaptik(
     tiktok_info: dict,
 ) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
     log.info("API: SnapTik.")
@@ -697,8 +755,59 @@ async def get_media_links_snaptik(
             _prev = photo.img["src"]
             _link = photo.div.a["href"]
             _size = await get_content_size(_link)
-            _name = await get_content_name(_link, REGEX_TIKMATE_ONLINE)
+            _name = await get_content_name(_link, REGEX_SNAPTIK_ONLINE)
             content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+    return content_videos, content_images
+
+
+async def get_slides_links_tikgo(
+    tiktok_info: dict,
+) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
+    log.info("API: TikGo.")
+    content_videos, content_images = [], []
+    # api info
+    base = "https://tikgo.me"
+    api = f"{base}/api/"
+    # send request
+    if response := await make_request(
+        url=api,
+        headers={
+            **FAKE_HEADERS,
+            "Referer": f"{base}/slide",
+            "Content-Type": "application/json",
+            "Origin": base,
+            "Connection": "keep-alive",
+        },
+        json={
+            "url": tiktok_info["fallback"],
+        },
+        follow_redirects=True,
+        proxy=True,
+    ):
+        # check response
+        if response.is_error:
+            log.warning("Request to API failed: %s.", response)
+            log.debug("Response: %s", response.content)
+            return
+        log.debug("Request to API succeeded.")
+        try:
+            info = orjson.loads(response.content)
+        except orjson.JSONDecodeError:
+            log.warning("Couldn't decode json response: %r.", response.content)
+            return
+        # if metadata := info.get("metadata"):
+        #     title = metadata.get("title")
+        #     author = metadata.get("author")
+        #     thumb = metadata.get("thumbnail")
+        #     duration = metadata.get("duration")
+        if medias := info.get("medias"):
+            for media in medias:
+                if media.get("type") == "image":
+                    _prev = media.get("url")
+                    _link = media.get("url")
+                    _size = await get_content_size(_link)
+                    _name = await get_content_name(_link, REGEX_TIKGO_ONLINE)
+                    content_images.append(TikTokPhoto(_link, _size, _prev, _name))
     return content_videos, content_images
 
 
@@ -761,6 +870,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
         for get_links in (
             get_links_ytdlp,  # good
             get_links_tikmate_app,  # good
+            get_links_tikgo,  # good
             get_links_tokcounter,  # good
             get_links_lovetik,  # good
         ):
@@ -770,9 +880,12 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     else:
         log.info("TikTok type: slideshow.")
         content_videos, content_images = [], []
-        if content := await get_media_links_tikmate_io(info):
+        if content := await get_slides_links_tikmate_io(info):
             content_videos, content_images = content[0], content[1]
         if not content_images:
-            _, _images = await get_media_links_snaptik(info)
+            _, _images = await get_slides_links_snaptik(info)
+            content_images = _images
+        if not content_images:
+            _, _images = await get_slides_links_tikgo(info)
             content_images = _images
         return TikTokMedia(**info, content=[*content_videos, *content_images])
