@@ -206,10 +206,58 @@ async def get_ytdlp_basic_info(link: str) -> dict:
     if info := await get_ytdlp_info(link):
         log.debug("YouTube Basic Info: %r.", info)
         return {
-            "id": info["id"],
+            "id": int(info["id"], 0),
             "author": info["uploader"],
             "type": "photo" if info["video_ext"] == "none" else "video",
             "info_source": "yt-dlp",
+        }
+
+
+async def get_downr_info(link: str) -> dict:
+    """Gets basic tiktok info from downr.org.
+
+    Args:
+        link (str): formatted tiktok link.
+
+    Returns:
+        dict: tiktok id and author info.
+    """
+    api = "https://downr.org/.netlify/functions/download"
+    if (
+        response := await make_request(
+            api,
+            method="POST",
+            proxy=True,
+            headers={
+                **FAKE_HEADERS,
+                "Referer": "https://downr.org/",
+                "Content-Type": "application/json",
+                "Origin": "https://downr.org",
+                "Connection": "keep-alive",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-origin",
+                "Priority": "u=0",
+            },
+            json={"url": link},
+        )
+    ) and response.is_success:
+        try:
+            info = orjson.loads(response.content)
+        except orjson.JSONDecodeError:
+            log.warning("Couldn't decode json response: %r.", response.content)
+            return
+        if info["error"]:
+            log.warning("downr returned error: %r.", response.content)
+            return
+        log.debug("downr info: %s.", info)
+        return {
+            "id": int(info.get("id", 0)),
+            "author": info.get("unique_id"),
+            "author_name": info.get("author"),
+            "desc": info.get("title"),
+            "thumb": info.get("thumbnail"),
+            "info_source": "downr",
         }
 
 
@@ -225,7 +273,7 @@ async def get_tikmate_info(link: str) -> dict:
     if (info := await get_tikmate_app_info(link)) and info.get("success"):
         log.debug("TikMate Info: %r.", info)
         return {
-            "id": info.get("id"),
+            "id": int(info.get("id", 0)),
             "author": info.get("author_id"),
             "author_name": info.get("author_name"),
             "type": "photo" if len(info.get("token", "")) > 100 else "video",
@@ -1017,6 +1065,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
         get_tiktok_info,  # original source
         get_ytdlp_basic_info,  # best source
         get_tikmate_info,  # nice source
+        get_downr_info,  # nice source
         get_url_info,  # link source
     ):
         if basic_info := await get_basic_info(link):
