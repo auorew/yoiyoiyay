@@ -793,7 +793,7 @@ async def get_slides_links_tikmate_io(
                 _prev = photo.img["src"]
                 _link = photo.div.a["href"]
                 _size = await get_content_size(_link)
-                _name = await get_content_name(_link, REGEX_SNAPTIK_APP)
+                _name = await get_content_name(_link, REGEX_TIKMATE_IO)
                 content_images.append(TikTokPhoto(_link, _size, _prev, _name))
     return content_videos, content_images
 
