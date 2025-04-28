@@ -455,6 +455,7 @@ async def send_tiktok(
                         )
                         return
                     if (imagepath := Path(imagepath)) != filepath:
+                        filename = await join_file_name(filename, filepath)
                         imagepath = move_file(
                             imagepath, storage_folder / f"RE_{filename}"
                         )

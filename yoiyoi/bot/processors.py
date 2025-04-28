@@ -176,6 +176,10 @@ async def convert_image(filepath: Path):
 
 async def process_image(filepath: Path) -> Optional[Path]:
     log.info("Processing an image...")
+    # telegram is allergic to webp recently
+    if filepath.suffix == ".webp":
+        log.debug("WebP image: %r.", filepath)
+        return await convert_image(filepath)
     # check if file size > 10 MB
     if (filesize := os.stat(filepath).st_size) > MAX_PHOTO_FILE_SIZE:
         log.debug("File size: %d.", filesize)
