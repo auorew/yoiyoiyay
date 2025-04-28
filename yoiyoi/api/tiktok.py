@@ -252,10 +252,20 @@ async def get_downr_info(link: str) -> dict:
             log.warning("downr returned error: %r.", response.content)
             return
         log.debug("downr info: %s.", info)
+        tiktok_type = "video"
+        if medias := info.get("medias"):
+            for media in medias:
+                if media.get("type") == "video":
+                    tiktok_type = "video"
+                    break
+                elif media.get("type") == "image":
+                    tiktok_type = "photo"
+                    break
         return {
             "id": int(info.get("id", 0)),
             "author": info.get("unique_id"),
             "author_name": info.get("author"),
+            "type": tiktok_type,
             "desc": info.get("title"),
             "thumb": info.get("thumbnail"),
             "info_source": "downr",
