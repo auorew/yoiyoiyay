@@ -89,6 +89,14 @@ def update_new(old_dict: dict, new_dict: dict):
     skip_cache_func=lambda r: r is None,
 )
 async def get_ytdlp_info(link: str) -> dict:
+    """Gets tiktok info from yt-dlp.
+
+    Args:
+        link (str): formatted tiktok link.
+
+    Returns:
+        dict: tiktok info.
+    """
     with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
         try:
             return ytdl.extract_info(link)
@@ -107,6 +115,15 @@ async def get_ytdlp_info(link: str) -> dict:
 
 
 async def get_tikmate_app_info(link: str) -> dict:
+    """Gets tiktok info from TikMate.App.
+
+    Args:
+        link (str): formatted tiktok link.
+
+    Returns:
+        dict: tiktok id and author info.
+    """
+    log.info("Info: TikMate App.")
     # api info
     base = "tikmate.app"
     api = f"https://api.{base}/api/lookup"
@@ -160,6 +177,7 @@ async def get_url_info(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
+    log.info("Info: URL expanders.")
     for get_info in asyncio.as_completed(
         (
             expand_with_expandurl(link),  # good
@@ -183,6 +201,7 @@ async def get_tiktok_info(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
+    log.info("Info: TikTok.")
     if (
         (response := await make_request(link, method="HEAD", proxy=True))
         and response.is_success
@@ -203,6 +222,7 @@ async def get_ytdlp_basic_info(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
+    log.info("Info: YouTube-DLP.")
     if info := await get_ytdlp_info(link):
         log.debug("YouTube Basic Info: %r.", info)
         return {
@@ -222,6 +242,7 @@ async def get_downr_info(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
+    log.info("Info: downr.")
     api = "https://downr.org/.netlify/functions/download"
     if (
         response := await make_request(
@@ -273,7 +294,7 @@ async def get_downr_info(link: str) -> dict:
 
 
 async def get_tikmate_info(link: str) -> dict:
-    """Gets tiktok info from TMATE.
+    """Gets tiktok info from TikMate.
 
     Args:
         link (str): formatted tiktok link.
@@ -281,6 +302,7 @@ async def get_tikmate_info(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
+    log.info("Info: TikMate.")
     if (info := await get_tikmate_app_info(link)) and info.get("success"):
         log.debug("TikMate Info: %r.", info)
         return {
@@ -333,6 +355,7 @@ async def get_tokcounter_info(basic_info: dict) -> dict:
     Returns:
         dict: advanced tiktok info.
     """
+    log.info("Info: TokCounter.")
     # api info
     api = "https://tiktok.livecounts.io/video/download"
     # send request
@@ -375,6 +398,7 @@ async def get_lovetik_info(basic_info: dict) -> dict:
     Returns:
         dict: advanced tiktok info.
     """
+    log.info("Info: LoveTik.")
     # api info
     base = "lovetik.com"
     api = f"https://{base}/api/ajax/search"
@@ -426,6 +450,7 @@ async def get_ytdlp_advanced_info(basic_info: dict) -> dict:
     Returns:
         dict: advanced tiktok info.
     """
+    log.info("Advanced Info: YouTube-DLP.")
     # fallback source, since /photo/ URLs are not currently supported
     if info := await get_ytdlp_info(basic_info["original_link"]):
         log.debug("YouTube Advanced Info: %r.", info)
