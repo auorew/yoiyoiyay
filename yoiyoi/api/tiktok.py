@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import logging
 import re
 
 from http.cookies import SimpleCookie
@@ -11,6 +10,9 @@ from typing import Optional, TypedDict
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # yt-dlp
 import yt_dlp
@@ -46,7 +48,7 @@ from yoiyoi.extra.request_helpers import (
 )
 
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # tiktok thumbnail link
 TT = LINKS["tiktok"]

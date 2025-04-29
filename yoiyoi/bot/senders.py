@@ -1,6 +1,7 @@
 """Bot senders"""
 
-import logging
+# structured logging
+import structlog
 
 # pyrogram types
 from pyrogram.types import Message as PyroMessage
@@ -15,7 +16,7 @@ from yoiyoi.bot import pyro_app
 from yoiyoi.extra.request_helpers import retry_request
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def get_message(update: Update) -> PyroMessage:

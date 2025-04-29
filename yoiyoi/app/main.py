@@ -1,10 +1,11 @@
 """Main Application"""
 
-import logging
 import os
 
 from pathlib import Path
 
+# structured logging
+import structlog
 import uvicorn
 
 # telegram core bot api
@@ -23,7 +24,7 @@ from yoiyoi.bot import BotMode, on_bot_init, on_bot_stop
 from yoiyoi.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def start_app(mode: int = BotMode.WEBHOOK):

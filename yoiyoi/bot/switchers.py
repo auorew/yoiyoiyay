@@ -1,8 +1,9 @@
 """Bot switchers"""
 
-import logging
-
 from typing import Optional
+
+# structured logging
+import structlog
 
 # telegram core bot api
 from telegram import Update
@@ -20,7 +21,7 @@ from yoiyoi.db.updaters import cycle_style, switch_style, toggle_field
 from yoiyoi.extra.styles import Style
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # state tuple
 states = ("disabled", "enabled")

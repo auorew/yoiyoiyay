@@ -27,6 +27,10 @@
     level = "DEBUG"
     form = "%(message)s"
 
+[tail.file]
+    level = "DEBUG"
+    form = "%(message)s"
+
 # log library rules
 [[lib]]
     # http requests

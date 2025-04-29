@@ -1,6 +1,7 @@
 """Web Application"""
 
-import logging
+# structured logging
+import structlog
 
 # web application
 from fastapi import FastAPI, Request
@@ -21,7 +22,7 @@ from yoiyoi.app.bot import bot_application
 from yoiyoi.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 api_application = FastAPI()
 

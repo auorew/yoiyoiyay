@@ -1,9 +1,11 @@
 """Bot Commands"""
 
-import logging
 import re
 
 from pathlib import Path
+
+# structured logging
+import structlog
 
 # telegram core bot api
 from telegram import MessageEntity, Update
@@ -39,7 +41,7 @@ from yoiyoi.extra.styles import (
 )
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # get help contents
 HELP_MESSAGE = Path(bot_settings.help_file).read_text(encoding="utf-8")

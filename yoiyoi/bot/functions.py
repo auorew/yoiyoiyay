@@ -1,16 +1,19 @@
 """Bot Functions"""
 
 import asyncio
-import logging
 
 from pathlib import Path
 from typing import Optional
+
+# structured logging
+import structlog
 
 # pyrogram enums
 from pyrogram.enums.parse_mode import ParseMode as PM
 
 # pyrogram types
 from pyrogram.types import InputMediaDocument, InputMediaPhoto, InputMediaVideo
+from structlog.contextvars import unbind_contextvars
 
 # telegram core bot api
 from telegram import Update
@@ -116,7 +119,7 @@ from yoiyoi.extra.styles import (
 from yoiyoi.extra.utils import delete_files, move_file
 
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # update queue limiter
 update_queue = asyncio.Queue(QUEUE_SIZE)
@@ -909,3 +912,5 @@ async def process_link(
         # clear media groups
         if update_queue.empty():
             media_groups.clear()
+        # unbind update_id
+        unbind_contextvars("update_id")

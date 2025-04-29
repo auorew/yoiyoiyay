@@ -1,11 +1,13 @@
 """Alembic environment"""
 
-import logging
 import os
 import sys
 
 from logging.config import fileConfig
 from typing import Optional
+
+# structured logging
+import structlog
 
 # sqlalchemy
 from sqlalchemy import engine_from_config, pool
@@ -25,7 +27,7 @@ from yoiyoi.db.models import Base
 VERSION_TABLE = "yoiyoi_alembic"
 
 # get alembic migrations logger
-log = logging.getLogger("alembic.runtime.migration")
+log = structlog.get_logger("alembic.runtime.migration")
 
 # get parent directory
 sys.path.append(os.path.abspath(os.getcwd()))

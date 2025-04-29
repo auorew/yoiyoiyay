@@ -1,6 +1,7 @@
 """Getters module"""
 
-import logging
+# structured logging
+import structlog
 
 # working with database
 from sqlalchemy import select
@@ -12,7 +13,7 @@ from yoiyoi.db.models import Chat
 from . import Session
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def check_if_banned(chat_id: int) -> bool:

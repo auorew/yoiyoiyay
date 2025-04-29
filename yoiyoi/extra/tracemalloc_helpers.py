@@ -1,11 +1,13 @@
 """Tracemalloc helpers module"""
 
 import linecache
-import logging
 import tracemalloc
 
+# structured logging
+import structlog
+
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 def display_top(

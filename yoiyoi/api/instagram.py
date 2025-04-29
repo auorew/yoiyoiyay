@@ -1,7 +1,6 @@
 """Instagram module"""
 
 import asyncio
-import logging
 import re
 
 from random import getrandbits
@@ -9,6 +8,9 @@ from urllib.parse import unquote
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # beautiful soup
 from bs4 import BeautifulSoup
@@ -23,7 +25,7 @@ from yoiyoi.api.namedtuples import InstaMedia
 from yoiyoi.extra.request_helpers import FAKE_HEADERS, get_content_name, make_request
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # instagram queue
 ig_queue = asyncio.Queue(maxsize=1)

@@ -124,7 +124,7 @@ class LogSettings(BaseSettings):
     file: FileLog
     root: OutLog
     bot: OutLog
-    tail: BasicLog
+    tail: OutLog
 
     lib: list[ExcludeLog]
 

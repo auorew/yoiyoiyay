@@ -36,6 +36,8 @@ httpx = {version = "0.28.1", extras = ["socks"]}
 pillow-heif = "0.22.0"
 pydantic-settings = "^2.9.1"
 cryptography = "^44.0.2"
+structlog = "^25.3.0"
+colorama = "^0.4.6"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.2.0"

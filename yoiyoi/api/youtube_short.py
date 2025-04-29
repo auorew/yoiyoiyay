@@ -1,6 +1,5 @@
 """YouTube Short module"""
 
-import logging
 import re
 import time
 
@@ -9,6 +8,9 @@ from typing import Optional
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # yt-dlp
 import yt_dlp
@@ -35,7 +37,7 @@ from yoiyoi.extra.request_helpers import FAKE_HEADERS, get_content_size, make_re
 from yoiyoi.extra.settings import bot_settings
 
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # youtube short dictionary
 YTSD = LINKS["youtube_short"]

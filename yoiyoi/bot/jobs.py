@@ -1,14 +1,15 @@
 """Bot Jobs"""
 
 import asyncio
-import logging
-import ssl
 
 # http requests
 import httpx
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # beautiful soup
 from bs4 import BeautifulSoup
@@ -23,7 +24,7 @@ from yoiyoi.extra import PROXY, PROXY_CID, PROXY_LIMIT, PROXY_SET, PROXY_TIMEOUT
 from yoiyoi.extra.request_helpers import FAKE_HEADERS
 
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 class GetProxy:
@@ -82,24 +83,12 @@ class GetProxy:
                     )
                 ) and api_response.is_error:
                     raise httpx.RequestError("Tiktok: Couldn't get")
-                log.trace("GetProxy: Tiktok: %r.", orjson.loads(api_response.content))
+                _ = orjson.loads(api_response.content)
                 self.working_proxy.add(proxy)
                 self.proxy_list.add(proxy)
                 return
-        except httpx.ConnectTimeout:
-            log.trace("GetProxy: Tiktok: Timed out.")
-        except httpx.ConnectError:
-            log.trace("GetProxy: Tiktok: Couldn't connect.")
-        except httpx.ReadTimeout:
-            log.trace("GetProxy: Tiktok: Couldn't read.")
-        except httpx.RequestError as ex:
-            log.trace("GetProxy: %s.", ex)
-        except orjson.JSONDecodeError:
-            log.trace("GetProxy: Tiktok: Couldn't decode.")
-        except ssl.SSLError:
-            log.trace("GetProxy: SSL verification failed.")
-        except Exception as ex:
-            log.trace("GetProxy: [%s] %s.", type(ex), ex)
+        except Exception:
+            return
 
     async def get_proxy(self):
         try:

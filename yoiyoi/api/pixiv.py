@@ -1,11 +1,12 @@
 """Pixiv module"""
 
-import logging
-
 from typing import Optional
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # pixiv api
 from pixivpy_async import AppPixivAPI, PixivClient
@@ -27,7 +28,7 @@ from yoiyoi.extra.request_helpers import (
 from yoiyoi.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def get_pixiv_media(illust: dict, get_sizes: bool = False) -> PixivMedia:

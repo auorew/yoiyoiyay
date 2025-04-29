@@ -1,7 +1,6 @@
 """Bot formatters"""
 
 import asyncio
-import logging
 import re
 import subprocess
 import sys
@@ -14,6 +13,9 @@ import magic
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # telegram core bot api
 from telegram import Update
@@ -34,7 +36,7 @@ from yoiyoi.bot import PixivParse
 esc = partial(escape_markdown, version=2)
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # pixiv regex
 pixiv_number = re.compile(r"((?P<n1>\d+)(?:-(?P<n2>\d+))?)")

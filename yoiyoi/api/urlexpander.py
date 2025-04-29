@@ -1,6 +1,7 @@
-import logging
-
 from typing import Optional
+
+# structured logging
+import structlog
 
 # html parsing
 from bs4 import BeautifulSoup
@@ -9,7 +10,7 @@ from bs4 import BeautifulSoup
 from yoiyoi.extra.request_helpers import make_request
 
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def expand_with_urlex(link: str) -> Optional[str]:

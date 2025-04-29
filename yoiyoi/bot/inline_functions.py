@@ -1,9 +1,11 @@
 """Bot Inline Functions"""
 
 import asyncio
-import logging
 
 from typing import Any, AsyncGenerator, Tuple
+
+# structured logging
+import structlog
 
 # async caching
 from aiocache import cached
@@ -77,7 +79,7 @@ from yoiyoi.extra.settings import bot_settings
 from yoiyoi.extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 InlineVideo = InlineQueryResultVideo | InlineQueryResultArticle
 InlineTwitter = (

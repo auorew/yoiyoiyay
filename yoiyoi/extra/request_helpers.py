@@ -1,6 +1,5 @@
 """Request helpers"""
 
-import logging
 import re
 import tempfile
 
@@ -13,6 +12,9 @@ import httpx
 
 # file extension
 import magic
+
+# structured logging
+import structlog
 
 # async caching
 from aiocache import cached
@@ -39,7 +41,7 @@ from yoiyoi.extra import (
 )
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # fake headers
 FAKE_HEADERS = {

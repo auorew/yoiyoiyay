@@ -1,7 +1,6 @@
 """Upload module"""
 
 import base64
-import logging
 
 from pathlib import Path
 
@@ -10,6 +9,9 @@ import httpx
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # telegram core bot api extension
 from telegram.ext import Application
@@ -22,7 +24,7 @@ from yoiyoi.extra.request_helpers import retry_request
 from yoiyoi.extra.settings import bot_settings, log_settings
 
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 @retry_request

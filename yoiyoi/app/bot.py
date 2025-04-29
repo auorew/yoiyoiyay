@@ -2,6 +2,9 @@
 
 import logging
 
+# structured logging
+import structlog
+
 # telegram core bot api
 from telegram import Update
 
@@ -54,7 +57,7 @@ from yoiyoi.bot.jobs import get_proxy
 from yoiyoi.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 def create_bot_app() -> Application:

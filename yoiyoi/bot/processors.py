@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 
 from hashlib import sha256
@@ -8,6 +7,9 @@ from typing import Optional
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # working with images
 from PIL import Image
@@ -45,7 +47,7 @@ from yoiyoi.extra.settings import bot_settings
 from yoiyoi.extra.utils import get_file_chunk, replace_file
 
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # enable heif support for pillow
 register_heif_opener()

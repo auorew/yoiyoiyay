@@ -1,12 +1,13 @@
 """Bot helpers"""
 
-import logging
+# structured logging
+import structlog
 
 # telegram core bot api
 from telegram import Update
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 def notify(

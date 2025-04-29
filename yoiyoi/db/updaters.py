@@ -1,6 +1,7 @@
 """Database updaters"""
 
-import logging
+# structured logging
+import structlog
 
 # telegram core bot api
 from telegram import Chat as TGChat
@@ -15,7 +16,7 @@ from yoiyoi.db.models import Chat
 from yoiyoi.extra.styles import Style
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def update_chat(tg_chat: TGChat) -> Chat:

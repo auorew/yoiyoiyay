@@ -1,6 +1,5 @@
 """Twitter module"""
 
-import logging
 import os
 import re
 
@@ -11,6 +10,9 @@ import gallery_dl
 
 # parse json
 import orjson
+
+# structured logging
+import structlog
 
 # parse datetime
 from dateutil.parser import parse
@@ -50,7 +52,7 @@ from yoiyoi.extra.request_helpers import get_content_size, make_request
 from yoiyoi.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # twitter quality
 QUALITY = ("orig", "large", "medium", "small")
