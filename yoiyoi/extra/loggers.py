@@ -11,7 +11,6 @@ from typing import Optional
 import structlog
 
 # logtail for logging
-from logtail import LogtailHandler
 from structlog.contextvars import bind_contextvars
 
 # settings
@@ -68,7 +67,7 @@ def get_log_filename() -> Path:
     )
 
 
-def get_fh(level: str, formatter: str = JSONFORMAT_FORMATTER) -> Optional[dict[str, str]]:
+def get_fh(level: str) -> Optional[dict[str, str]]:
     """Create file handler"""
     if log_settings.file.enable:
         print("Logging to file enabled.")
@@ -89,7 +88,7 @@ def get_fh(level: str, formatter: str = JSONFORMAT_FORMATTER) -> Optional[dict[s
         print(f"Logging to file: {log_name}.")
         return {
             "class": "logging.FileHandler",
-            "formatter": formatter,
+            "formatter": JSONFORMAT_FORMATTER,
             "filename": log_file,
             "level": level,
         }
@@ -97,19 +96,18 @@ def get_fh(level: str, formatter: str = JSONFORMAT_FORMATTER) -> Optional[dict[s
     return
 
 
-def get_lh(level: str, formatter: str = "%(message)s") -> Optional[LogtailHandler]:
+def get_lh(level: str):
     """Create logtail handler"""
     if not bot_settings.logtail_token:
         return
-    return (
-        {
-            "class": "logtail.LogtailHandler",
-            "source_token": bot_settings.logtail_token,
-            "flush_interval": "10",
-            "formatter": formatter,
-            "level": level,
-        },
-    )
+    return {
+        "class": "logtail.LogtailHandler",
+        "source_token": bot_settings.logtail_token,
+        # "flush_interval": 10,
+        "host": "https://in.logs.betterstack.com",
+        "formatter": JSONFORMAT_FORMATTER,
+        "level": level,
+    }
 
 
 if FILE_HANDLER := get_fh(log_config.file.level):
@@ -142,10 +140,12 @@ logging.config.dictConfig(
                     [
                         CONSOLE_HANDLER if sys.stderr.isatty() else JSONFORMAT_HANDLER,
                         "file_handler",
+                        "logtail_handler",
                     ]
                     if FILE_HANDLER
                     else [
                         CONSOLE_HANDLER if sys.stderr.isatty() else JSONFORMAT_HANDLER,
+                        "logtail_handler",
                     ]
                 ),
                 "level": log_config.level,
