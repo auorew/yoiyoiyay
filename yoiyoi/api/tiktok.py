@@ -168,7 +168,7 @@ async def get_tikmate_app_info(link: str) -> dict:
         return info
 
 
-async def get_url_info(link: str) -> dict:
+async def get_basic_info_url_expand(link: str) -> dict:
     """Gets tiktok info from TikTok with URL expanders.
 
     Args:
@@ -192,7 +192,7 @@ async def get_url_info(link: str) -> dict:
             return {**info.groupdict(), "info_source": "urlexpander"}
 
 
-async def get_tiktok_info(link: str) -> dict:
+async def get_basic_info_tiktok(link: str) -> dict:
     """Gets tiktok info from TikTok.
 
     Args:
@@ -213,7 +213,7 @@ async def get_tiktok_info(link: str) -> dict:
         return {**info.groupdict(), "info_source": "tiktok"}
 
 
-async def get_ytdlp_basic_info(link: str) -> dict:
+async def get_basic_info_ytdlp(link: str) -> dict:
     """Gets basic tiktok info from yt-dlp.
 
     Args:
@@ -233,7 +233,7 @@ async def get_ytdlp_basic_info(link: str) -> dict:
         }
 
 
-async def get_downr_info(link: str) -> dict:
+async def get_basic_info_downr(link: str) -> dict:
     """Gets basic tiktok info from downr.org.
 
     Args:
@@ -293,7 +293,7 @@ async def get_downr_info(link: str) -> dict:
         }
 
 
-async def get_tikmate_info(link: str) -> dict:
+async def get_basic_info_tikmate(link: str) -> dict:
     """Gets tiktok info from TikMate.
 
     Args:
@@ -317,6 +317,7 @@ async def get_tikmate_info(link: str) -> dict:
 
 
 async def get_tiktok_thumbnail(basic_info: dict) -> dict:
+    log.info("Advanced Info: TikTok Thumbnail.")
     if response := await make_request.retry_with(stop=stop_after_attempt(1))(
         url=f'https://www.tiktok.com/oembed?url={basic_info["source"]}',
         method="GET",
@@ -346,7 +347,7 @@ async def get_tiktok_thumbnail(basic_info: dict) -> dict:
         }
 
 
-async def get_tokcounter_info(basic_info: dict) -> dict:
+async def get_info_tokcounter(basic_info: dict) -> dict:
     """Gets advanced tiktok info from TokCounter.
 
     Args:
@@ -355,7 +356,7 @@ async def get_tokcounter_info(basic_info: dict) -> dict:
     Returns:
         dict: advanced tiktok info.
     """
-    log.info("Info: TokCounter.")
+    log.info("Advanced Info: TokCounter.")
     # api info
     api = "https://tiktok.livecounts.io/video/download"
     # send request
@@ -389,7 +390,7 @@ async def get_tokcounter_info(basic_info: dict) -> dict:
         }
 
 
-async def get_lovetik_info(basic_info: dict) -> dict:
+async def get_info_lovetik(basic_info: dict) -> dict:
     """Gets advanced tiktok info from LoveTik.
 
     Args:
@@ -398,7 +399,7 @@ async def get_lovetik_info(basic_info: dict) -> dict:
     Returns:
         dict: advanced tiktok info.
     """
-    log.info("Info: LoveTik.")
+    log.info("Advanced Info: LoveTik.")
     # api info
     base = "lovetik.com"
     api = f"https://{base}/api/ajax/search"
@@ -441,7 +442,7 @@ async def get_lovetik_info(basic_info: dict) -> dict:
         }
 
 
-async def get_ytdlp_advanced_info(basic_info: dict) -> dict:
+async def get_info_ytdlp(basic_info: dict) -> dict:
     """Gets advanced tiktok info from yt-dlp.
 
     Args:
@@ -833,7 +834,7 @@ async def get_links_tikgo(
                     _size = await get_content_size(_link)
                     _name = await get_content_name(_link, REGEX_TIKTOK_CDN)
                     content_images.append(TikTokPhoto(_link, _size, _prev, _name))
-    return content_videos
+    return content
 
 
 async def get_slides_links_tikmate_io(
@@ -1057,11 +1058,11 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     """
 
     for get_basic_info in (
-        get_tiktok_info,  # original source
-        get_ytdlp_basic_info,  # best source
-        get_tikmate_info,  # nice source
-        get_downr_info,  # nice source
-        get_url_info,  # link source
+        get_basic_info_tiktok,  # original source
+        get_basic_info_ytdlp,  # best source
+        get_basic_info_tikmate,  # nice source
+        get_basic_info_downr,  # nice source
+        get_basic_info_url_expand,  # link source
     ):
         if basic_info := await get_basic_info(link):
             break
@@ -1079,9 +1080,9 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     )
 
     for get_info in (
-        get_ytdlp_advanced_info,  # best
-        get_tokcounter_info,  # good
-        get_lovetik_info,  # okay
+        get_info_ytdlp,  # best
+        get_info_tokcounter,  # good
+        get_info_lovetik,  # okay
         get_tiktok_thumbnail,  # thumbnail
     ):
         if info := await get_info(basic_info):
