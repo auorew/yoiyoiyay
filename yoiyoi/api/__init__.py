@@ -14,15 +14,6 @@ class LinkType(Enum):
     INSTAGRAM = auto()
     YOUTUBE_SHORT = auto()
 
-    _names = {
-        DISCORD: "discord",
-        TWITTER: "twitter",
-        PIXIV: "pixiv",
-        TIKTOK: "tiktok",
-        INSTAGRAM: "instagram",
-        YOUTUBE_SHORT: "youtube short",
-    }
-
     @classmethod
     def get_type(cls, value: int) -> str:
         """Gets link type name
@@ -33,7 +24,13 @@ class LinkType(Enum):
         Returns:
             str: link type name
         """
-        return cls._names.get(value, "unknown")
+        try:
+            if isinstance(value, cls):
+                value = value.value
+            member = list(cls)[value - 1]
+            return member.name.replace("_", " ").lower()
+        except IndexError:
+            return "unknown"
 
     @classmethod
     def validate(cls, value: int) -> bool:
