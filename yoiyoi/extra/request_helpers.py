@@ -97,7 +97,7 @@ def wait_fixed_time(retry_state: RetryCallState) -> int:
                 exception.__class__.__name__,
                 exception,
             )
-            if retry_state.attempt_number == RETRY_MAX_TRIES or not PROXY_SET:
+            if retry_state.attempt_number == RETRY_MAX_TRIES - 1 or not PROXY_SET:
                 PROXY["active"] = None
             else:
                 PROXY["active"] = PROXY_SET.pop()
