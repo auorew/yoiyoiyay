@@ -304,14 +304,12 @@ async def get_basic_info_tikmate(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
-    log.info("Info: TikMate.")
     if (info := await get_tikmate_app_info(link)) and info.get("success"):
-        log.debug("TikMate Info: %r.", info)
         return {
             "id": int(info.get("id", 0)),
             "author": info.get("author_id"),
             "author_name": info.get("author_name"),
-            "type": "photo" if len(info.get("token", "")) > 100 else "video",
+            "type": "photo" if "photomode" in info.get("cover", "") or "photomode" in info.get("dynamic_cover", "") else "video",
             "thumb": info.get("cover"),
             "desc": info.get("desc"),
             "info_source": "tikmate.app",
@@ -1060,11 +1058,11 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     """
 
     for get_basic_info in (
-        get_basic_info_tiktok,  # original source
-        get_basic_info_ytdlp,  # best source
+        # get_basic_info_tiktok,  # original source
+        # get_basic_info_ytdlp,  # best source
         get_basic_info_tikmate,  # nice source
-        get_basic_info_downr,  # nice source
-        get_basic_info_url_expand,  # link source
+        # get_basic_info_downr,  # nice source
+        # get_basic_info_url_expand,  # link source
     ):
         if basic_info := await get_basic_info(link):
             break
