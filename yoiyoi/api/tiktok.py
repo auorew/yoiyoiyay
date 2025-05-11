@@ -1058,11 +1058,11 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     """
 
     for get_basic_info in (
-        # get_basic_info_tiktok,  # original source
-        # get_basic_info_ytdlp,  # best source
+        get_basic_info_tiktok,  # original source
+        get_basic_info_ytdlp,  # best source
         get_basic_info_tikmate,  # nice source
-        # get_basic_info_downr,  # nice source
-        # get_basic_info_url_expand,  # link source
+        get_basic_info_downr,  # nice source
+        get_basic_info_url_expand,  # link source
     ):
         if basic_info := await get_basic_info(link):
             break
