@@ -49,7 +49,6 @@ FAKE_HEADERS = {
     "Gecko/20100101 Firefox/128.0",
     "Accept-Language": "en-US,en;q=0.5",
     "Connection": "keep-alive",
-    "Pragma": "no-cache",
     "Cache-Control": "no-cache",
 }
 
@@ -350,6 +349,8 @@ async def get_content_name(
     if file_headers := await get_content_headers(url, **kwargs):
         if file_name := file_headers.get("Content-Disposition", ""):
             if matched := re.search(pattern, file_name):
+                file_name = matched[group]
+            elif matched := re.search(pattern, url):
                 file_name = matched[group]
         elif matched := re.search(pattern, url):
             file_name = matched[group]
