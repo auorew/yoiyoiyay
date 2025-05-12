@@ -23,11 +23,10 @@ logtail-python = "^0.3.3"
 pixivpy-async = "^1.2.14"
 aiocache = "^0.12.3"
 orjson = "^3.10.18"
-snscrape = "^0.7.0.20230622"
 python-dateutil = "^2.9.0.post0"
 gallery-dl = "^1.29.6"
 psycopg2-binary = "2.9.10"
-yt-dlp = {version = "^2025.5.6.232932.dev0", allow-prereleases = true}
+yt-dlp = {version = "^2025.5.11.232911.dev0", allow-prereleases = true}
 fastapi = "^0.115.12"
 uvicorn = "0.34.2"
 pyrogram = "^2.0.106"
@@ -38,6 +37,8 @@ pydantic-settings = "^2.9.1"
 cryptography = "^44.0.3"
 structlog = "^25.3.0"
 colorama = "^0.4.6"
+dataclasses-json = "^0.6.7"
+lxml = "^5.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.2.0"
