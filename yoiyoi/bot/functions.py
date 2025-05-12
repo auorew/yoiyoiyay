@@ -159,12 +159,12 @@ async def send_collection(
         while i < len(files):
             # send media group
             log.info("Sending media group...")
-            if post := await send_media_group(message, media=files[i:j], quote=quoted):
+            if post := await send_media_group(message, media=files[i:j], do_quote=quoted):
                 log.info("Sent media group.")
             # send document group
             if docs and post:
                 log.info("Sending document group...")
-                if await send_media_group(post[0], media=docs[i:j], quote=True):
+                if await send_media_group(post[0], media=docs[i:j], do_quote=True):
                     log.info("Sent document group.")
             # get next 10 photos/docs
             i, j = j, j + 10
@@ -248,7 +248,7 @@ async def send_twitter(
                     await send_error(
                         update,
                         error_text + "contains images the bot couldn't resize\\!",
-                        quote=not chat.delete_link,
+                        do_quote=not chat.delete_link,
                     )
                     return
                 if (imagepath := Path(imagepath)) != filepath:
@@ -275,7 +275,7 @@ async def send_twitter(
                     await send_error(
                         update,
                         error_text + "contains videos the bot couldn't send\\!",
-                        quote=not chat.delete_link,
+                        do_quote=not chat.delete_link,
                     )
                     return
                 filepath = await save_file(videolink)
@@ -287,7 +287,7 @@ async def send_twitter(
                     await send_error(
                         update,
                         error_text + "contains videos the bot couldn't send\\!",
-                        quote=not chat.delete_link,
+                        do_quote=not chat.delete_link,
                     )
                     return
                 if videopath != filepath:
@@ -322,7 +322,7 @@ async def send_twitter(
             "can't be found or downloaded\\. "
             "If this seems to be wrong, try again later\\."
         ),
-        quote=not chat.delete_link,
+        do_quote=not chat.delete_link,
     )
 
 
@@ -361,7 +361,7 @@ async def send_instagram(
                     await send_error(
                         update,
                         error_text + "contains images the bot couldn't resize\\!",
-                        quote=not chat.delete_link,
+                        do_quote=not chat.delete_link,
                     )
                     return
                 if (imagepath := Path(imagepath)) != filepath:
@@ -411,7 +411,7 @@ async def send_instagram(
             "can't be found or downloaded\\. "
             "If this seems to be wrong, try again later\\."
         ),
-        quote=not chat.delete_link,
+        do_quote=not chat.delete_link,
     )
 
 
@@ -454,7 +454,7 @@ async def send_tiktok(
                         await send_error(
                             update,
                             error_text + "contains images the bot couldn't resize\\!",
-                            quote=not chat.delete_link,
+                            do_quote=not chat.delete_link,
                         )
                         return
                     if (imagepath := Path(imagepath)) != filepath:
@@ -539,7 +539,7 @@ async def send_tiktok(
     await send_error(
         update,
         error_text,
-        quote=not chat.delete_link,
+        do_quote=not chat.delete_link,
     )
 
 
@@ -607,7 +607,7 @@ async def send_youtube_short(
     await send_error(
         update,
         error_text,
-        quote=not chat.delete_link,
+        do_quote=not chat.delete_link,
     )
 
 
@@ -651,7 +651,7 @@ async def send_pixiv(
                 await send_error(
                     update,
                     error_text + "contains videos the bot couldn't send\\!",
-                    quote=not chat.delete_link,
+                    do_quote=not chat.delete_link,
                 )
                 return
             if videopath != filepath:
@@ -719,7 +719,7 @@ async def send_pixiv(
                         await send_error(
                             update,
                             error_text + "contains images the bot couldn't resize\\!",
-                            quote=not chat.delete_link,
+                            do_quote=not chat.delete_link,
                         )
                         return
                     if (imagepath := Path(imagepath)) != filepath:
@@ -757,7 +757,7 @@ async def send_pixiv(
     await send_error(
         update,
         error_text,
-        quote=not chat.delete_link,
+        do_quote=not chat.delete_link,
     )
 
 
@@ -845,7 +845,7 @@ async def send_discord(
     # await send_error(
     #     update,
     #     error_text,
-    #     quote=not chat.delete_link,
+    #     do_quote=not chat.delete_link,
     # )
 
 

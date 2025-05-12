@@ -51,13 +51,12 @@ async def send_reply(update: Update, text: str, **kwargs) -> Message:
 
 
 @retry_request
-async def send_error(update: Update, text: str, quote=True, **kwargs) -> Message:
+async def send_error(update: Update, text: str, **kwargs) -> Message:
     """Replies to current message with error
 
     Args:
         update (Update): current update
         text (str): text to send in markdown v2
-        quote (bool): if message with error should be quoted. Defaults to True.
 
     Returns:
         Message: Telegram Message
