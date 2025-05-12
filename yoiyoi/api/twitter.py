@@ -17,7 +17,7 @@ import orjson
 import structlog
 
 # json-serializable dataclasses
-from dataclasses_json import dataclass_json, DataClassJsonMixin
+from dataclasses_json import dataclass_json
 
 # parse datetime
 from dateutil.parser import parse
@@ -72,7 +72,7 @@ class Photo(Medium):
     previewUrl: str
     fullUrl: str
     kind: str = "Photo"
-    altText: str = ''
+    altText: str = ""
 
 
 @dataclass_json
@@ -91,7 +91,7 @@ class Video(Medium):
     kind: str = "Video"
     duration: Optional[float] = None
     views: Optional[int] = None
-    altText: str = ''
+    altText: str = ""
 
 
 @dataclass_json
@@ -100,7 +100,7 @@ class Gif(Medium):
     thumbnailUrl: str
     variants: list[VideoVariant]
     kind: str = "Gif"
-    altText: str = ''
+    altText: str = ""
 
 
 @dataclass_json

@@ -6,7 +6,7 @@ import re
 
 from http.cookies import SimpleCookie
 from random import getrandbits
-from typing import Optional, TypedDict
+from typing import Optional
 
 # parse json
 import orjson
@@ -63,7 +63,6 @@ ytdlp_ops = {
 # tiktok info typing
 TikTokURL = str
 TikTokSize = int
-TikTok = TypedDict("TikTok", link=TikTokURL, size=TikTokSize)
 
 # tikmate link
 TIKMATE_LINK = "https://tikmate.app/download/{0}/{1}.mp4{2}"
@@ -309,7 +308,12 @@ async def get_basic_info_tikmate(link: str) -> dict:
             "id": int(info.get("id", 0)),
             "author": info.get("author_id"),
             "author_name": info.get("author_name"),
-            "type": "photo" if "photomode" in info.get("cover", "") or "photomode" in info.get("dynamic_cover", "") else "video",
+            "type": (
+                "photo"
+                if "photomode" in info.get("cover", "")
+                or "photomode" in info.get("dynamic_cover", "")
+                else "video"
+            ),
             "thumb": info.get("cover"),
             "desc": info.get("desc"),
             "info_source": "tikmate.app",
@@ -476,7 +480,7 @@ async def get_links_ytdlp(
         tiktok_info (dict): tiktok info dictionary.
 
     Returns:
-        list[TikTok]: tiktok video links and sizes.
+        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
     """
     log.info("API: YouTube-DLP.")
     content = content_videos, content_images = [], []
@@ -526,7 +530,7 @@ async def get_links_tokcounter(
         tiktok_info (dict): tiktok info dictionary.
 
     Returns:
-        list[TikTok]: tiktok video links and sizes.
+        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
     """
     log.info("API: TokCounter.")
     content = content_videos, content_images = [], []
@@ -580,7 +584,7 @@ async def get_links_tikmate_app(
         tiktok_info (str): tiktok info dictionary.
 
     Returns:
-        list[TikTok]: tiktok video links and sizes.
+        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
     """
     log.info("API: TikMate App.")
     content = content_videos, content_images = [], []
@@ -612,7 +616,7 @@ async def get_links_lovetik(
         tiktok_info (str): tiktok info dictionary.
 
     Returns:
-        list[TikTok]: tiktok video links and sizes.
+        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
     """
     log.info("API: LoveTik.")
     content = content_videos, content_images = [], []
@@ -671,7 +675,7 @@ async def get_links_unduhtiktok(
         tiktok_info (str): tiktok info dictionary.
 
     Returns:
-        list[TikTok]: tiktok video links and sizes.
+        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
     """
     log.info("API: UnduhTiktok.")
     content = content_videos, content_images = [], []
@@ -777,7 +781,7 @@ async def get_links_tikgo(
         tiktok_info (str): tiktok info dictionary.
 
     Returns:
-        list[TikTok]: tiktok video links and sizes.
+        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
     """
     log.info("API: TikGo.")
     content = content_videos, content_images = [], []
@@ -982,7 +986,7 @@ async def get_links_downr(
         tiktok_info (str): tiktok info dictionary.
 
     Returns:
-        list[TikTok]: tiktok video links and sizes.
+        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
     """
     log.info("API: downr.")
     content = content_videos, content_images = [], []
