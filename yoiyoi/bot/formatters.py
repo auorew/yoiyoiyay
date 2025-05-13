@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from functools import partial
+from pathlib import Path
 from typing import AsyncGenerator
 
 # file extension check
@@ -245,10 +246,10 @@ def extract_file_ext_from_bytes(file: bytes):
     return NO_EXT
 
 
-def extract_file_ext(file: str | bytes) -> str:
+def extract_file_ext(file: Path | str | bytes) -> str:
     if isinstance(file, bytes):
         return extract_file_ext_from_bytes(file)
-    elif not isinstance(file, str):
+    if not (isinstance(file, str | Path)):
         return
     # try magic
     try:

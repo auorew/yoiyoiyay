@@ -252,7 +252,9 @@ async def send_twitter(
                     )
                     return
                 if (imagepath := Path(imagepath)) != filepath:
-                    imagepath = move_file(imagepath, storage_folder / f"RE_{filename}")
+                    imagepath = move_file(
+                        imagepath, storage_folder / f"RE_{filepath.stem}.png"
+                    )
                     storage.add(imagepath)
                 # add to collection
                 files.append(
@@ -365,11 +367,11 @@ async def send_instagram(
                     )
                     return
                 if (imagepath := Path(imagepath)) != filepath:
-                    filename = await join_file_name(filename, filepath)
                     imagepath = move_file(
-                        imagepath, storage_folder / f"RE_{filename}"
+                        imagepath, storage_folder / f"RE_{filepath.stem}.png"
                     )
                     storage.add(imagepath)
+                # add to collection
                 files.append(
                     InputMediaPhoto(
                         media=imagepath,
@@ -461,11 +463,11 @@ async def send_tiktok(
                         )
                         return
                     if (imagepath := Path(imagepath)) != filepath:
-                        filename = await join_file_name(filename, filepath)
                         imagepath = move_file(
-                            imagepath, storage_folder / f"RE_{filename}"
+                            imagepath, storage_folder / f"RE_{filepath.stem}.png"
                         )
                         storage.add(imagepath)
+                    # add to collection
                     files.append(
                         InputMediaPhoto(
                             media=imagepath,
@@ -727,9 +729,10 @@ async def send_pixiv(
                         return
                     if (imagepath := Path(imagepath)) != filepath:
                         imagepath = move_file(
-                            imagepath, storage_folder / f"RE_{filename}"
+                            imagepath, storage_folder / f"RE_{filepath.stem}.png"
                         )
                         storage.add(imagepath)
+                    # add to collection
                     files.append(
                         InputMediaPhoto(
                             media=imagepath,
@@ -814,6 +817,7 @@ async def send_discord(
                         imagepath, storage_folder / f"RE_{filepath.stem}.png"
                     )
                     storage.add(imagepath)
+                # add to collection
                 files.append(
                     InputMediaPhoto(
                         media=imagepath,
