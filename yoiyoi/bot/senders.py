@@ -33,6 +33,8 @@ async def send_media_group(message: PyroMessage, **kwargs) -> PyroMessage:
     Args:
         post (Update): post to reply to
     """
+    kwargs['quote'] = kwargs.get('do_quote', False)
+    kwargs.pop('do_quote', False)
     return await message.reply_media_group(**kwargs)
 
 
