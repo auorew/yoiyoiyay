@@ -165,15 +165,15 @@ async def resize_image(filepath: Path):
 
 
 async def convert_image(filepath: Path):
-    if (converter_api := bot_settings.converter_api) and (
-        converter_filepath := await save_file(
-            converter_api,
-            "POST",
-            timeout=120,
-            files={"upload_file": filepath.open("rb")},
-        )
-    ):
-        return converter_filepath
+    if converter_api := bot_settings.converter_api:
+        with filepath.open(mode="rb") as filehandle:
+            if converter_filepath := await save_file(
+                converter_api,
+                "POST",
+                timeout=120,
+                files={"upload_file": filehandle},
+            ):
+                return converter_filepath
 
 
 async def process_image(filepath: Path) -> Optional[Path]:

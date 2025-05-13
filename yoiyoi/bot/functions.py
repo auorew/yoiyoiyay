@@ -8,18 +8,15 @@ from typing import Optional
 # structured logging
 import structlog
 
-# pyrogram enums
-from pyrogram.enums.parse_mode import ParseMode as PM
-
-# pyrogram types
-from pyrogram.types import InputMediaDocument, InputMediaPhoto, InputMediaVideo
+# contextvars
 from structlog.contextvars import unbind_contextvars
 
 # telegram core bot api
-from telegram import Update
+from telegram import InputMediaDocument, InputMediaPhoto, InputMediaVideo, Update
 
 # telegram constants
 from telegram.constants import MessageLimit as ML
+from telegram.constants import ParseMode as PM
 
 # telegram errors
 from telegram.error import BadRequest
@@ -90,7 +87,7 @@ from yoiyoi.bot.processors import (
 )
 
 # bot senders
-from yoiyoi.bot.senders import get_message, send_error, send_media_group, send_reply
+from yoiyoi.bot.senders import send_error, send_media_group, send_reply
 
 # database table
 from yoiyoi.db.models import Chat
@@ -149,11 +146,14 @@ async def send_collection(
     update: Update,
     chat: Chat,
     storage: set,
+    file_handlers: list,
     files: list,
+    doc_handlers: list = None,
     docs: list = None,
 ):
     try:
-        message = await get_message(update)
+        # message = await get_message(update)
+        message = update.effective_message
         quoted = not chat.delete_link
         i, j = 0, 10
         while i < len(files):
@@ -161,11 +161,15 @@ async def send_collection(
             log.info("Sending media group...")
             if post := await send_media_group(message, media=files[i:j], do_quote=quoted):
                 log.info("Sent media group.")
+            for file_handler in file_handlers[i:j]:
+                file_handler.close()
             # send document group
-            if docs and post:
+            if docs and doc_handlers and post:
                 log.info("Sending document group...")
                 if await send_media_group(post[0], media=docs[i:j], do_quote=True):
                     log.info("Sent document group.")
+                for doc_handler in doc_handlers[i:j]:
+                    doc_handler.close()
             # get next 10 photos/docs
             i, j = j, j + 10
         # seems to be successful
@@ -181,6 +185,11 @@ async def send_collection(
         # delete all files
         log.debug("Storage: %s.", storage)
         delete_files(storage)
+        for file_handler in file_handlers:
+            file_handler.close()
+        if doc_handlers:
+            for doc_handler in doc_handlers:
+                doc_handler.close()
         Path(CACHE_DIR / str(update.update_id)).rmdir()
 
 
@@ -198,6 +207,7 @@ async def send_twitter(
     """
     error_text = f"[*This twitter content*]({link.link}) "
     log.info("Twitter Link: %s.", link.link)
+    file_handlers, doc_handlers = [], []
     # get media
     if (tweet := await get_twitter_links(link.id)) and (count := len(tweet.content)):
         info = await get_info(link, TwitterStyle, chat, tweet)
@@ -257,18 +267,23 @@ async def send_twitter(
                     )
                     storage.add(imagepath)
                 # add to collection
+                image_handler = imagepath.open("rb")
+                file_handlers.append(image_handler)
                 files.append(
                     InputMediaPhoto(
-                        media=imagepath,
+                        media=image_handler,
                         caption=info if idx == ids[0] else None,
                         parse_mode=PM.HTML,
                     )
                 )
                 if chat.tw_orig:
+                    doc_handler = filepath.open("rb")
+                    doc_handlers.append(doc_handler)
                     docs.append(
                         InputMediaDocument(
-                            media=filepath,
+                            media=doc_handler,
                             parse_mode=PM.HTML,
+                            disable_content_type_detection=True,
                         )
                     )
             else:
@@ -300,10 +315,12 @@ async def send_twitter(
                 thumbpath = move_file(thumbpath, storage_folder / thumbname)
                 storage.add(thumbpath)
                 # add to collection
+                video_handler = videopath.open("rb")
+                file_handlers.append(video_handler)
                 files.append(
                     InputMediaVideo(
-                        media=videopath,
-                        thumb=thumbpath,
+                        media=video_handler,
+                        thumbnail=thumbpath.read_bytes(),
                         caption=info if idx == ids[0] else None,
                         parse_mode=PM.HTML,
                         width=videoinfo[0],
@@ -313,7 +330,15 @@ async def send_twitter(
                 )
         log.debug("Finished adding to collection.")
         log.debug("Caption: %r.", info)
-        if await send_collection(update, chat, storage, files, docs):
+        if await send_collection(
+            update,
+            chat,
+            storage,
+            file_handlers,
+            files,
+            doc_handlers,
+            docs,
+        ):
             return
     # if no links returned
     log.error("Couldn't get twitter content.")
@@ -342,6 +367,7 @@ async def send_instagram(
     """
     error_text = f"[*This instagram content*]({link.link}) "
     log.info("Instagram Link: %s.", link.link)
+    file_handlers, doc_handlers = [], []
     # get media
     if media := await get_instagram_links(link.link):
         files, docs, storage = [], [], set()
@@ -372,18 +398,23 @@ async def send_instagram(
                     )
                     storage.add(imagepath)
                 # add to collection
+                image_handler = imagepath.open("rb")
+                file_handlers.append(image_handler)
                 files.append(
                     InputMediaPhoto(
-                        media=imagepath,
+                        media=image_handler,
                         caption=info if not idx else None,
                         parse_mode=PM.HTML,
                     )
                 )
                 if chat.in_orig:
+                    doc_handler = filepath.open("rb")
+                    doc_handlers.append(doc_handler)
                     docs.append(
                         InputMediaDocument(
-                            media=filepath,
+                            media=doc_handler,
                             parse_mode=PM.HTML,
+                            disable_content_type_detection=True,
                         )
                     )
             if item.type == "video":
@@ -392,10 +423,13 @@ async def send_instagram(
                 thumbname = await make_thumb_name(filename, thumbpath)
                 thumbpath = move_file(thumbpath, storage_folder / thumbname)
                 storage.add(thumbpath)
+                # add to collection
+                video_handler = filepath.open("rb")
+                file_handlers.append(video_handler)
                 files.append(
                     InputMediaVideo(
-                        media=filepath,
-                        thumb=thumbpath,
+                        media=video_handler,
+                        thumbnail=thumbpath.read_bytes(),
                         caption=info if not idx else None,
                         parse_mode=PM.HTML,
                         width=videoinfo[0],
@@ -405,7 +439,15 @@ async def send_instagram(
                 )
         log.debug("Finished adding to collection.")
         log.debug("Caption: %r.", info)
-        if await send_collection(update, chat, storage, files, docs):
+        if await send_collection(
+            update,
+            chat,
+            storage,
+            file_handlers,
+            files,
+            doc_handlers,
+            docs,
+        ):
             return
     # if no links returned
     log.error("Couldn't get instagram content.")
@@ -434,6 +476,7 @@ async def send_tiktok(
     """
     error_text = f"[*This tiktok content*]({link.link}) "
     log.info("TikTok Link: %s.", link.link)
+    file_handlers, doc_handlers = [], []
     # get media
     if media := await get_tiktok_links(link.link):
         info = await get_info(link, TikTokStyle, chat, media)
@@ -468,18 +511,23 @@ async def send_tiktok(
                         )
                         storage.add(imagepath)
                     # add to collection
+                    image_handler = imagepath.open("rb")
+                    file_handlers.append(image_handler)
                     files.append(
                         InputMediaPhoto(
-                            media=imagepath,
+                            media=image_handler,
                             caption=info if idx == i else None,
                             parse_mode=PM.HTML,
                         )
                     )
                     if chat.tt_orig:
+                        doc_handler = filepath.open("rb")
+                        doc_handlers.append(doc_handler)
                         docs.append(
                             InputMediaDocument(
-                                media=filepath,
+                                media=doc_handler,
                                 parse_mode=PM.HTML,
+                                disable_content_type_detection=True,
                             )
                         )
                 # get next 10 photos/docs
@@ -518,10 +566,13 @@ async def send_tiktok(
                 thumbname = await make_thumb_name(filename, thumbpath)
                 thumbpath = move_file(thumbpath, storage_folder / thumbname)
                 storage.add(thumbpath)
+                # add to collection
+                video_handler = videopath.open("rb")
+                file_handlers.append(video_handler)
                 files.append(
                     InputMediaVideo(
-                        media=videopath,
-                        thumb=thumbpath,
+                        media=video_handler,
+                        thumbnail=thumbpath.read_bytes(),
                         caption=info,
                         parse_mode=PM.HTML,
                         width=videoinfo[0],
@@ -532,7 +583,15 @@ async def send_tiktok(
         if files:
             log.debug("Finished adding to collection.")
             log.debug("Caption: %r.", info)
-            if await send_collection(update, chat, storage, files, docs):
+            if await send_collection(
+                update,
+                chat,
+                storage,
+                file_handlers,
+                files,
+                doc_handlers,
+                docs,
+            ):
                 return
     # if there is no video
     else:
@@ -562,6 +621,7 @@ async def send_youtube_short(
     """
     error_text = f"[*This youtube content*]({link.link}) "
     log.info("YouTube Short Link: %s.", link.link)
+    file_handlers = []
     # get media
     if video := await get_youtube_short_links(link):
         info = await get_info(link, YouTubeShortStyle, chat, video)
@@ -589,10 +649,13 @@ async def send_youtube_short(
             if await crop_thumbnail(thumbpath, videoinfo[0], videoinfo[1]):
                 log.info("Successfully cropped thumbnail.")
             storage.add(thumbpath)
+            # add to collection
+            video_handler = videopath.open("rb")
+            file_handlers.append(video_handler)
             files.append(
                 InputMediaVideo(
-                    media=videopath,
-                    thumb=thumbpath,
+                    media=video_handler,
+                    thumbnail=thumbpath.read_bytes(),
                     caption=info,
                     parse_mode=PM.HTML,
                     width=videoinfo[0],
@@ -602,7 +665,13 @@ async def send_youtube_short(
             )
             log.debug("Finished adding to collection.")
             log.debug("Caption: %r.", info)
-            if await send_collection(update, chat, storage, files):
+            if await send_collection(
+                update,
+                chat,
+                storage,
+                file_handlers,
+                files,
+            ):
                 return
     # if there is no video
     log.error("Couldn't get youtube short content.")
@@ -630,6 +699,7 @@ async def send_pixiv(
     """
     error_text = f"[*This pixiv content*]({link.link}) "
     log.info("Pixiv Link: %s.", link.link)
+    file_handlers, doc_handlers = [], []
     # get media
     if (art := await get_pixiv_links(link.id)) and (count := len(art.content)):
         info = await get_info(link, PixivStyle, chat, art)
@@ -667,10 +737,12 @@ async def send_pixiv(
             thumbpath = move_file(thumbpath, storage_folder / thumbname)
             storage.add(thumbpath)
             # add to collection
+            video_handler = videopath.open("rb")
+            file_handlers.append(video_handler)
             files.append(
                 InputMediaVideo(
-                    media=videopath,
-                    thumb=thumbpath,
+                    media=video_handler,
+                    thumbnail=thumbpath.read_bytes(),
                     caption=info,
                     parse_mode=PM.HTML,
                     width=videoinfo[0],
@@ -733,18 +805,23 @@ async def send_pixiv(
                         )
                         storage.add(imagepath)
                     # add to collection
+                    image_handler = imagepath.open("rb")
+                    file_handlers.append(image_handler)
                     files.append(
                         InputMediaPhoto(
-                            media=imagepath,
+                            media=image_handler,
                             caption=info if ids[i] == idx else None,
                             parse_mode=PM.HTML,
                         )
                     )
                     if chat.px_orig:
+                        doc_handler = filepath.open("rb")
+                        doc_handlers.append(doc_handler)
                         docs.append(
                             InputMediaDocument(
-                                media=filepath,
+                                media=doc_handler,
                                 parse_mode=PM.HTML,
+                                disable_content_type_detection=True,
                             )
                         )
                 # get next 10 photos/docs
@@ -752,7 +829,15 @@ async def send_pixiv(
         if files:
             log.debug("Finished adding to collection.")
             log.debug("Caption: %r.", info)
-            if await send_collection(update, chat, storage, files, docs):
+            if await send_collection(
+                update,
+                chat,
+                storage,
+                file_handlers,
+                files,
+                doc_handlers,
+                docs,
+            ):
                 return
     else:
         log.error("Couldn't get pixiv content.")
@@ -781,6 +866,7 @@ async def send_discord(
     """
     error_text = f"[*This discord content*]({link.link}) "
     log.info("Discord Link: %s.", link.link)
+    file_handlers = []
     # get media
     files, storage = [], set()
     storage_folder = Path(CACHE_DIR / str(update.update_id))
@@ -799,10 +885,13 @@ async def send_discord(
             storage.add(thumbpath)
             videoinfo = await get_video_info(filepath)
             if videopath := await process_video(filepath):
+                # add to collection
+                video_handler = videopath.open("rb")
+                file_handlers.append(video_handler)
                 files.append(
                     InputMediaVideo(
-                        media=videopath,
-                        thumb=thumbpath,
+                        media=video_handler,
+                        thumbnail=thumbpath.read_bytes(),
                         caption=info,
                         parse_mode=PM.DISABLED,
                         width=videoinfo[0],
@@ -818,16 +907,24 @@ async def send_discord(
                     )
                     storage.add(imagepath)
                 # add to collection
+                image_handler = imagepath.open("rb")
+                file_handlers.append(image_handler)
                 files.append(
                     InputMediaPhoto(
-                        media=imagepath,
+                        media=image_handler,
                         caption=info,
-                        parse_mode=PM.DISABLED,
+                        parse_mode=PM.HTML,
                     )
                 )
         log.debug("Finished adding to collection.")
         log.debug("Caption: %r.", info)
-        if await send_collection(update, chat, storage, files):
+        if await send_collection(
+            update,
+            chat,
+            storage,
+            file_handlers,
+            files,
+        ):
             return
     else:
         error_text += (

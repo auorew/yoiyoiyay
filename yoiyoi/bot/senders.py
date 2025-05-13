@@ -3,14 +3,8 @@
 # structured logging
 import structlog
 
-# pyrogram types
-from pyrogram.types import Message as PyroMessage
-
 # telegram core bot api
 from telegram import Message, Update
-
-# get constants and pyrogram app
-from yoiyoi.bot import pyro_app
 
 # retry requets
 from yoiyoi.extra.request_helpers import retry_request
@@ -19,22 +13,13 @@ from yoiyoi.extra.request_helpers import retry_request
 log = structlog.get_logger(__name__)
 
 
-async def get_message(update: Update) -> PyroMessage:
-    return await pyro_app.get_messages(
-        update.effective_chat.id,
-        update.effective_message.id,
-    )
-
-
 @retry_request
-async def send_media_group(message: PyroMessage, **kwargs) -> PyroMessage:
+async def send_media_group(message: Message, **kwargs) -> Message:
     """Sends media group in reply to post in current chat
 
     Args:
-        post (Update): post to reply to
+        message (Message): post to reply to
     """
-    kwargs["quote"] = kwargs.get("do_quote", False)
-    kwargs.pop("do_quote", False)
     return await message.reply_media_group(**kwargs)
 
 
