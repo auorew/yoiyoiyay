@@ -365,7 +365,10 @@ async def send_instagram(
                     )
                     return
                 if (imagepath := Path(imagepath)) != filepath:
-                    imagepath = move_file(imagepath, storage_folder / f"RE_{filename}")
+                    filename = await join_file_name(filename, filepath)
+                    imagepath = move_file(
+                        imagepath, storage_folder / f"RE_{filename}"
+                    )
                     storage.add(imagepath)
                 files.append(
                     InputMediaPhoto(
