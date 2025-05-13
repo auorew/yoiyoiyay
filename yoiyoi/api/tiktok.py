@@ -511,13 +511,19 @@ async def get_links_ytdlp(
             if _ext == "html":
                 log.warning("Can't download video in html format.")
                 continue
-        content_videos.append(
-            TikTokVideo(
-                video["url"],
-                video["filesize"] or video["filesize_approx"] or 0,
-                {"cookies": cookies, "headers": video["http_headers"]},
+        _size = video.get("filesize") or video.get("filesize_approx") or 0
+        if _size := await get_content_size(
+            video["url"],
+            headers=video.get("http_headers"),
+            cookies=cookies,
+        ):
+            content_videos.append(
+                TikTokVideo(
+                    video["url"],
+                    _size,
+                    {"cookies": cookies, "headers": video.get("http_headers")},
+                )
             )
-        )
     return content
 
 
