@@ -13,7 +13,7 @@ from yoiyoi.extra.settings import bot_settings
 from yoiyoi.extra.upload import upload_log
 
 # read & write timeouts for bot
-READ_TIMEOUT, WRITE_TIMEOUT = 5, 5
+READ_TIMEOUT, WRITE_TIMEOUT = 15, 15
 
 # limited queue size
 QUEUE_SIZE = 3
