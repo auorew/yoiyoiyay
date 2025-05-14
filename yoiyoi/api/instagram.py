@@ -222,6 +222,7 @@ async def get_links_snapinstato(link: str) -> list[InstaMedia]:
     base = "https://snapinsta.to"
     api = f"{base}/api/ajaxSearch"
     # send request
+    token = None
     if token_response := await make_request(
         url=f"{base}/api/userverify",
         headers={
@@ -248,9 +249,10 @@ async def get_links_snapinstato(link: str) -> list[InstaMedia]:
             log.warning("Couldn't decode json token: %r.", token_response.content)
             return results
         log.debug("JSON: %r.", info)
-        if not (token := info.get("token")):
-            log.error("Couldn't get token.")
-            return results
+        token = info.get("token")
+    if not token:
+        log.error("Couldn't get token.")
+        return results
     if response := await make_request(
         url=api,
         headers={
@@ -331,6 +333,7 @@ async def get_links_clipdownapp(link: str) -> list[InstaMedia]:
     origin = "https://clipdown.app"
     api = f"{base}/api/ajaxSearch"
     # send request
+    token = None
     if token_response := await make_request(
         url=f"{origin}/api/userverify",
         headers={
@@ -357,9 +360,10 @@ async def get_links_clipdownapp(link: str) -> list[InstaMedia]:
             log.warning("Couldn't decode json token: %r.", token_response.content)
             return results
         log.debug("JSON: %r.", info)
-        if not (token := info.get("token")):
-            log.error("Couldn't get token.")
-            return results
+        token = info.get("token")
+    if not token:
+        log.error("Couldn't get token.")
+        return results
     if response := await make_request(
         url=api,
         headers={
