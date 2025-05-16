@@ -10,7 +10,9 @@ from fastapi import FastAPI, Request
 
 # send json response
 from fastapi.responses import JSONResponse
-from structlog.contextvars import bind_contextvars
+
+# contextvars
+from structlog.contextvars import bind_contextvars, unbind_contextvars
 
 # telegram core bot api
 from telegram import Update
@@ -20,7 +22,6 @@ from yoiyoi.api.twitter import get_twitter_links
 
 # the bot
 from yoiyoi.app.bot import bot_application
-from yoiyoi.bot.filters import clear_context
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -40,6 +41,11 @@ telegram_response = {
     "info": "Added the update to the queue.",
 }
 
+failed_api_request = {
+    "status": "failed",
+    "info": "Wrong API key.",
+}
+
 
 @api_application.get("/health_check")
 async def health():
@@ -47,14 +53,19 @@ async def health():
 
 
 @api_application.post("/get_tweet")
-@clear_context
-async def get_tweet(api_key: str, tweet_id: int, request: Request):
-    bind_contextvars({"update_id": f"api-{int(datetime.now().timestamp()) % 10000}"})
+async def get_tweet(api_key: str, tweet_id: int):
+    bind_contextvars(update_id=f"api-{int(datetime.now().timestamp()) % 10000}")
+    log.info("Got Twitter API key request.")
     if api_key == bot_settings.api_key:
         log.info("API key is correct. Trying to get tweet...")
         tweet_json = await get_twitter_links(tweet_id, json=True)
         log.info("Tweet: %s.", tweet_json)
-        return JSONResponse(tweet_json)
+        response = JSONResponse(tweet_json)
+    else:
+        log.info("API key is incorrect.")
+        response = JSONResponse(failed_api_request)
+    unbind_contextvars("update_id")
+    return response
 
 
 @api_application.post(f"/{bot_settings.token}")
