@@ -31,12 +31,16 @@ async def filter_out(
         raise ApplicationHandlerStop
 
 
-def clear_context():
+def clear_context(contextvar_list=None):
     def wrapper(func):
         @functools.wraps(func)
         async def wrapped(*args, **kwargs):
             result = await func(*args, **kwargs)
-            unbind_contextvars("update_id")
+            if contextvar_list and isinstance(contextvar_list, list):
+                for contextvar in contextvar_list:
+                    unbind_contextvars(contextvar)
+            else:
+                unbind_contextvars("update_id")
             return result
 
         return wrapped

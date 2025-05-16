@@ -1,5 +1,7 @@
 """Web Application"""
 
+from datetime import datetime
+
 # structured logging
 import structlog
 
@@ -8,6 +10,7 @@ from fastapi import FastAPI, Request
 
 # send json response
 from fastapi.responses import JSONResponse
+from structlog.contextvars import bind_contextvars
 
 # telegram core bot api
 from telegram import Update
@@ -17,6 +20,7 @@ from yoiyoi.api.twitter import get_twitter_links
 
 # the bot
 from yoiyoi.app.bot import bot_application
+from yoiyoi.bot.filters import clear_context
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -43,9 +47,14 @@ async def health():
 
 
 @api_application.post("/get_tweet")
-async def get_tweet(api_key: str, tweet_id: int):
+@clear_context
+async def get_tweet(api_key: str, tweet_id: int, request: Request):
+    bind_contextvars({"update_id": f"api-{int(datetime.now().timestamp()) % 10000}"})
     if api_key == bot_settings.api_key:
-        return JSONResponse(await get_twitter_links(tweet_id, json=True))
+        log.info("API key is correct. Trying to get tweet...")
+        tweet_json = await get_twitter_links(tweet_id, json=True)
+        log.info("Tweet: %s.", tweet_json)
+        return JSONResponse(tweet_json)
 
 
 @api_application.post(f"/{bot_settings.token}")
