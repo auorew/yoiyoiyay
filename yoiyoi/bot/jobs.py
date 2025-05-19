@@ -5,9 +5,6 @@ import asyncio
 # http requests
 import httpx
 
-# parse json
-import orjson
-
 # structured logging
 import structlog
 
@@ -67,23 +64,10 @@ class GetProxy:
                     main_response := await client.get(
                         "https://m.tiktok.com/v/7060481973659405570",
                         headers=FAKE_HEADERS,
+                        follow_redirects=True,
                     )
                 ) and main_response.is_error:
                     raise httpx.RequestError("Tiktok: Couldn't reach")
-                if (
-                    api_response := await client.post(
-                        "https://api.tikmate.app/api/lookup",
-                        headers={
-                            **FAKE_HEADERS,
-                            "Content-Type": "application/x-www-form-urlencoded;"
-                            " charset=UTF-8",
-                            "Referer": "https://tikmate.app/",
-                        },
-                        data={"url": "https://m.tiktok.com/v/7060481973659405570"},
-                    )
-                ) and api_response.is_error:
-                    raise httpx.RequestError("Tiktok: Couldn't get")
-                _ = orjson.loads(api_response.content)
                 self.working_proxy.add(proxy)
                 self.proxy_list.add(proxy)
                 return
