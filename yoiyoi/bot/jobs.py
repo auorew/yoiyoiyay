@@ -32,19 +32,19 @@ class GetProxy:
     free_proxy_api = (
         "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=protocolipport&format=text",
     )
-    test_url = "https://www.google.com"
 
     def __init__(
         self,
-        country: list[str] = None,
-        timeout: float = 0.5,
-        limit: int = None,
+        country: list[str] | set[str] = None,
+        timeout: float = 1,
+        limit: int = 10,
     ):
-        self.country = country
+        self.country = set(country) if country else None
         self.timeout = timeout
         self.limit = limit
         self.working_proxy = set()
         self.proxy_list = set()
+        self.semaphore = asyncio.Semaphore(self.limit)
 
     async def get(self):
         self.working_proxy.clear()
@@ -52,16 +52,19 @@ class GetProxy:
         await self.get_proxy()
         return self.working_proxy
 
-    async def test_proxy(self, proxy_protocol, proxy_addr, proxy_port):
-        try:
-            proxy = f"{proxy_protocol}://{proxy_addr}:{proxy_port}"
-            async with httpx.AsyncClient(
-                proxy=proxy,
-                timeout=self.timeout,
-                follow_redirects=True,
-            ) as client:
+    async def test_proxy(
+        self,
+        proxy_protocol: str,
+        proxy_addr: str,
+        proxy_port: str | int,
+        shared_client: httpx.AsyncClient,
+    ):
+        async with self.semaphore:
+            try:
+                proxy = f"{proxy_protocol}://{proxy_addr}:{proxy_port}"
+                shared_client._transport = httpx.AsyncHTTPTransport(proxy=proxy)
                 if (
-                    main_response := await client.get(
+                    main_response := await shared_client.get(
                         "https://m.tiktok.com/v/7060481973659405570",
                         headers=FAKE_HEADERS,
                         follow_redirects=True,
@@ -71,17 +74,32 @@ class GetProxy:
                 self.working_proxy.add(proxy)
                 self.proxy_list.add(proxy)
                 return
-        except Exception:
-            return
+            except (
+                httpx.ProxyError,
+                httpx.ConnectError,
+                httpx.ConnectTimeout,
+                httpx.ReadTimeout,
+                httpx.RemoteProtocolError,
+            ):
+                return
+            except Exception as ex:
+                log.warning(
+                    "Test proxy exception. %s: %s.",
+                    ex.__class__.__name__,
+                    ex,
+                )
+                return
 
     async def get_proxy(self):
+        variants = set()
         try:
             async with httpx.AsyncClient() as client:
                 for source in self.free_proxy_sources:
                     page = await client.get(source)
+                    if page.is_error:
+                        continue
                     soup = BeautifulSoup(page.text, "html.parser")
                     container = soup.find_all("div", {"class": "fpl-list"})
-                    variants = set()
                     for row in container[0].table.tbody:
                         (
                             ip,
@@ -97,15 +115,26 @@ class GetProxy:
                             variants.add(("http", ip, port))
                 for source in self.free_proxy_api:
                     page = await client.get(source)
+                    if page.is_error:
+                        continue
                     for proxy in page.text.split():
                         variants.add(tuple(proxy.replace("//", "").split(":")))
-                tasks = []
-                for row_id, variant in enumerate(variants, 1):
-                    if not self.country or variant[2] in self.country:
-                        tasks.append(asyncio.create_task(self.test_proxy(*variant)))
-                    if self.limit and row_id % self.limit == 0:
-                        await asyncio.wait(tasks)
-                await asyncio.wait(tasks)
+
+                test_client = httpx.AsyncClient(
+                    timeout=self.timeout, follow_redirects=True
+                )
+                try:
+                    tasks = []
+                    for variant in variants:
+                        if not self.country or variant[2] in self.country:
+                            tasks.append(
+                                asyncio.create_task(
+                                    self.test_proxy(*variant, test_client)
+                                )
+                            )
+                    await asyncio.wait(tasks)
+                finally:
+                    await test_client.aclose()
         except Exception as ex:
             log.warning(
                 "Request to proxy API or parsing failed. %s: %s.",
