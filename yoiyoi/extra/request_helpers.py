@@ -140,8 +140,8 @@ def retry_request(func):
 
 @asynccontextmanager
 async def get_async_client(proxy: bool = False):
+    my_proxy = PROXY.get("active") if proxy else None
     try:
-        my_proxy = PROXY["active"] if proxy and PROXY["active"] else None
         async with httpx.AsyncClient(proxy=my_proxy) as client:
             yield client
     except Exception as exception:
@@ -150,6 +150,7 @@ async def get_async_client(proxy: bool = False):
             exception.__class__.__name__,
             exception,
         )
+        raise
 
 
 @retry_request
