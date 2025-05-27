@@ -1,6 +1,7 @@
 """Bot Jobs"""
 
 import asyncio
+import ssl
 
 # http requests
 import httpx
@@ -75,11 +76,15 @@ class GetProxy:
                 self.proxy_list.add(proxy)
                 return
             except (
+                ValueError,
+                ssl.SSLError,
                 httpx.ProxyError,
                 httpx.ConnectError,
                 httpx.ConnectTimeout,
+                httpx.ReadError,
                 httpx.ReadTimeout,
                 httpx.RemoteProtocolError,
+                httpx.RequestError,
             ):
                 return
             except Exception as ex:
