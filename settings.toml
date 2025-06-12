@@ -97,9 +97,3 @@
     name = "sqlalchemy.orm"
     enable = true
     level = "WARNING"
-
-[[lib]]
-    # snscrape base functionality
-    name = "snscrape.base"
-    enable = true
-    level = "WARNING"
