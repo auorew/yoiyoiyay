@@ -125,11 +125,10 @@ class GetProxy:
                     for proxy in page.text.split():
                         variants.add(tuple(proxy.replace("//", "").split(":")))
 
-                test_client = httpx.AsyncClient(
+                tasks = []
+                async with httpx.AsyncClient(
                     timeout=self.timeout, follow_redirects=True
-                )
-                try:
-                    tasks = []
+                ) as test_client:
                     for variant in variants:
                         if not self.country or variant[2] in self.country:
                             tasks.append(
@@ -138,8 +137,6 @@ class GetProxy:
                                 )
                             )
                     await asyncio.wait(tasks)
-                finally:
-                    await test_client.aclose()
         except Exception as ex:
             log.warning(
                 "Request to proxy API or parsing failed. %s: %s.",

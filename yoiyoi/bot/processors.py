@@ -229,7 +229,7 @@ async def create_thumbnail(filepath: Path) -> Optional[Path]:
         "ffmpeg",
         "-hide_banner", "-loglevel", "warning",
         "-i", str(filepath),
-        "-vf", "select=eq(n\,0)",
+        "-vf", "select=eq(n,0)",
         "-frames:v", "1",
         str(thumbpath),
     )
