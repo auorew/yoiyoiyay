@@ -9,10 +9,10 @@ RETRY_PROXY_MAX_TIMEOUT = 2
 PROXY_CID = None
 
 # set proxy response timeout
-PROXY_TIMEOUT = 2
+PROXY_TIMEOUT = 3
 
 # set proxy limit of simultaneous requests
-PROXY_LIMIT = 20
+PROXY_LIMIT = 5
 
 # define proxy dictionary
 PROXY = {"active": None}

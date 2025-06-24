@@ -58,23 +58,24 @@ class GetProxy:
         proxy_protocol: str,
         proxy_addr: str,
         proxy_port: str | int,
-        shared_client: httpx.AsyncClient,
     ):
         async with self.semaphore:
             try:
                 proxy = f"{proxy_protocol}://{proxy_addr}:{proxy_port}"
-                shared_client._transport = httpx.AsyncHTTPTransport(proxy=proxy)
-                if (
-                    main_response := await shared_client.get(
-                        "https://m.tiktok.com/v/7060481973659405570",
-                        headers=FAKE_HEADERS,
-                        follow_redirects=True,
-                    )
-                ) and main_response.is_error:
-                    raise httpx.RequestError("Tiktok: Couldn't reach")
-                self.working_proxy.add(proxy)
-                self.proxy_list.add(proxy)
-                return
+                async with httpx.AsyncClient(
+                    timeout=self.timeout,
+                    proxy=proxy,
+                ) as shared_client:
+                    if (
+                        main_response := await shared_client.get(
+                            "https://m.tiktok.com/v/7060481973659405570",
+                            headers=FAKE_HEADERS,
+                        )
+                    ) and main_response.is_error:
+                        raise httpx.RequestError("Tiktok: Couldn't reach")
+                    self.working_proxy.add(proxy)
+                    self.proxy_list.add(proxy)
+                    return
             except (
                 ValueError,
                 ssl.SSLError,
@@ -126,17 +127,10 @@ class GetProxy:
                         variants.add(tuple(proxy.replace("//", "").split(":")))
 
                 tasks = []
-                async with httpx.AsyncClient(
-                    timeout=self.timeout, follow_redirects=True
-                ) as test_client:
-                    for variant in variants:
-                        if not self.country or variant[2] in self.country:
-                            tasks.append(
-                                asyncio.create_task(
-                                    self.test_proxy(*variant, test_client)
-                                )
-                            )
-                    await asyncio.wait(tasks)
+                for variant in variants:
+                    if not self.country or variant[2] in self.country:
+                        tasks.append(asyncio.create_task(self.test_proxy(*variant)))
+                await asyncio.wait(tasks)
         except Exception as ex:
             log.warning(
                 "Request to proxy API or parsing failed. %s: %s.",
