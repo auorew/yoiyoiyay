@@ -60,7 +60,7 @@ async def resize_image_file(
         out_file = file
         send_type = ext
 
-    return out_file, send_type
+    return out_file, send_type, None
 
 
 async def convert_video_file(input_file: Path, output_file: _TemporaryFileWrapper):
