@@ -46,4 +46,4 @@ COPY . .
 RUN poetry install --without dev --no-interaction --no-ansi
 
 # Run app
-CMD poetry run python3 /app/main.py ;
+CMD ["poetry", "run", "python3", "/app/main.py"]
