@@ -18,17 +18,14 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK on
 # Create workdir
 WORKDIR /app
 
-# Install pipenv and compilation dependencies
-RUN apt-get update && \
-    apt-get -y install \
-        python3-dev \
-        libmagic-dev \
-        file \
-        ffmpeg \
-        libopenslide0 libopenslide-dev openslide-tools \
-        libvips42 libvips-dev libvips-tools \
-        libjxl-dev libjxl-tools libjxl-devtools \
-        yt-dlp
+# Install all the dependencies
+RUN apt-get update
+RUN apt-get -y install python3-dev
+RUN apt-get -y install libmagic-dev file
+RUN apt-get -y install ffmpeg yt-dlp
+RUN apt-get -y install libvips42 libvips-dev libvips-tools
+RUN apt-get -y install libjpeg-turbo8-dev libexif-dev libtiff-dev libfftw3-dev libpng-dev liborc-0.4-dev libwebp-dev libheif-dev libopenslide-dev libgsf-1-dev libopenexr-dev libmatio-dev libmagickcore-dev libmagickwand-dev libimagequant-dev
+RUN apt-get -y install libjxl-dev libjxl-tools libjxl-devtools
 
 # Update pip
 RUN python3 -m pip install --upgrade pip
