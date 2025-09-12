@@ -28,6 +28,8 @@ RUN apt-get update && \
         libvips-dev \
         openslide-tools \
         libjxl-dev \
+        libjxl-tools \
+        libjxl-devtools \
         yt-dlp
 
 # Update pip
