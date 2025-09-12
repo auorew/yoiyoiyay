@@ -108,12 +108,17 @@ class GetProxy:
         try:
             async with httpx.AsyncClient() as client:
                 for source in self.free_proxy_sources:
-                    page = await client.get(source)
+                    page = await client.get(source, follow_redirects=True)
                     if page.is_error:
                         continue
                     soup = BeautifulSoup(page.text, "html.parser")
-                    container = soup.find_all("div", {"class": "fpl-list"})
-                    for row in container[0].table.tbody:
+                    if not (container := soup.find_all("div", {"class": "fpl-list"})):
+                        continue
+                    if not (table := container[0].table):
+                        continue
+                    if not (tbody := table.tbody):
+                        continue
+                    for row in tbody:
                         (
                             ip,
                             port,
@@ -127,7 +132,28 @@ class GetProxy:
                         if https == "yes":
                             variants.add(("http", ip, port))
                 for source in self.free_proxy_api:
-                    page = await client.get(source)
+                    page = await client.get(
+                        source,
+                        headers={
+                            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:142.0) "
+                            "Gecko/20100101 Firefox/142.0",
+                            "Accept": "text/html,application/xhtml+xml,application/xml;"
+                            "q=0.9,*/*;q=0.8",
+                            "Accept-Language": "en-US,en;q=0.5",
+                            "Accept-Encoding": "gzip, deflate, br, zstd",
+                            "DNT": "1",
+                            "Sec-GPC": "1",
+                            "Connection": "keep-alive",
+                            "Upgrade-Insecure-Requests": "1",
+                            "Sec-Fetch-Dest": "document",
+                            "Sec-Fetch-Mode": "navigate",
+                            "Sec-Fetch-Site": "none",
+                            "Sec-Fetch-User": "?1",
+                            "Priority": "u=0, i",
+                            "TE": "trailers",
+                        },
+                        follow_redirects=True,
+                    )
                     if page.is_error:
                         continue
                     for proxy in page.text.split():
@@ -157,8 +183,10 @@ async def get_proxy(
     Args:
         _ (ContextTypes): callback context (not used)
     """
+    if bot_settings.proxy_url:
+        PROXY["active"] = str(bot_settings.proxy_url)
     PROXY_SET.update(await proxy_getter.get())
-    if PROXY_SET:
+    if PROXY_SET and not PROXY["active"]:
         log.debug("GetProxy: Proxies: %s.", ", ".join(proxy_getter.proxy_list))
         PROXY["active"] = PROXY_SET.pop()
     else:
