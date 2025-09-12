@@ -40,7 +40,7 @@ async def upload_to_cloud(file: Path, link: str) -> None:
         response = await client.post(
             url=link,
             params={"name": file.name},
-            data=base64.urlsafe_b64encode(file.read_bytes()),
+            content=base64.urlsafe_b64encode(file.read_bytes()),
             follow_redirects=True,
         )
         if orjson.loads(response.content)["ok"]:

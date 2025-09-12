@@ -125,21 +125,22 @@ async def create_in_text(id: str, title: str, text: str):
 
 @cached(ttl=None)
 async def get_cached_media(bot: Bot, kind: str, media_link: str):
-    match kind:
-        case "photo":
-            post = await bot.send_photo(
-                chat_id=bot_settings.dump,
-                photo=media_link,
-            )
-            return post.effective_attachment[-1].file_id
-        case "video":
-            post = await bot.send_video(
-                chat_id=bot_settings.dump,
-                video=media_link,
-            )
-            return post.effective_attachment.file_id
-        case _:
-            return
+    if bot_settings.dump < 0:
+        match kind:
+            case "photo":
+                post = await bot.send_photo(
+                    chat_id=bot_settings.dump,
+                    photo=media_link,
+                )
+                return post.effective_attachment[-1].file_id
+            case "video":
+                post = await bot.send_video(
+                    chat_id=bot_settings.dump,
+                    video=media_link,
+                )
+                return post.effective_attachment.file_id
+            case _:
+                return
 
 
 async def inline_twitter(
