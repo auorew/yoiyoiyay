@@ -52,7 +52,10 @@ async def resize_image_file(
             image = image.resize(scale, kernel="lanczos3")
 
         out_file = file.with_suffix(f".{TO_FMT}")
-        image.write_to_file(str(out_file), Q=95)
+
+        cmd = ["vips", "jxlsave", str(file), str(out_file)]
+        subprocess.run(cmd, check=True)
+        # image.write_to_file(str(out_file), Q=95)
         send_type = f"image/{TO_FMT}"
     else:
         out_file = file
