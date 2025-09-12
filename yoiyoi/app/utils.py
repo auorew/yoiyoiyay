@@ -13,12 +13,10 @@ import pyvips
 # structured logging
 import structlog
 
-# web application
-
-# working with image
+# app strings
+from yoiyoi.app import IM_FMT, IM_MAX, SUCCESS, TO_FMT, VI_FMT
 
 # cache dir
-from yoiyoi.app import IM_FMT, IM_MAX, SUCCESS, VI_FMT
 from yoiyoi.bot import CACHE_DIR
 
 # get logger
@@ -53,9 +51,9 @@ async def resize_image_file(
         if scale < 1.0:
             image = image.resize(scale, kernel="lanczos3")
 
-        out_file = file.with_suffix(".webp")
+        out_file = file.with_suffix(f".{TO_FMT}")
         image.write_to_file(str(out_file), Q=95)
-        send_type = "image/webp"
+        send_type = f"image/{TO_FMT}"
     else:
         out_file = file
         send_type = ext
