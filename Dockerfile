@@ -25,11 +25,9 @@ RUN apt-get update && \
         libmagic-dev \
         file \
         ffmpeg \
-        libvips-dev \
-        openslide-tools \
-        libjxl-dev \
-        libjxl-tools \
-        libjxl-devtools \
+        libopenslide0 libopenslide-dev openslide-tools \
+        libvips42 libvips-dev libvips-tools \
+        libjxl-dev libjxl-tools libjxl-devtools \
         yt-dlp
 
 # Update pip
