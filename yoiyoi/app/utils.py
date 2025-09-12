@@ -53,9 +53,9 @@ async def resize_image_file(
         if scale < 1.0:
             image = image.resize(scale, kernel="lanczos3")
 
-        out_file = file.with_suffix(".jxl")
-        image.write_to_file(str(out_file), Q=90)
-        send_type = "image/jxl"
+        out_file = file.with_suffix(".webp")
+        image.write_to_file(str(out_file), Q=95)
+        send_type = "image/webp"
     else:
         out_file = file
         send_type = ext
