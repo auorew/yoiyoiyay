@@ -184,26 +184,51 @@ async def get_links_downr(link: str) -> list[InstaMedia]:
         url_thumb = info.get("thumbnail")
         if medias := info.get("medias"):
             for media in medias:
-                if media.get("type") == "video":
-                    if (_ext := media.get("extension", 0)) or (
-                        _ext := await get_content_extension(media["url"])
-                    ):
-                        log.info("Video extension: %s.", _ext)
-                        if _ext == "html":
-                            log.warning("Can't download video in html format.")
-                            continue
-                    else:
-                        log.info("Couldn't get video extension.")
-                    name = await get_content_name(media["url"], REGEX_DOWNRORG, "name")
-                    results.append(
-                        InstaMedia(
-                            link,
-                            url_thumb,
-                            media["url"],
-                            "video",
-                            name,
-                        ),
-                    )
+                match media.get("type"):
+                    case "video":
+                        if (_ext := media.get("extension", "")) or (
+                            _ext := await get_content_extension(media["url"])
+                        ):
+                            log.info("Video extension: %s.", _ext)
+                            if _ext == "html":
+                                log.error("Can't download video in html format.")
+                                continue
+                        else:
+                            log.info("Couldn't get video extension.")
+                        name = await get_content_name(
+                            media["url"], REGEX_DOWNRORG, "name"
+                        )
+                        results.append(
+                            InstaMedia(
+                                link,
+                                url_thumb,
+                                media["url"],
+                                "video",
+                                name,
+                            ),
+                        )
+                    case "image":
+                        if (_ext := media.get("extension", "")) or (
+                            _ext := await get_content_extension(media["url"])
+                        ):
+                            log.info("Image extension: %s.", _ext)
+                            if _ext == "html":
+                                log.error("Can't download image in html format.")
+                                continue
+                        else:
+                            log.info("Couldn't get video extension.")
+                        name = await get_content_name(
+                            media["url"], REGEX_DOWNRORG, "name"
+                        )
+                        results.append(
+                            InstaMedia(
+                                link,
+                                url_thumb,
+                                media["url"],
+                                "image",
+                                name,
+                            ),
+                        )
     return results
 
 

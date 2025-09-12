@@ -347,14 +347,15 @@ async def get_content_name(
     **kwargs,
 ) -> str:
     file_name = ""
-    if file_headers := await get_content_headers(url, **kwargs):
-        if file_name := file_headers.get("Content-Disposition", ""):
-            if matched := re.search(pattern, file_name):
-                file_name = matched[group]
-            elif matched := re.search(pattern, url):
-                file_name = matched[group]
-        elif matched := re.search(pattern, url):
-            file_name = matched[group]
+    if (matched := re.search(pattern, url)) and len(matched[group]) > 0:
+        file_name = matched[group]
+    elif (
+        (file_headers := await get_content_headers(url, **kwargs))
+        and (file_name := file_headers.get("Content-Disposition", ""))
+        and (matched := re.search(pattern, file_name))
+        and len(matched[group]) > 0
+    ):
+        file_name = matched[group]
     return re.sub(INVALID_CHARS, "", file_name)
 
 
