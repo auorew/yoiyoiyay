@@ -3,6 +3,9 @@
 import asyncio
 import ssl
 
+# typing for type hints
+from typing import Iterable, Optional
+
 # http requests
 import httpx
 
@@ -21,6 +24,9 @@ from yoiyoi.extra import PROXY, PROXY_CID, PROXY_LIMIT, PROXY_SET, PROXY_TIMEOUT
 # get fake headers & retry requets
 from yoiyoi.extra.request_helpers import FAKE_HEADERS
 
+# settings
+from yoiyoi.extra.settings import bot_settings
+
 # setup logger
 log = structlog.get_logger(__name__)
 
@@ -36,7 +42,8 @@ class GetProxy:
 
     def __init__(
         self,
-        country: list[str] | set[str] = None,
+        *,
+        country: Optional[Iterable[str]] = None,
         timeout: float = 1,
         limit: int = 10,
     ):
@@ -139,7 +146,7 @@ class GetProxy:
             )
 
 
-proxy_getter = GetProxy(PROXY_CID, PROXY_TIMEOUT, PROXY_LIMIT)
+proxy_getter = GetProxy(country=PROXY_CID, timeout=PROXY_TIMEOUT, limit=PROXY_LIMIT)
 
 
 async def get_proxy(
@@ -156,3 +163,29 @@ async def get_proxy(
         PROXY["active"] = PROXY_SET.pop()
     else:
         log.debug("GetProxy: No proxies.")
+
+
+async def health_checker(
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    """Ping the specified instance and log the result"""
+    if not bot_settings.health_check_url:
+        return
+
+    try:
+        hcu = str(bot_settings.health_check_url)
+        async with httpx.AsyncClient(timeout=5) as client:
+            if (response := await client.get(hcu, headers=FAKE_HEADERS)).is_error:
+                log.warning(
+                    "PingInstance: Failed to reach %s. Status: %s",
+                    hcu,
+                    response.status_code,
+                )
+            else:
+                log.debug(
+                    "PingInstance: Successfully reached %s. Status: %s",
+                    hcu,
+                    response.status_code,
+                )
+    except Exception as ex:
+        log.warning("PingInstance: Exception %s: %s.", ex.__class__.__name__, ex)

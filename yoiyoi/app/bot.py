@@ -20,7 +20,7 @@ from telegram.ext import (
 )
 
 # get bot constants
-from yoiyoi.bot import GET_PROXY, READ_TIMEOUT, WRITE_TIMEOUT
+from yoiyoi.bot import JOB_GET_PROXY, JOB_HEALTH_CHECKER, READ_TIMEOUT, WRITE_TIMEOUT
 
 # bot commands
 from yoiyoi.bot.commands import (
@@ -51,7 +51,7 @@ from yoiyoi.bot.functions import process_link
 from yoiyoi.bot.inline_functions import inliner
 
 # bot jobs
-from yoiyoi.bot.jobs import get_proxy
+from yoiyoi.bot.jobs import get_proxy, health_checker
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -233,9 +233,12 @@ def create_bot_app() -> Application:
     )
 
     # get job queue and ping other bots
-    jobs = application.job_queue
+    if not (jobs := application.job_queue):
+        raise RuntimeError("Job queue was not initialized.")
     # get new proxy every 10 minutes
-    jobs.run_repeating(get_proxy, **GET_PROXY)
+    jobs.run_repeating(get_proxy, **JOB_GET_PROXY)
+    # keep alive services with health checkc requests
+    jobs.run_repeating(health_checker, **JOB_HEALTH_CHECKER)
     # mute messages about job being done
     logging.getLogger("apscheduler.executors.default").setLevel("WARNING")
 

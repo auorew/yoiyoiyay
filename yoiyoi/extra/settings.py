@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -23,12 +23,12 @@ class BotSettings(BaseSettings):
     ##### main #####
 
     # telegram tokens
-    api_id: int
-    api_hash: str
-    token: str
+    api_id: int = Field(0)
+    api_hash: str = Field("")
+    token: str = Field("")
 
     # postesql database URL
-    database_url: str
+    database_url: str = Field("sqlite:///./db.sqlite3")
 
     # twitter [auth_token] (needed for gallery-dl's twitter API)
     tw_token: Optional[str] = Field("")
@@ -49,17 +49,17 @@ class BotSettings(BaseSettings):
     yt_cookies: Optional[str] = Field("")
 
     # youtube cookies key (see above)
-    yt_key: Optional[str]
+    yt_key: Optional[str] = Field("")
 
     # pixiv refresh token (needed for pixiv API)
-    px_refresh: str
+    px_refresh: Optional[str] = Field("")
 
     # telegram channel id [in the form -100XXXXXXXXXX] used as a dump for inline mode
-    dump: int = Field(lt=0)
+    dump: int = Field(0)
 
     ##### webserver #####
 
-    api_key: str = Field(min_length=32)
+    api_key: str = Field("0" * 32, min_length=32)
 
     ##### webhook #####
 
@@ -83,16 +83,19 @@ class BotSettings(BaseSettings):
     ##### optional #####
 
     # image resizer API to send requests to, if memory is limited
-    resizer_api: Optional[str]
+    resizer_api: Optional[str] = Field("")
 
     # converter API to send requests to, if memory is limited
-    converter_api: Optional[str]
+    converter_api: Optional[str] = Field("")
 
     # logtail token
-    logtail_token: str = Field("")
+    logtail_token: Optional[str] = Field("")
 
     # google cloud logging
-    gd_log: str = Field("")
+    gd_log: Optional[str] = Field("")
+
+    # health check URL
+    health_check_url: Optional[AnyUrl] = Field(None)
 
 
 bot_settings = BotSettings()
@@ -135,7 +138,7 @@ class LogSettings(BaseSettings):
     @classmethod
     def settings_customise_sources(
         cls,
-        settings_cls: BaseSettings,
+        settings_cls: type[BaseSettings],
         **kwargs,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         return (TomlConfigSettingsSource(settings_cls),)
