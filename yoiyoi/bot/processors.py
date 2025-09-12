@@ -31,6 +31,9 @@ from yoiyoi.bot import (
     MAX_VIDEO_SIZE,
 )
 
+# app utils
+from yoiyoi.app.utils import convert_media_file, resize_image_file
+
 # bot formatters
 from yoiyoi.bot.formatters import esc
 
@@ -153,7 +156,12 @@ async def process_video(filepath: Path) -> Path:
 
 
 async def resize_image(filepath: Path):
-    if (resizer_api := bot_settings.resizer_api) and (
+    if bot_settings.resizer_local:
+        resized_filepath, _ = await resize_image_file(
+            filepath, f"image/{filepath.suffix[1:]}"
+        )
+        return resized_filepath
+    elif (resizer_api := bot_settings.resizer_api) and (
         resized_filepath := await save_file(
             resizer_api,
             "POST",
@@ -165,15 +173,20 @@ async def resize_image(filepath: Path):
 
 
 async def convert_image(filepath: Path):
-    if converter_api := bot_settings.converter_api:
+    if bot_settings.converter_local:
+        converted_filepath, _ = await convert_media_file(
+            filepath, f"image/{filepath.suffix[1:]}"
+        )
+        return converted_filepath
+    elif converter_api := bot_settings.converter_api:
         with filepath.open(mode="rb") as filehandle:
-            if converter_filepath := await save_file(
+            if converted_filepath := await save_file(
                 converter_api,
                 "POST",
                 timeout=120,
                 files={"upload_file": filehandle},
             ):
-                return converter_filepath
+                return converted_filepath
 
 
 async def process_image(filepath: Path) -> Optional[Path]:

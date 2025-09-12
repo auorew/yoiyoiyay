@@ -2,11 +2,14 @@
 
 from datetime import datetime
 
+# file extension check
+import magic
+
 # structured logging
 import structlog
 
 # web application
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response, UploadFile
 
 # send json response
 from fastapi.responses import JSONResponse
@@ -20,11 +23,18 @@ from telegram import Update
 # twitter api
 from yoiyoi.api.twitter import get_twitter_links
 
+# app strings
+from yoiyoi.app import IM_FMT, VI_FMT
+
 # the bot
 from yoiyoi.app.bot import bot_application
 
-# settings
+# app utils
+from yoiyoi.app.utils import convert_media_file, request_space, resize_image_file
+
+# bot settings
 from yoiyoi.extra.settings import bot_settings
+
 
 # get logger
 log = structlog.get_logger(__name__)
@@ -77,3 +87,53 @@ async def telegram(request: Request):
         )
     )
     return JSONResponse(telegram_response)
+
+
+@api_application.post("/resize_for_telegram/")
+async def resize_for_telegram(upload_file: UploadFile | None = None):
+    async with request_space() as (folder, unique_id):
+        payload = {"id": unique_id}
+        if not upload_file:
+            return {**payload, "message": "No upload file sent!"}
+        file = upload_file.file
+        ext = magic.from_buffer(file.read(1024), mime=True)
+        if ext.split("/")[1] not in IM_FMT:
+            return {**payload, "message": f"Wrong content type: {ext}."}
+
+        file.seek(0)
+        image_file = folder / f'image.{ext.split("/")[1]}'
+        image_file.write_bytes(file.read())
+
+        file_out, send_type, error_text = await resize_image_file(image_file, ext)
+
+        if error_text:
+            return {**payload, "message": f"Error: {error_text}"}
+        return Response(
+            content=file_out.read_bytes(),
+            media_type=send_type,
+        )
+
+
+@api_application.post("/convert_for_telegram/")
+async def convert_for_telegram(upload_file: UploadFile | None = None):
+    async with request_space() as (folder, unique_id):
+        payload = {"id": unique_id}
+        if not upload_file:
+            return {**payload, "message": "No upload file sent!"}
+        file = upload_file.file
+        ext = magic.from_buffer(file.read(1024), mime=True)
+        if ext.split("/")[1] not in (IM_FMT | VI_FMT):
+            return {**payload, "message": f"Wrong content type: {ext}."}
+
+        file.seek(0)
+        media_file = folder / f'media.{ext.split("/")[1]}'
+        media_file.write_bytes(file.read())
+
+        media_out, send_type, error_text = convert_media_file(media_file, ext)
+
+        if error_text:
+            return {**payload, "message": f"Error: {error_text}"}
+        return Response(
+            content=media_out.read_bytes(),
+            media_type=send_type,
+        )

@@ -82,6 +82,12 @@ class BotSettings(BaseSettings):
 
     ##### optional #####
 
+    # whether to use local image resizer (memory should not be limited)
+    resizer_local: Optional[bool] = Field(True)
+
+    # whether to use local converter (memory should not be limited)
+    converter_local: Optional[bool] = Field(True)
+
     # image resizer API to send requests to, if memory is limited
     resizer_api: Optional[str] = Field("")
 
@@ -96,6 +102,9 @@ class BotSettings(BaseSettings):
 
     # health check URL
     health_check_url: Optional[AnyUrl] = Field(None)
+
+    # your proxy URL
+    proxy_url: Optional[AnyUrl] = Field(None)
 
 
 bot_settings = BotSettings()

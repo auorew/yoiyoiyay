@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11.6-bullseye AS base
+FROM python:3.11-trixie AS base
 
 # Set env
 ENV LANG C.UTF-8
@@ -25,6 +25,9 @@ RUN apt-get update && \
         libmagic-dev \
         file \
         ffmpeg \
+        libvips-dev \
+        openslide-tools \
+        libjxl-dev \
         yt-dlp
 
 # Update pip

@@ -97,3 +97,15 @@
     name = "sqlalchemy.orm"
     enable = true
     level = "WARNING"
+
+[[lib]]
+    # libvips vobject
+    name = "pyvips.vobject"
+    enable = true
+    level = "INFO"
+
+[[lib]]
+    # libvips error
+    name = "pyvips.error"
+    enable = true
+    level = "INFO"

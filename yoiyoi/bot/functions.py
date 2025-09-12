@@ -263,7 +263,7 @@ async def send_twitter(
                     return
                 if (imagepath := Path(imagepath)) != filepath:
                     imagepath = move_file(
-                        imagepath, storage_folder / f"RE_{filepath.stem}.png"
+                        imagepath, storage_folder / f"RE_{filepath.stem}{filepath.suffix}"
                     )
                     storage.add(imagepath)
                 # add to collection
@@ -394,7 +394,7 @@ async def send_instagram(
                     return
                 if (imagepath := Path(imagepath)) != filepath:
                     imagepath = move_file(
-                        imagepath, storage_folder / f"RE_{filepath.stem}.png"
+                        imagepath, storage_folder / f"RE_{filepath.stem}{filepath.suffix}"
                     )
                     storage.add(imagepath)
                 # add to collection
@@ -507,7 +507,8 @@ async def send_tiktok(
                         return
                     if (imagepath := Path(imagepath)) != filepath:
                         imagepath = move_file(
-                            imagepath, storage_folder / f"RE_{filepath.stem}.png"
+                            imagepath,
+                            storage_folder / f"RE_{filepath.stem}{filepath.suffix}",
                         )
                         storage.add(imagepath)
                     # add to collection
@@ -801,7 +802,8 @@ async def send_pixiv(
                         return
                     if (imagepath := Path(imagepath)) != filepath:
                         imagepath = move_file(
-                            imagepath, storage_folder / f"RE_{filepath.stem}.png"
+                            imagepath,
+                            storage_folder / f"RE_{filepath.stem}{filepath.suffix}",
                         )
                         storage.add(imagepath)
                     # add to collection
@@ -903,7 +905,7 @@ async def send_discord(
             if imagepath := await convert_image(filepath):
                 if (imagepath := Path(imagepath)) != filepath:
                     imagepath = move_file(
-                        imagepath, storage_folder / f"RE_{filepath.stem}.png"
+                        imagepath, storage_folder / f"RE_{filepath.stem}{filepath.suffix}"
                     )
                     storage.add(imagepath)
                 # add to collection
