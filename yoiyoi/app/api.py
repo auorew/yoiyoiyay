@@ -35,7 +35,6 @@ from yoiyoi.app.utils import convert_media_file, request_space, resize_image_fil
 # bot settings
 from yoiyoi.extra.settings import bot_settings
 
-
 # get logger
 log = structlog.get_logger(__name__)
 

@@ -23,6 +23,9 @@ from telegram import Update
 # TweetContent namedtuples
 from yoiyoi.api.namedtuples import TweetContent
 
+# app utils
+from yoiyoi.app.utils import convert_media_file, resize_image_file
+
 # get constants
 from yoiyoi.bot import (
     MAX_PHOTO_FILE_SIZE,
@@ -30,9 +33,6 @@ from yoiyoi.bot import (
     MAX_VIDEO_DURATION,
     MAX_VIDEO_SIZE,
 )
-
-# app utils
-from yoiyoi.app.utils import convert_media_file, resize_image_file
 
 # bot formatters
 from yoiyoi.bot.formatters import esc
@@ -157,10 +157,13 @@ async def process_video(filepath: Path) -> Path:
 
 async def resize_image(filepath: Path):
     if bot_settings.resizer_local:
-        resized_filepath, _ = await resize_image_file(
+        resized_filepath, _, error_text = await resize_image_file(
             filepath, f"image/{filepath.suffix[1:]}"
         )
-        return resized_filepath
+        if not error_text:
+            return resized_filepath
+        log.error(error_text)
+
     elif (resizer_api := bot_settings.resizer_api) and (
         resized_filepath := await save_file(
             resizer_api,
@@ -174,10 +177,13 @@ async def resize_image(filepath: Path):
 
 async def convert_image(filepath: Path):
     if bot_settings.converter_local:
-        converted_filepath, _ = await convert_media_file(
+        converted_filepath, _, error_text = await convert_media_file(
             filepath, f"image/{filepath.suffix[1:]}"
         )
-        return converted_filepath
+        if not error_text:
+            return converted_filepath
+        log.error(error_text)
+
     elif converter_api := bot_settings.converter_api:
         with filepath.open(mode="rb") as filehandle:
             if converted_filepath := await save_file(

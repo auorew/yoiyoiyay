@@ -1,26 +1,25 @@
-from typing import AsyncGenerator, Optional
+import shutil
+import subprocess
 import uuid
+
 from contextlib import asynccontextmanager
 from pathlib import Path
-import subprocess
-from tempfile import _TemporaryFileWrapper, NamedTemporaryFile
-import shutil
-
-# web application
-from fastapi import UploadFile
-
-# cache dir
-from yoiyoi.app import IM_FMT, IM_MAX, SUCCESS, VI_FMT
-from yoiyoi.bot import CACHE_DIR
+from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
+from typing import AsyncGenerator, Optional
 
 # working with image with minimal memory
 import pyvips
 
-# working with image
-from PIL import Image
-
 # structured logging
 import structlog
+
+# web application
+
+# working with image
+
+# cache dir
+from yoiyoi.app import IM_FMT, IM_MAX, SUCCESS, VI_FMT
+from yoiyoi.bot import CACHE_DIR
 
 # get logger
 log = structlog.get_logger(__name__)
@@ -38,7 +37,9 @@ async def request_space() -> AsyncGenerator[tuple[Path, str], None]:
             shutil.rmtree(folder, ignore_errors=True)
 
 
-async def resize_image_file(file: Path, ext: str = "image/jpeg") -> tuple[Path, str, Optional[str]]:
+async def resize_image_file(
+    file: Path, ext: str = "image/jpeg"
+) -> tuple[Path, str, Optional[str]]:
     image = pyvips.Image.new_from_file(
         str(file),
         access="sequential",
@@ -95,10 +96,12 @@ async def convert_video_file(input_file: Path, output_file: _TemporaryFileWrappe
         return {"message": exc_info}
 
 
-async def convert_media_file(media_file: Path, ext: str = "any") -> tuple[Path, str, Optional[str]]:
+async def convert_media_file(
+    media_file: Path, ext: str = "any"
+) -> tuple[Path, str, Optional[str]]:
     send_type = ext
     if ext.split("/")[1] in VI_FMT:
-        output_file = media_file.with_suffix('.mp4')
+        output_file = media_file.with_suffix(".mp4")
         with NamedTemporaryFile() as temp_output_file:
             result = await convert_media_file(media_file, temp_output_file)
             if result["message"] != SUCCESS:
