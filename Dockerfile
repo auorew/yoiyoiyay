@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11-trixie AS base
+FROM python:3.11-bookworm AS base
 
 # Set env
 ENV LANG C.UTF-8
@@ -29,7 +29,8 @@ RUN apt-get update && apt-get install -y \
     libmagickwand-dev libimagequant-dev \
     libmagic-dev file \
     ffmpeg yt-dlp \
-    libvips42 libvips-dev libvips-tools
+    libvips42 libvips-dev libvips-tools \
+    && rm -rf /var/lib/apt/lists/*
 
 # Update pip
 RUN python3 -m pip install --upgrade pip
