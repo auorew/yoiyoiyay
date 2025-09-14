@@ -159,7 +159,7 @@ async def get_ytdlp_with_proxy(link: Link):
 
 
 async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
-    """Gets links from YTShorts.
+    """Gets links from YT-DLP.
 
     Args:
         link (Link): youtube short link.
@@ -177,10 +177,12 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
             if video_format["vcodec"] != "none" and video_format["acodec"] != "none":
                 videos.append(video_format)
         for video in sorted(videos, key=lambda x: x["height"], reverse=True):
+            if not (url := video.get("url")):
+                continue
             content.append(
                 YouTubeShortContent(
-                    video["url"],
-                    video["filesize"] or video["filesize_approx"] or 0,
+                    url,
+                    video.get("filesize", 0) or video.get("filesize_approx", 0) or 0,
                 )
             )
     except Exception as exception:
@@ -189,49 +191,6 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
             exception.__class__.__name__,
             exception,
         )
-    return content
-
-
-async def get_ytshorts_links(link: Link) -> list[Optional[YouTubeShortContent]]:
-    """Gets links from YTShorts.
-
-    Args:
-        link (Link): youtube short link.
-
-    Returns:
-        list[Optional[YouTubeShortContent]]: youtube short content namedtuple.
-    """
-    log.info("API: YTShorts.")
-    content = []
-    # api info
-    base = "https://ytshorts.savetube.me/"
-    api = "https://cdn2.savetube.me/info"
-    # send request
-    if response := await make_request(
-        url=api,
-        method="GET",
-        headers={**FAKE_HEADERS, "Referer": base},
-        params={"url": link.link},
-        timeout=5,
-    ):
-        # check response
-        if response.is_error:
-            return
-        log.debug("Request to API succeeded.")
-        try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
-            log.warning("Couldn't decode json response: %r.", response.content)
-            return
-        log.debug("JSON: %r.", info)
-        if not info["status"]:
-            log.warning("Couldn't get content.")
-            return
-        # process response
-        videos = info["data"]["video_formats"][1:]
-        for video in filter(lambda video: video.get("url"), videos):
-            _link = video["url"]
-            content.append(YouTubeShortContent(_link, await get_content_size(_link)))
     return content
 
 
@@ -290,7 +249,6 @@ async def get_youtube_short_links(link: Link) -> Optional[YouTubeShortMedia]:
 
     for get_links in (
         get_ytdlp_links,  # best
-        get_ytshorts_links,  # good
         get_10downloader_links,  # good
     ):
         if ytsc := await get_links(link):
