@@ -410,8 +410,11 @@ async def get_content_name(
 @retry_request
 async def get_content_type(url: str, mime=True, **kwargs) -> Optional[str]:
     async with get_content(url, **kwargs) as content_iterator:
-        chunk = await anext(content_iterator)
-        return magic.from_buffer(chunk, mime=mime)
+        if chunk := await anext(content_iterator, None):
+            return magic.from_buffer(chunk, mime=mime)
+    if (response := await make_request(url=url, **kwargs)).is_success:
+        if response.content and (chunk := response.content[:1024]):
+            return magic.from_buffer(chunk, mime=mime)
 
 
 @retry_request
