@@ -1,6 +1,7 @@
 """Bot Jobs"""
 
 import asyncio
+import random
 import ssl
 
 # typing for type hints
@@ -39,6 +40,13 @@ class GetProxy:
     free_proxy_api = (
         "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=protocolipport&format=text",
     )
+    test_links = (
+        "https://www.tiktok.com/@osudailybanger/video/7167401459322080518",
+        "https://www.tiktok.com/@jeesejuice/video/7060481973659405570",
+        "https://www.tiktok.com/@perrikaryal/video/7234874564365339930",
+        "https://www.tiktok.com/@reo5419233/video/7218525971639553282",
+        "https://www.tiktok.com/@giftgenius/video/7323685510692523269",
+    )
 
     def __init__(
         self,
@@ -75,7 +83,7 @@ class GetProxy:
                 ) as shared_client:
                     if (
                         main_response := await shared_client.get(
-                            "https://m.tiktok.com/v/7060481973659405570",
+                            random.choice(self.test_links),
                             headers=FAKE_HEADERS,
                         )
                     ) and main_response.is_error:
