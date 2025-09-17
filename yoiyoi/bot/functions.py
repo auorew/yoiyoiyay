@@ -179,6 +179,14 @@ async def send_collection(
             "Failed to send files because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            chat=chat,
+            storage=storage,
+            file_handlers=file_handlers,
+            files=files,
+            doc_handlers=doc_handlers,
+            docs=docs,
         )
         return False
     finally:

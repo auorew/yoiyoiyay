@@ -42,6 +42,8 @@ lxml = "^6.0.1"
 anyio = "^4.10.0"
 pyvips = "^3.0.0"
 python-multipart = "^0.0.20"
+rich = "^14.1.0"
+better-exceptions = "^0.3.3"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.3.0"

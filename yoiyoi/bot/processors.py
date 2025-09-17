@@ -77,6 +77,11 @@ async def crop_thumbnail(thumbpath: Path, video_width: int, video_height: int):
             "Get video info: failed to run ffprobe command because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            thumbpath=thumbpath,
+            video_width=video_width,
+            video_height=video_height,
         )
         return False
     return True
@@ -248,7 +253,7 @@ async def create_thumbnail(filepath: Path) -> Optional[Path]:
         "ffmpeg",
         "-hide_banner", "-loglevel", "warning",
         "-i", str(filepath),
-        "-vf", "select=eq(n\,0)",
+        "-vf", "select=eq(n\\,0)",
         "-frames:v", "1",
         str(thumbpath),
     )

@@ -37,7 +37,9 @@ from yoiyoi.extra import (
     PROXY_SET,
     RETRY_MAX_TIMEOUT,
     RETRY_MAX_TRIES,
+    RETRY_MIN_TIMEOUT,
     RETRY_PROXY_MAX_TIMEOUT,
+    RETRY_PROXY_MAX_TRIES,
 )
 
 # get logger
@@ -75,7 +77,7 @@ def wait_fixed_time(retry_state: RetryCallState) -> int:
         int: time to wait
     """
     if not (exception := retry_state.outcome.exception()):
-        return RETRY_MAX_TIMEOUT
+        return RETRY_MIN_TIMEOUT
     # telegram retry after error
     if isinstance(exception, RetryAfter):
         log.warning("Telegram limit exceeded: waiting %d s.", exception.retry_after + 1)
@@ -95,21 +97,26 @@ def wait_fixed_time(retry_state: RetryCallState) -> int:
                 PROXY["active"],
                 exception.__class__.__name__,
                 exception,
+                exc_info=True,
             )
-            if retry_state.attempt_number == RETRY_MAX_TRIES - 1 or not PROXY_SET:
+            if (
+                retry_state.attempt_number >= RETRY_MAX_TRIES - RETRY_PROXY_MAX_TRIES
+                or not PROXY_SET
+            ):
                 PROXY["active"] = None
             else:
                 PROXY["active"] = PROXY_SET.pop()
             return RETRY_PROXY_MAX_TIMEOUT
         # connection errors
-        return RETRY_MAX_TIMEOUT / 5
+        return RETRY_MAX_TIMEOUT**retry_state.attempt_number
     log.warning(
         "Retrying request because of %s: %r.",
         exception.__class__.__name__,
         exception,
+        exc_info=True,
     )
     # other errors
-    return RETRY_MAX_TIMEOUT
+    return RETRY_MIN_TIMEOUT
 
 
 def failed_request(retry_state: RetryCallState) -> None:
@@ -124,31 +131,39 @@ def failed_request(retry_state: RetryCallState) -> None:
     return
 
 
-def retry_request(func):
+def retry_request(func, *, reraise=True):
     """Decorator that retries telegram send function
 
     Args:
         func (Callable): telegram send function
     """
-    return AsyncRetrying(
-        reraise=True,
-        stop=stop_after_attempt(RETRY_MAX_TRIES),
-        wait=wait_fixed_time,
-        retry_error_callback=failed_request,
-    ).wraps(func)
+
+    def wrapper(f):
+        return AsyncRetrying(
+            reraise=reraise,
+            stop=stop_after_attempt(RETRY_MAX_TRIES),
+            wait=wait_fixed_time,
+            retry_error_callback=failed_request,
+        ).wraps(f)
+
+    return wrapper(func) if func else wrapper
 
 
 @asynccontextmanager
-async def get_async_client(proxy: bool = False):
-    my_proxy = PROXY.get("active") if proxy else None
+async def get_async_client(with_proxy: bool = False):
+    proxy_server = PROXY.get("active") if with_proxy else None
     try:
-        async with httpx.AsyncClient(proxy=my_proxy) as client:
+        async with httpx.AsyncClient(proxy=proxy_server) as client:
             yield client
     except Exception as exception:
         log.warning(
-            "Failed to get an async httpx client because of %s: %r.",
+            "Failed to get an async httpx client, because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            with_proxy=with_proxy,
+            proxy=proxy_server,
         )
         raise
 
@@ -250,10 +265,23 @@ async def stream_response(
                 yield response
     except Exception as exception:
         log.warning(
-            "Failed to stream an httpx response because of %s: %r.",
+            "Failed to stream an httpx respons, because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            url=url,
+            method=method,
+            headers=headers,
+            follow_redirects=follow_redirects,
+            timeout=timeout,
+            referer=referer,
+            xsrf=xsrf,
+            cookies=cookies,
+            proxy=proxy,
+            kwargs=kwargs,
         )
+        raise
 
 
 @asynccontextmanager
@@ -263,10 +291,16 @@ async def get_content(url: str, chunk_size: int = 1024, **kwargs) -> AsyncIterat
             yield response.aiter_bytes(chunk_size)
     except Exception as exception:
         log.warning(
-            "Failed to get an async httpx client because of %s: %r.",
+            "Failed to get content, because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            url=url,
+            chunk_size=chunk_size,
+            kwargs=kwargs,
         )
+        raise
 
 
 @retry_request
@@ -282,9 +316,23 @@ async def write_content_to_file(
     file: tempfile.NamedTemporaryFile,
     **kwargs,
 ) -> None:
-    async with get_content(url, **kwargs) as content_iterator:
-        async for chunk in content_iterator:
-            file.write(chunk)
+    try:
+        async with get_content(url, **kwargs) as content_iterator:
+            async for chunk in content_iterator:
+                file.write(chunk)
+        file.flush()
+    except Exception as exception:
+        log.warning(
+            "Failed to write content, because of %s: %r.",
+            exception.__class__.__name__,
+            exception,
+            exc_info=True,
+            # function info
+            url=url,
+            file=file,
+            kwargs=kwargs,
+        )
+        raise
 
 
 @retry_request

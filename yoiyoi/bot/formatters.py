@@ -179,6 +179,9 @@ async def get_video_info(filepath: str) -> tuple[int, int, int]:
             "Get video info: failed to run ffprobe command because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            filepath=filepath,
         )
     # else
     return 0, 0, 0
@@ -213,6 +216,9 @@ def extract_file_ext_from_bytes(file: bytes):
             "Failed to run file command because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            file=file[:1024],
         )
     # try linux file command
     try:
@@ -240,6 +246,9 @@ def extract_file_ext_from_bytes(file: bytes):
             "Failed to run file command because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            file=file[:1024],
         )
     # else
     log.info("Extract ext: couldn't get extension. Defaulting to %s.", NO_EXT)
@@ -264,6 +273,9 @@ def extract_file_ext(file: Path | str | bytes) -> str:
             "Failed to run file command because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            file=file,
         )
     # try linux file command
     try:
@@ -285,6 +297,9 @@ def extract_file_ext(file: Path | str | bytes) -> str:
             "Failed to run file command because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            file=file,
         )
     # try ffprobe
     try:
@@ -313,6 +328,9 @@ def extract_file_ext(file: Path | str | bytes) -> str:
             "Failed to run file command because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            file=file,
         )
     # else
     log.info("Extract ext: couldn't get extension. Defaulting to %s.", NO_EXT)

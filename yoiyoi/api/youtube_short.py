@@ -150,6 +150,9 @@ async def get_ytdlp_with_proxy(link: Link):
                 "yt-dlp: Failed because of %s: %r.",
                 exception.__class__.__name__,
                 exception,
+                exc_info=True,
+                # function info
+                link=link,
             )
             if not PROXY_SET:
                 PROXY["active"] = None
@@ -190,6 +193,9 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
             "yt-dlp: Failed because of %s: %r.",
             exception.__class__.__name__,
             exception,
+            exc_info=True,
+            # function info
+            link=link,
         )
     return content
 

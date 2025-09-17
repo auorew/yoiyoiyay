@@ -101,7 +101,7 @@ async def convert_media_file(
     if ext.split("/")[1] in VI_FMT:
         output_file = media_file.with_suffix(".mp4")
         with NamedTemporaryFile() as temp_output_file:
-            result = await convert_media_file(media_file, temp_output_file)
+            result = await convert_video_file(media_file, temp_output_file)
             if result["message"] != SUCCESS:
                 return media_file, send_type, result["message"]
             temp_output_file.seek(0)

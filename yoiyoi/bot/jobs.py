@@ -46,6 +46,8 @@ class GetProxy:
         "https://www.tiktok.com/@perrikaryal/video/7234874564365339930",
         "https://www.tiktok.com/@reo5419233/video/7218525971639553282",
         "https://www.tiktok.com/@giftgenius/video/7323685510692523269",
+        "https://www.tiktok.com/@anthonysistilli/video/7365519366001315077",
+        "https://www.tiktok.com/@shonci/video/7324459656825294086",
     )
 
     def __init__(
@@ -213,15 +215,20 @@ async def health_checker(
         async with httpx.AsyncClient(timeout=5) as client:
             if (response := await client.get(hcu, headers=FAKE_HEADERS)).is_error:
                 log.warning(
-                    "PingInstance: Failed to reach %s. Status: %s",
+                    "PingInstance: failed to reach %s. Status: %s",
                     hcu,
                     response.status_code,
                 )
             else:
                 log.debug(
-                    "PingInstance: Successfully reached %s. Status: %s",
+                    "PingInstance: successfully reached %s. Status: %s",
                     hcu,
                     response.status_code,
                 )
-    except Exception as ex:
-        log.warning("PingInstance: Exception %s: %s.", ex.__class__.__name__, ex)
+    except Exception as exception:
+        log.warning(
+            "PingInstance: exception %s: %s.",
+            exception.__class__.__name__,
+            exception,
+            exc_info=True,
+        )

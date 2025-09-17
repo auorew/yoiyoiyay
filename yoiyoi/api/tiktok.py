@@ -112,6 +112,9 @@ async def get_ytdlp_info(link: str) -> dict:
                 "yt-dlp: Failed because of %s: %r.",
                 exception.__class__.__name__,
                 exception,
+                exc_info=True,
+                # function info
+                link=link,
             )
 
 
