@@ -1,7 +1,6 @@
 """TikTok module"""
 
 import asyncio
-import json
 import re
 
 from http.cookies import SimpleCookie
@@ -37,6 +36,9 @@ from yoiyoi.api.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
 
 # url expanders
 from yoiyoi.api.urlexpander import expand_with_expandurl, expand_with_urlex
+
+# proxy
+from yoiyoi.extra import PROXY, PROXY_SET
 
 # fake headers and request helpers
 from yoiyoi.extra.request_helpers import (
@@ -98,16 +100,21 @@ async def get_ytdlp_info(link: str) -> dict:
     Returns:
         dict: tiktok info.
     """
-    with yt_dlp.YoutubeDL(ytdlp_ops) as ytdl:
+    attempt = 0
+    while attempt < 5:
+        if not PROXY["active"]:
+            if PROXY_SET:
+                PROXY["active"] = PROXY_SET.pop()
         try:
-            return ytdl.extract_info(link)
-        except yt_dlp.utils.DownloadError:
-            log.warning("yt-dlp: Unable to download.")
-            return
-        except json.JSONDecodeError:
-            log.warning("yt-dlp: Unable to decode.")
-            return
+            with yt_dlp.YoutubeDL(
+                {
+                    **ytdlp_ops,
+                    "proxy": PROXY["active"] if PROXY["active"] else None,
+                }
+            ) as ytdl:
+                return ytdl.extract_info(link)
         except Exception as exception:
+            attempt += 1
             log.warning(
                 "yt-dlp: Failed because of %s: %r.",
                 exception.__class__.__name__,
@@ -116,6 +123,11 @@ async def get_ytdlp_info(link: str) -> dict:
                 # function info
                 link=link,
             )
+            if not PROXY_SET:
+                PROXY["active"] = None
+                return
+            else:
+                PROXY["active"] = PROXY_SET.pop()
 
 
 async def get_tikmate_app_info(link: str) -> dict:
