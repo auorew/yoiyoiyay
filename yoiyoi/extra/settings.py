@@ -1,6 +1,7 @@
 """Settings module"""
 
 import os
+import uuid
 
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,7 @@ from pydantic_settings import (
 # current timestamp & app directory
 DATE_RUN = datetime.now()
 WORK_DIR = Path(os.getcwd())
+UUID_RUN = uuid.uuid4().hex[:6]
 
 
 class BotSettings(BaseSettings):
