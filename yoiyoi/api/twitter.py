@@ -815,8 +815,8 @@ async def get_twitter_links(
 
     for get_tweet in (
         get_from_twimg_api,  # from twitter
-        get_from_fixtweet_api,  # great
         get_from_twitter_api,  # great
+        get_from_fixtweet_api,  # great
     ):
         if tweet := await get_tweet(tweet_id):
             break

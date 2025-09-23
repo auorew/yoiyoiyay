@@ -37,9 +37,6 @@ class GetProxy:
         "https://www.sslproxies.org/",
         "https://free-proxy-list.net/",
     )
-    free_proxy_api = (
-        "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=protocolipport&format=text",
-    )
     test_links = (
         "https://www.tiktok.com/@osudailybanger/video/7167401459322080518",
         "https://www.tiktok.com/@jeesejuice/video/7060481973659405570",
@@ -65,9 +62,14 @@ class GetProxy:
         self.semaphore = asyncio.Semaphore(self.limit)
 
     async def get(self):
+        log.debug("GetProxy: Clearing working proxy and proxy list...")
         self.working_proxy.clear()
         self.proxy_list.clear()
+
+        log.debug("GetProxy: Getting new proxies...")
         await self.get_proxy()
+
+        log.debug("GetProxy: Returning new proxies...")
         return self.working_proxy
 
     async def test_proxy(
@@ -107,7 +109,7 @@ class GetProxy:
                 return
             except Exception as ex:
                 log.warning(
-                    "Test proxy exception. %s: %s.",
+                    "GetProxy: Test proxy exception. %s: %s.",
                     ex.__class__.__name__,
                     ex,
                 )
@@ -118,7 +120,7 @@ class GetProxy:
         try:
             async with httpx.AsyncClient() as client:
                 for source in self.free_proxy_sources:
-                    page = await client.get(source, follow_redirects=True)
+                    page = await client.get(source, timeout=5, follow_redirects=True)
                     if page.is_error:
                         continue
                     soup = BeautifulSoup(page.text, "html.parser")
@@ -141,44 +143,19 @@ class GetProxy:
                         ) = (el.text for el in row.find_all("td"))
                         if https == "yes":
                             variants.add(("http", ip, port))
-                for source in self.free_proxy_api:
-                    page = await client.get(
-                        source,
-                        headers={
-                            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:142.0) "
-                            "Gecko/20100101 Firefox/142.0",
-                            "Accept": "text/html,application/xhtml+xml,application/xml;"
-                            "q=0.9,*/*;q=0.8",
-                            "Accept-Language": "en-US,en;q=0.5",
-                            "Accept-Encoding": "gzip, deflate, br, zstd",
-                            "DNT": "1",
-                            "Sec-GPC": "1",
-                            "Connection": "keep-alive",
-                            "Upgrade-Insecure-Requests": "1",
-                            "Sec-Fetch-Dest": "document",
-                            "Sec-Fetch-Mode": "navigate",
-                            "Sec-Fetch-Site": "none",
-                            "Sec-Fetch-User": "?1",
-                            "Priority": "u=0, i",
-                            "TE": "trailers",
-                        },
-                        follow_redirects=True,
-                    )
-                    if page.is_error:
-                        continue
-                    for proxy in page.text.split():
-                        variants.add(tuple(proxy.replace("//", "").split(":")))
 
                 tasks = []
                 for variant in variants:
                     if not self.country or variant[2] in self.country:
                         tasks.append(asyncio.create_task(self.test_proxy(*variant)))
                 await asyncio.wait(tasks)
+
         except Exception as ex:
             log.warning(
-                "Request to proxy API or parsing failed. %s: %s.",
+                "GetProxy: Request to proxy API or parsing failed. %s: %s.",
                 ex.__class__.__name__,
                 ex,
+                exc_info=True,
             )
 
 
@@ -186,7 +163,7 @@ proxy_getter = GetProxy(country=PROXY_CID, timeout=PROXY_TIMEOUT, limit=PROXY_LI
 
 
 async def get_proxy(
-    context: ContextTypes.DEFAULT_TYPE,
+    _: ContextTypes.DEFAULT_TYPE,
 ):
     """Get working proxy or nothing
 
@@ -197,7 +174,6 @@ async def get_proxy(
         proxy_url = str(bot_settings.proxy_url)
         log.info("Using proxy: %s.", proxy_url)
         PROXY["active"] = proxy_url
-    log.debug("GetProxy: Getting proxies...")
     proxy_set = await proxy_getter.get()
     log.debug("GetProxy: Updating proxies...")
     PROXY_SET.update(proxy_set)
@@ -212,7 +188,7 @@ async def get_proxy(
 
 
 async def health_checker(
-    context: ContextTypes.DEFAULT_TYPE,
+    _: ContextTypes.DEFAULT_TYPE,
 ):
     """Ping the specified instance and log the result"""
     if not bot_settings.health_check_url:
