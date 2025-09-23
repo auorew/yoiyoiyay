@@ -104,7 +104,9 @@ async def get_ytdlp_info(link: str) -> dict:
     while attempt < 5:
         if not PROXY["active"]:
             if PROXY_SET:
-                PROXY["active"] = PROXY_SET.pop()
+                proxy_url = PROXY_SET.pop()
+                log.info("Using proxy: %s.", proxy_url)
+                PROXY["active"] = proxy_url
         try:
             with yt_dlp.YoutubeDL(
                 {
@@ -127,7 +129,9 @@ async def get_ytdlp_info(link: str) -> dict:
                 PROXY["active"] = None
                 return
             else:
-                PROXY["active"] = PROXY_SET.pop()
+                proxy_url = PROXY_SET.pop()
+                log.info("Using proxy: %s.", proxy_url)
+                PROXY["active"] = proxy_url
 
 
 async def get_tikmate_app_info(link: str) -> dict:

@@ -105,7 +105,9 @@ def wait_fixed_time(retry_state: RetryCallState) -> int:
             ):
                 PROXY["active"] = None
             else:
-                PROXY["active"] = PROXY_SET.pop()
+                proxy_url = PROXY_SET.pop()
+                log.info("Using proxy: %s.", proxy_url)
+                PROXY["active"] = proxy_url
             return RETRY_PROXY_MAX_TIMEOUT
         # connection errors
         return RETRY_MAX_TIMEOUT**retry_state.attempt_number

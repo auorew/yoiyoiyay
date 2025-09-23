@@ -194,11 +194,19 @@ async def get_proxy(
         _ (ContextTypes): callback context (not used)
     """
     if bot_settings.proxy_url:
-        PROXY["active"] = str(bot_settings.proxy_url)
-    PROXY_SET.update(await proxy_getter.get())
-    if PROXY_SET and not PROXY["active"]:
+        proxy_url = str(bot_settings.proxy_url)
+        log.info("Using proxy: %s.", proxy_url)
+        PROXY["active"] = proxy_url
+    log.debug("GetProxy: Getting proxies...")
+    proxy_set = await proxy_getter.get()
+    log.debug("GetProxy: Updating proxies...")
+    PROXY_SET.update(proxy_set)
+    if PROXY_SET:
         log.debug("GetProxy: Proxies: %s.", ", ".join(proxy_getter.proxy_list))
-        PROXY["active"] = PROXY_SET.pop()
+        if not PROXY["active"]:
+            proxy_url = PROXY_SET.pop()
+            log.info("Using proxy: %s.", proxy_url)
+            PROXY["active"] = proxy_url
     else:
         log.debug("GetProxy: No proxies.")
 
