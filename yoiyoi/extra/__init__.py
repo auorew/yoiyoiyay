@@ -1,6 +1,7 @@
 """Extra module"""
 
 # set max timeout and tries
+DEFAULT_REQUEST_TIMEOUT = 5
 RETRY_MIN_TIMEOUT = 0
 RETRY_MAX_TIMEOUT = 2
 RETRY_MAX_TRIES = 5

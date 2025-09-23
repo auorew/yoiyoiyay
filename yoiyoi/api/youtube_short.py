@@ -97,7 +97,6 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
             "id": link.id,
             "_": int(time.time() * 1000),
         },
-        timeout=5,
     ):
         # check response
         if response.is_error:

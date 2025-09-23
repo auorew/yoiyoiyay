@@ -33,6 +33,7 @@ from tenacity import AsyncRetrying, RetryCallState, stop_after_attempt
 
 # link types and other info
 from yoiyoi.extra import (
+    DEFAULT_REQUEST_TIMEOUT,
     PROXY,
     PROXY_SET,
     RETRY_MAX_TIMEOUT,
@@ -176,7 +177,7 @@ async def make_request(
     method: str = "POST",
     headers: dict = None,
     follow_redirects: bool = True,
-    timeout: int = 15,
+    timeout: int = DEFAULT_REQUEST_TIMEOUT,
     referer: str = None,
     xsrf: str = None,
     cookies: dict = None,
