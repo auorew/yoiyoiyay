@@ -14,7 +14,7 @@ PROXY_CID = None
 PROXY_TIMEOUT = 1
 
 # set proxy limit of simultaneous requests
-PROXY_LIMIT = 10
+PROXY_LIMIT = 25
 
 # define proxy dictionary
 PROXY = {"active": None}
