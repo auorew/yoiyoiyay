@@ -175,6 +175,7 @@ gallery_dl.config.set(
 
 
 async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
+    api_log = log.bind(api="fixtweet")
     if response := await make_request(
         f"https://api.fxtwitter.com/web/status/{tweet_id}",
         "GET",
@@ -183,28 +184,28 @@ async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
         # check response
         if response.is_error:
             return
-        log.debug("Request to API succeeded.")
+        api_log.debug("Request to API succeeded.")
         try:
             response_info = orjson.loads(response.content)
         except orjson.JSONDecodeError:
-            log.warning("Couldn't decode json response: %r.", response.content)
+            api_log.warning("Couldn't decode json response: %r.", response.content)
             return
-        log.debug("JSON: %r.", response_info)
+        api_log.debug("Loaded JSON.", json=response_info)
         # check tweet status
         if (code := response_info.get("code")) and code != 200:
             error_message = response_info.get("message", "no message provided")
-            log.warning(
-                "FixTweet: failed to get tweet: code: %s | message: %s",
+            api_log.warning(
+                "Failed to get tweet: code: %s | message: %s",
                 code,
                 error_message,
             )
             return
         if not (tweet_info := response_info.get("tweet")):
-            log.warning("FixTweet: failed to get tweet body.")
+            api_log.warning("Failed to get tweet body.")
             return
         # check user
         if not (user := tweet_info.get("author")):
-            log.error("FixTweet: no user info.")
+            api_log.error("No user info.")
             return
         tweet_user = User(
             username=user.get("screen_name", "i"),
@@ -213,7 +214,7 @@ async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
         )
         # check media
         if not (media_info := tweet_info.get("media")):
-            log.warning("FixTweet: no media.")
+            api_log.warning("No media.")
             return
         tweet_media = []
         for medium in media_info.get("all"):
@@ -306,6 +307,7 @@ async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
 
 
 async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
+    api_log = log.bind(api="twimg")
     if response := await make_request(
         "https://cdn.syndication.twimg.com/tweet-result",
         "GET",
@@ -332,31 +334,58 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
         # check response
         if response.is_error:
             return
-        log.debug("Request to API succeeded.")
+        api_log.debug("Request to API succeeded.")
         try:
             tweet_info = orjson.loads(response.content)
         except orjson.JSONDecodeError:
-            log.warning("Couldn't decode json response: %r.", response.content)
+            api_log.warning("Couldn't decode json response: %r.", response.content)
             return
-        log.debug("JSON: %r.", tweet_info)
+        api_log.debug("Loaded JSON.", json=tweet_info)
         if tomb := tweet_info.get("tombstone"):
             error = tomb["text"]["text"]
             if error.startswith("Age-restricted"):
-                log.warning("Age-restricted: %s/%s.", TWEET_URL, tweet_id)
+                api_log.warning("Age-restricted: %s/%s.", TWEET_URL, tweet_id)
             else:
-                log.warning("Dead tweet: %s/%s.", TWEET_URL, tweet_id)
+                api_log.warning("Dead tweet: %s/%s.", TWEET_URL, tweet_id)
             return
-        if not (user := tweet_info.get("user")):
-            log.error("Scraping failed.")
+        if not (
+            (user := tweet_info.get("user")) and (username := user.get("screen_name"))
+        ):
+            api_log.error("No user found.")
             return
         tweet_user_info = User(
-            username=user.get("screen_name", "i"),
+            username=username,
             id=int(user.get("id_str", 0)),
             displayname=user.get("name", ""),
         )
+        tweet_media_info = []
         if not (media_info := tweet_info.get("mediaDetails")):
-            log.warning("No media tweet.")
+            api_log.warning("No media tweet.")
             return
+        for medium in media_info:
+            if medium["type"] == "photo":
+                tweet_media_info.append(
+                    Photo(
+                        previewUrl=medium["media_url_https"],
+                        fullUrl=medium["media_url_https"],
+                    )
+                )
+            else:
+                tweet_media_info.append(
+                    Video(
+                        thumbnailUrl=medium["media_url_https"],
+                        variants=[
+                            VideoVariant(
+                                url=variant["url"],
+                                contentType=variant["content_type"],
+                                bitrate=variant.get("bitrate"),
+                            )
+                            for variant in medium["video_info"]["variants"]
+                        ],
+                        duration=(medium["video_info"].get("duration_millis") or 0)
+                        / 1000,
+                    )
+                )
         quote_info = None
         if quote := tweet_info.get("quoted_tweet", None):
             quote_user_info = None
@@ -411,37 +440,12 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
             ]
             or None,
             quotedTweet=quote_info,
-            media=(
-                [
-                    (
-                        Photo(
-                            previewUrl=medium["media_url_https"],
-                            fullUrl=medium["media_url_https"],
-                        )
-                        if medium["type"] == "photo"
-                        else Video(
-                            thumbnailUrl=medium["media_url_https"],
-                            variants=[
-                                VideoVariant(
-                                    url=variant["url"],
-                                    contentType=variant["content_type"],
-                                    bitrate=variant.get("bitrate"),
-                                )
-                                for variant in medium["video_info"]["variants"]
-                            ],
-                            duration=(medium["video_info"].get("duration_millis") or 0)
-                            / 1000,
-                        )
-                    )
-                    for medium in media_info
-                ]
-                if media_info
-                else None
-            ),
+            media=tweet_media_info,
         )
 
 
 async def get_info_from_web_services(tweet_id: int) -> Optional[dict]:
+    api_log = log.bind(api="webservices")
     if (
         media_info := await make_request(
             f"https://api.redketchup.io/tweetAttachments-v2?tweetId={tweet_id}", "GET"
@@ -455,7 +459,7 @@ async def get_info_from_web_services(tweet_id: int) -> Optional[dict]:
             media_info = orjson.loads(media_info.content)
             tweet_info = orjson.loads(tweet_info.content)
         except orjson.JSONDecodeError as ex:
-            log.warning("Couldn't decode json response: %r.", ex.doc)
+            api_log.warning("Couldn't decode json response: %r.", ex.doc)
             return
         media, user, quote = (
             media_info["includes"]["media"] if media_info.get("includes") else None,
@@ -545,10 +549,11 @@ async def get_info_from_web_services(tweet_id: int) -> Optional[dict]:
                 else None
             ),
         )
-    log.warning("No response from twitter API.")
+    api_log.warning("No response from twitter API.")
 
 
 async def get_info_from_twitter_graphql(tweet_id: int) -> Optional[dict]:
+    api_log = log.bind(api="graphql")
     try:
         data_job = gallery_dl.job.DataJob(
             f"https://twitter.com/web/status/{tweet_id}",
@@ -558,11 +563,11 @@ async def get_info_from_twitter_graphql(tweet_id: int) -> Optional[dict]:
         data_job.extractor.api = TwitterAPI(data_job.extractor)
         if data := data_job.extractor.tweets():
             return data
-        log.error("Twitter GraphQL: No data.")
+        api_log.error("Twitter GraphQL: No data.")
     except gallery_dl.exception.StopExtraction:
-        log.error("Twitter GraphQL: Invalid data.")
+        api_log.error("Twitter GraphQL: Invalid data.")
     except Exception as ex:
-        log.error("Twitter GraphQL: Excection occured: %s.", ex.args)
+        api_log.error("Twitter GraphQL: Excection occured: %s.", ex.args)
     return
 
 
@@ -575,27 +580,30 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
     Returns:
         Optional[Tweet]: tweet dictionary
     """
+    api_log = log.bind(api="graphql")
     if api_data := await get_info_from_twitter_graphql(tweet_id):
         for data in api_data:
+            api_log.debug("Loaded JSON.", json=data)
             if not (tweet_info := data.get("legacy", None)):
-                log.error("Scraping failed.")
+                api_log.error("Scraping failed.")
                 return
             # check user
             tweet_user = None
             if not (
-                user := data["core"]["user_results"]["result"]["legacy"]
-            ) and not user.get("screen_name"):
-                log.warning("No username found.")
+                (user := data["core"]["user_results"]["result"]["legacy"])
+                and (username := user.get("screen_name"))
+            ):
+                api_log.error("No user found.")
                 return
             tweet_user = User(
-                username=user.get("screen_name"),
+                username=username,
                 id=tweet_info.get("user_id_str"),
                 displayname=user.get("name"),
             )
             # check media
             tweet_media = []
             if not (tweet_info["entities"].get("media", None)):
-                log.error("No media.")
+                api_log.error("No media.")
                 return
             for medium in tweet_info["extended_entities"]["media"]:
                 if medium["type"] == "photo":
@@ -636,7 +644,7 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
                     qid = quote["result"].get("rest_id")
                     qcore = None
                 if not qinfo:
-                    log.debug("No quote was found: %s.", quote["result"])
+                    api_log.debug("No quote was found: %s.", quote["result"])
                     return
                 if len(api_data) > 1 and qid == api_data[1]["rest_id"]:
                     quoted_user_info = api_data[1]["core"]["user_results"]["result"][
