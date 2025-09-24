@@ -185,7 +185,7 @@ gallery_dl.config.set(
 async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
     api_log = log.bind(api="fixtweet")
     if response := await make_request(
-        f"https://api.fxtwitter.com/web/status/{tweet_id}",
+        f"https://api.fxtwitter.com/i/status/{tweet_id}",
         "GET",
         headers=FAKE_HEADERS,
     ):
