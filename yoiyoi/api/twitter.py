@@ -150,8 +150,16 @@ class Tweet:
 
 
 # set config
-gallery_dl.config.set(("extractor", "twitter"), "browser", "firefox:linux")
-gallery_dl.config.set(("extractor", "twitter"), "csrf", "cookies")
+gallery_dl.config.set(
+    ("extractor", "twitter"),
+    "browser",
+    "firefox:linux",
+)
+gallery_dl.config.set(
+    ("extractor", "twitter"),
+    "csrf",
+    "cookies",
+)
 gallery_dl.config.set(
     ("extractor", "twitter"),
     "username",

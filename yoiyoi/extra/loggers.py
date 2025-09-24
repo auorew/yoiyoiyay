@@ -10,13 +10,18 @@ from typing import Optional
 # structured logging
 import structlog
 
-# logtail for logging
-from structlog.contextvars import bind_contextvars
-
 # settings
 from yoiyoi.extra.settings import DATE_RUN, UUID_RUN, WORK_DIR, bot_settings, log_settings
 
 log_config = log_settings.tail
+
+
+def add_global_info(logger, method_name, event_dict):
+    event_dict["app"] = {
+        "uuid": UUID_RUN,
+        "date": DATE_RUN,
+    }
+    return event_dict
 
 
 CONSOLE_HANDLER = "console"
@@ -26,6 +31,7 @@ JSONFORMAT_HANDLER = "jsonformat"
 JSONFORMAT_FORMATTER = "jsonformat_formatter"
 
 BASE_PREPROCESSORS = [
+    add_global_info,
     structlog.stdlib.add_logger_name,
     structlog.stdlib.add_log_level,
     structlog.processors.TimeStamper(log_settings.file.date),
@@ -167,8 +173,6 @@ structlog.configure(
 
 # get root logger
 root_log = structlog.get_logger()
-bind_contextvars(date_run=DATE_RUN)
-bind_contextvars(hash=UUID_RUN)
 
 
 # setup loggers
