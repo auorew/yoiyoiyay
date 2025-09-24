@@ -182,6 +182,7 @@ async def make_request(
     xsrf: str = None,
     cookies: dict = None,
     proxy: bool = False,
+    header_range: int = 0,
     **kwargs: Any,
 ) -> httpx.Response:
     """Makes request with httpx.AsyncClient
@@ -218,6 +219,8 @@ async def make_request(
             )
         if xsrf:
             headers[xsrf] = unquote(cookies["XSRF-TOKEN"])
+        if header_range > 1:
+            headers["Range"] = f"bytes=0-{header_range - 1}"
 
         return await client.request(
             method=method,
@@ -415,9 +418,16 @@ async def get_content_type(url: str, mime=True, **kwargs) -> Optional[str]:
     async with get_content(url, **kwargs) as content_iterator:
         if chunk := await anext(content_iterator, None):
             return magic.from_buffer(chunk, mime=mime)
-    if (response := await make_request(url, **kwargs)) and response.is_success:
-        if response.content and (chunk := response.content[:1024]):
-            return magic.from_buffer(chunk, mime=mime)
+    log.warning("GetContentType: failed streaming file.", url=url, kwargs=kwargs)
+    if response := await make_request(url, header_range=1024, **kwargs):
+        if response.is_success and response.content:
+            log.info(
+                "GetContentType: got filewith length: %d.",
+                len(response.content),
+                url=url,
+                kwargs=kwargs,
+            )
+            return magic.from_buffer(response.content, mime=mime)
 
 
 @retry_request
