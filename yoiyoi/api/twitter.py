@@ -1,5 +1,6 @@
 """Twitter module"""
 
+import asyncio
 import dataclasses
 import datetime
 import os
@@ -11,6 +12,7 @@ from typing import Optional
 import gallery_dl
 
 # parse json
+import httpx
 import orjson
 
 # structured logging
@@ -182,16 +184,23 @@ gallery_dl.config.set(
 )
 
 
+async def fetch_tweet_info(tweet_id: str) -> Optional[httpx.Response]:
+    api_log = log.bind(api="fixtweet")
+    url = f"https://api.fxtwitter.com/i/status/{tweet_id}"
+    max_retries = 2
+    delay = 2
+
+    for _ in range(max_retries):
+        response = await make_request(url, "GET", headers=FAKE_HEADERS)
+        if response and not response.is_error:
+            return response
+        api_log.debug("No tweet info found, retrying after %s seconds...", delay)
+        await asyncio.sleep(delay)
+
+
 async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
     api_log = log.bind(api="fixtweet")
-    if response := await make_request(
-        f"https://api.fxtwitter.com/i/status/{tweet_id}",
-        "GET",
-        headers=FAKE_HEADERS,
-    ):
-        # check response
-        if response.is_error:
-            return
+    if response := await fetch_tweet_info(tweet_id):
         api_log.debug("Request to API succeeded.")
         try:
             response_info = orjson.loads(response.content)
