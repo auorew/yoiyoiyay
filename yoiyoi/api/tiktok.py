@@ -4,7 +4,7 @@ import asyncio
 import re
 
 from http.cookies import SimpleCookie
-from random import getrandbits
+from random import randrange
 from typing import Optional
 
 # parse json
@@ -148,7 +148,7 @@ async def get_tikmate_app_info(link: str) -> dict:
     base = "tikmate.app"
     api = f"https://api.{base}/api/lookup"
     # form request
-    boundary = 29 * "-" + str(getrandbits(99))
+    boundary = 4 * "-" + "geckoformboundary" + ("%030x" % randrange(16**32))
     data = "\r\n".join(
         (
             boundary,
