@@ -33,6 +33,12 @@
 
 # log library rules
 [[lib]]
+    # apscheduler executors logging
+    name = "apscheduler.executors.default"
+    enable = true
+    level = "INFO"
+
+[[lib]]
     # http requests
     name = "urllib3.connectionpool"
     enable = true

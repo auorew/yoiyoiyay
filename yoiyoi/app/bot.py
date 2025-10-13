@@ -1,7 +1,5 @@
 """Bot Application"""
 
-import logging
-
 # structured logging
 import structlog
 
@@ -239,8 +237,6 @@ def create_bot_app() -> Application:
     jobs.run_repeating(get_proxy, **JOB_GET_PROXY)
     # keep alive services with health checkc requests
     jobs.run_repeating(health_checker, **JOB_HEALTH_CHECKER)
-    # mute messages about job being done
-    logging.getLogger("apscheduler.executors.default").setLevel("WARNING")
 
     return application
 
