@@ -92,4 +92,4 @@ exclude = [
 lint.per-file-ignores = {}
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 line-length = 90
-target-version = "py311"
+target-version = "py312"
