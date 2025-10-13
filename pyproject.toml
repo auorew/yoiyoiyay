@@ -8,33 +8,33 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-python-telegram-bot = {version = "^22.4", extras = ["job-queue", "webhooks"]}
+python-telegram-bot = {version = "^22.5", extras = ["job-queue", "webhooks"]}
 python-dotenv = "^1.1.1"
 sqlalchemy = "2.0.40"
-alembic = "^1.16.5"
+alembic = "^1.17.0"
 sqlalchemy-repr = "^0.1.0"
 tzdata = "^2025.2"
 python-magic = {version = "^0.4.27", platform = "linux"}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 tenacity = "^9.1.2"
-beautifulsoup4 = "^4.13.5"
+beautifulsoup4 = "^4.14.2"
 pillow = "^11.3.0"
 logtail-python = "^0.3.4"
 pixivpy-async = "^1.2.14"
 aiocache = "^0.12.3"
 orjson = "^3.11.3"
 python-dateutil = "^2.9.0.post0"
-gallery-dl = "^1.30.8"
+gallery-dl = "^1.30.10"
 psycopg2-binary = "2.9.10"
-yt-dlp = {version = "^2025.9.23.232818.dev0", allow-prereleases = true}
-fastapi = "^0.117.1"
+yt-dlp = {version = "^2025.10.12.232804.dev0", allow-prereleases = true}
+fastapi = "^0.119.0"
 uvicorn = "0.34.2"
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
 httpx = {version = "0.28.1", extras = ["socks"]}
 pillow-heif = "0.22.0"
-pydantic-settings = "^2.10.1"
-cryptography = "^46.0.1"
+pydantic-settings = "^2.11.0"
+cryptography = "^46.0.2"
 structlog = "^25.4.0"
 colorama = "^0.4.6"
 dataclasses-json = "^0.6.7"
@@ -42,7 +42,7 @@ lxml = "^6.0.2"
 anyio = "^4.11.0"
 pyvips = "^3.0.0"
 python-multipart = "^0.0.20"
-rich = "^14.1.0"
+rich = "^14.2.0"
 better-exceptions = "^0.3.3"
 
 [tool.poetry.group.dev.dependencies]
