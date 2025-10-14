@@ -805,7 +805,7 @@ async def process_tweet(tweet: Tweet) -> Optional[TweetMedia]:
         for link in tweet.links:
             text = text.replace(link.tcourl, link.url)
     # remove media link from text
-    text = re.sub(TWI["t.co"], "", text)
+    text = re.sub(TWI["media"], "", text)
     # place other links after 2 new lines
     if tweet.quotedTweet and hasattr(tweet.quotedTweet, "url"):
         text = f"{text}\n\n{tweet.quotedTweet.url}"
