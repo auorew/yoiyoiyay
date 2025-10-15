@@ -102,7 +102,8 @@ LINKS = {
         """,
         "link": "https://twitter.com/{author}/status/{id}",
         "media": r"""(?x)
-            \s(?:
+            (?:\s)?
+            (?:    
                 (?:https:\/\/t\.co\/\w{10})
             |
                 (?:
