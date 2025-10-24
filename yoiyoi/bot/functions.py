@@ -40,6 +40,7 @@ from yoiyoi.api.namedtuples import (
     TikTokVideo,
     TweetContent,
     TweetMedia,
+    XiaohongshuVideo,
     YouTubeShortMedia,
 )
 
@@ -53,6 +54,7 @@ from yoiyoi.api.tiktok import get_tiktok_links
 from yoiyoi.api.twitter import get_twitter_links
 
 # youtube api
+from yoiyoi.api.xiaohongshu import get_xiaohongshu_links
 from yoiyoi.api.youtube_short import get_youtube_short_links
 
 # get constants and pyrogram app
@@ -109,6 +111,7 @@ from yoiyoi.extra.styles import (
     Style,
     TikTokStyle,
     TwitterStyle,
+    XiaohongshuStyle,
     YouTubeShortStyle,
 )
 
@@ -986,6 +989,90 @@ async def send_discord(
     # )
 
 
+async def send_xiaohongshu(
+    update: Update,
+    link: Link,
+    chat: Chat,
+) -> None:
+    """Sends xiaohongshu video
+
+    Args:
+        update (Update): current update
+        link (Link): xiaohongshu link
+        chat (Chat): current chat
+    """
+    error_text = f"[*This xiaohongshu content*]({link.link}) "
+    log.info("Xiaohongshu Link: %s.", link.link)
+    file_handlers = []
+    # get media
+    if media := await get_xiaohongshu_links(link.link):
+        info = await get_info(link, XiaohongshuStyle, chat, media)
+        files, storage = [], set()
+        storage_folder = Path(CACHE_DIR / str(update.update_id))
+        storage_folder.mkdir(parents=True, exist_ok=True)
+        videos = list(filter(lambda x: isinstance(x, XiaohongshuVideo), media.content))
+        # check size
+        filepath = None
+        if not videos:
+            error_text += "can't be sent, because didn't find any video\\!"
+            log.error("Can's send as video.")
+        else:
+            for vid in videos:
+                if 0 < vid.size < 50 << 20:
+                    filepath = await save_file(vid.link, "GET", **vid.extra)
+                    break
+            else:
+                # if file is too big
+                error_text += "can't be sent, because video file is too big\\!"
+                log.error("Video file is too big.")
+        # upload video if any
+        if filepath:
+            filename = await join_file_name(str(media.id), filepath)
+            videopath = move_file(filepath, storage_folder / filename)
+            storage.add(videopath)
+            videoinfo = await get_video_info(videopath)
+            thumbpath = await save_file(media.thumb, "GET", **vid.extra)
+            thumbname = await make_thumb_name(filename, thumbpath)
+            thumbpath = move_file(thumbpath, storage_folder / thumbname)
+            storage.add(thumbpath)
+            # add to collection
+            video_handler = videopath.open("rb")
+            file_handlers.append(video_handler)
+            files.append(
+                InputMediaVideo(
+                    media=video_handler,
+                    thumbnail=thumbpath.read_bytes(),
+                    caption=info,
+                    parse_mode=PM.HTML,
+                    width=videoinfo[0],
+                    height=videoinfo[1],
+                    duration=videoinfo[2],
+                )
+            )
+        log.debug("Finished adding to collection.")
+        log.debug("Caption: %r.", info)
+        if await send_collection(
+            update,
+            chat,
+            storage,
+            file_handlers,
+            files,
+        ):
+            return
+    # if there is no video
+    else:
+        log.error("Couldn't get xiaohongshu content.")
+        error_text += (
+            "can't be found or downloaded\\! If this seems to be wrong, try "
+            "again later\\."
+        )
+    await send_error(
+        update,
+        error_text,
+        do_quote=not chat.delete_link,
+    )
+
+
 @clear_context()
 async def process_link(
     update: Update,
@@ -1031,6 +1118,8 @@ async def process_link(
                         await send_pixiv(update, link, chat)
                     case LinkType.DISCORD:
                         await send_discord(update, link, chat)
+                    case LinkType.XIAOHONGSHU:
+                        await send_xiaohongshu(update, link, chat)
                     case _:
                         await send_reply(update, esc(link.link))
         # delete source post media group messages

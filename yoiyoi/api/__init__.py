@@ -13,6 +13,7 @@ class LinkType(Enum):
     TIKTOK = auto()
     INSTAGRAM = auto()
     YOUTUBE_SHORT = auto()
+    XIAOHONGSHU = auto()
 
     @classmethod
     def get_type(cls, value: int) -> str:
@@ -103,7 +104,7 @@ LINKS = {
         "link": "https://twitter.com/{author}/status/{id}",
         "media": r"""(?x)
             (?:\s)?
-            (?:    
+            (?:
                 (?:https:\/\/t\.co\/\w{10})
             |
                 (?:
@@ -214,5 +215,16 @@ LINKS = {
         "thumb": "https://i.ytimg.com/vi/{0}/maxres2.jpg",
         "link": "https://www.youtube.com/shorts/{id}",
         "type": LinkType.YOUTUBE_SHORT,
+    },
+    "xiaohongshu": {
+        "re": r"""(?x)
+        (?:
+            (?:http(?:s)?\:\/\/)?
+            (?:xhslink.com\/o\/)
+            (?P<id>\w+)
+        )
+        """,
+        "link": "http://xhslink.com/o/{id}",
+        "type": LinkType.XIAOHONGSHU,
     },
 }

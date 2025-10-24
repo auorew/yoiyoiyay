@@ -13,6 +13,7 @@ from yoiyoi.extra.styles import (
     TikTokMode,
     TikTokStyle,
     TwitterStyle,
+    XiaohongshuStyle,
     YouTubeShortStyle,
 )
 
@@ -156,6 +157,29 @@ class Chat(Base):
             return value
         raise ValueError(f"Invalid value {value!r} for field {key!r}.")
 
+    # xiaohongshu mode
+    xhs_orig: Mapped[bool0]
+    # xiaohongshu style
+    xhs_style: Mapped[int] = mapped_column(default=2)
+
+    @validates("xhs_style")
+    def validate_xiaohongshu_style(self, key: str, value: int) -> int:
+        """Validates xiaohongshu style
+
+        Args:
+            key (str): field name
+            value (int): xiaohongshu style value
+
+        Raises:
+            ValueError: xiaohongshu style value is invalid
+
+        Returns:
+            int: new xiaohongshu style value
+        """
+        if XiaohongshuStyle.validate(value):
+            return value
+        raise ValueError(f"Invalid value {value!r} for field {key!r}.")
+
     # include link of media
     include_link: Mapped[bool0]
 
@@ -200,4 +224,7 @@ class Chat(Base):
             # youtube short
             "yts_orig": self.yts_orig,
             "yts_style": self.yts_style,
+            # xiaohongshu
+            "xhs_orig": self.xhs_orig,
+            "xhs_style": self.xhs_style,
         }

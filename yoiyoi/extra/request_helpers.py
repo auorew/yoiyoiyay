@@ -204,7 +204,9 @@ async def make_request(
     my_proxy = PROXY["active"] if proxy and PROXY["active"] else None
     async with httpx.AsyncClient(proxy=my_proxy) as client:
         if not headers:
-            headers = FAKE_HEADERS.copy()
+            request_headers = FAKE_HEADERS.copy()
+        else:
+            request_headers = headers.copy()
         # get cookies in session
         cookies = cookies if cookies else {}
         if referer:
@@ -218,14 +220,14 @@ async def make_request(
                 ).cookies
             )
         if xsrf:
-            headers[xsrf] = unquote(cookies["XSRF-TOKEN"])
+            request_headers[xsrf] = unquote(cookies["XSRF-TOKEN"])
         if header_range > 1:
-            headers["Range"] = f"bytes=0-{header_range - 1}"
+            request_headers["Range"] = f"bytes=0-{header_range - 1}"
 
         return await client.request(
             method=method,
             url=url,
-            headers=headers,
+            headers=request_headers,
             cookies=cookies if referer or cookies else None,
             follow_redirects=follow_redirects,
             timeout=timeout,
@@ -249,20 +251,20 @@ async def stream_response(
     try:
         async with get_async_client(proxy) as client:
             if not headers:
-                headers = FAKE_HEADERS.copy()
+                request_headers = FAKE_HEADERS.copy()
+            else:
+                request_headers = headers.copy()
             # get cookies in session
             cookies = cookies if cookies else {}
             if referer and (new_cookies := await get_cookies(referer, headers=headers)):
                 cookies.update(new_cookies)
-            elif matched := re.match("(?P<referer>http(s)?://[^/]+/?)", url):
-                headers["Referer"] = matched.group("referer")
             if xsrf:
-                headers[xsrf] = unquote(cookies["XSRF-TOKEN"])
+                request_headers[xsrf] = unquote(cookies["XSRF-TOKEN"])
 
             async with client.stream(
                 method=method,
                 url=url,
-                headers=headers,
+                headers=request_headers,
                 cookies=cookies if referer or cookies else None,
                 follow_redirects=follow_redirects,
                 timeout=timeout,

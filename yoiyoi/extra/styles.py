@@ -4,7 +4,13 @@ from abc import ABC, abstractmethod
 from html import escape as escape_html
 
 # PixivMedia & TweetMedia namedtuples
-from yoiyoi.api.namedtuples import PixivMedia, TikTokMedia, TweetMedia, YouTubeShortMedia
+from yoiyoi.api.namedtuples import (
+    PixivMedia,
+    TikTokMedia,
+    TweetMedia,
+    XiaohongshuMedia,
+    YouTubeShortMedia,
+)
 
 
 class AbstractSwitcher(ABC):
@@ -333,3 +339,55 @@ class TikTokMode(Switcher):
                 return r"The bot will now send only *sildes* for a slideshow tiktok\."
             case _:
                 return "Unknown"
+
+
+class XiaohongshuStyle(Style):
+    """Represents tiktok style."""
+
+    name = "Xiaohongshu"
+    field = "xhs_style"
+    options = (
+        VIDEO_LINK,
+        VIDEO_LINK_DESC,
+        VIDEO_INFO_EMBED_LINK,
+        VIDEO_INFO_EMBED_LINK_DESC,
+    ) = range(4)
+
+    @classmethod
+    def get_example(cls, value: int) -> str:
+        link = "https://www\\.xhslink\\.com/"
+        match value:
+            case cls.VIDEO_LINK:
+                return "\\[ `Video` \\]\n\nLink"
+            case cls.VIDEO_LINK_DESC:
+                return "\\[ `Video` \\]\n\nLink\n\nDescription"
+            case cls.VIDEO_INFO_EMBED_LINK:
+                return f"\\[ `Video` \\]\n\n[**Title | UserID**]({link})"
+            case cls.VIDEO_INFO_EMBED_LINK_DESC:
+                return (
+                    f"\\[ `Video` \\]\n\n[**Title | UserID**]({link})" "\n\nDescription"
+                )
+            case _:
+                return "Unknown"
+
+    @classmethod
+    def get_format(
+        cls,
+        style: int,
+        vid: XiaohongshuMedia,
+    ) -> str:
+        link, title, user_id, desc = (
+            escape_html(vid.source),
+            escape_html(vid.title),
+            escape_html(vid.uploader_id),
+            escape_html(vid.description),
+        )
+        match style:
+            case cls.VIDEO_LINK_DESC:
+                return f"{link}\n\n{desc}"
+            case cls.VIDEO_INFO_EMBED_LINK:
+                return f"<a href='{link}'><b>{title} | @{user_id}</b></a>"
+            case cls.VIDEO_INFO_EMBED_LINK_DESC:
+                return f"<a href='{link}'>>b>{title} | @{user_id}</b></a>\n\n{desc}"
+            case cls.VIDEO_LINK | _:
+                return link

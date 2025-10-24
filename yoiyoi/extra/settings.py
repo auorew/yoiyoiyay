@@ -108,6 +108,9 @@ class BotSettings(BaseSettings):
     # your proxy URL
     proxy_url: Optional[AnyUrl] = Field(None)
 
+    class Config:
+        env_file = ".env"
+
 
 bot_settings = BotSettings()
 
