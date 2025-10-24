@@ -26,8 +26,8 @@ orjson = "^3.11.3"
 python-dateutil = "^2.9.0.post0"
 gallery-dl = "^1.30.10"
 psycopg2-binary = "2.9.10"
-yt-dlp = {version = "^2025.10.18.232824.dev0", allow-prereleases = true}
-fastapi = "^0.119.0"
+yt-dlp = {version = "^2025.10.22.232844.dev0", allow-prereleases = true}
+fastapi = "^0.120.0"
 uvicorn = "0.34.2"
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
