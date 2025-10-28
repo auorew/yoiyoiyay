@@ -151,12 +151,10 @@ DiscordMedia = namedtuple(
 XiaohongshuMedia = namedtuple(
     "XiaohongshuMedia",
     (
-        "source",
         "id",
+        "source",
         "title",
         "description",
-        "uploader_id",
-        "webpage_url",
         "thumb",
         "content",
     ),

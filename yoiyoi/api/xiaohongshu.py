@@ -3,6 +3,9 @@
 from http.cookies import SimpleCookie
 from typing import Optional
 
+# json parsing
+import orjson
+
 # structured logging
 import structlog
 
@@ -20,7 +23,9 @@ from yoiyoi.extra import PROXY, PROXY_SET
 
 # fake headers and request helpers
 from yoiyoi.extra.request_helpers import (
+    FAKE_HEADERS,
     get_content_size,
+    make_request,
 )
 
 # setup logger
@@ -98,16 +103,9 @@ async def get_info_ytdlp(link: str) -> dict:
         return info
 
 
-async def get_xiaohongshu_links(link: str) -> Optional[XiaohongshuMedia]:
-    """Gets xiaohongshu links.
-
-    Args:
-        link (str): xiaohongshu link.
-
-    Returns:
-        Optional[XiaohongshuMedia]: full xiaohongshu info.
-    """
+async def get_links_ytdlp(link):
     log.info("API: YouTube-DLP.")
+
     if not (info := await get_info_ytdlp(link)):
         return
 
@@ -115,14 +113,21 @@ async def get_xiaohongshu_links(link: str) -> Optional[XiaohongshuMedia]:
         log.error("No thumbnail.")
         return
 
-    video_info = {
-        "source": link,
-        "id": info["id"],
+    max_size = 0
+    largest_thumbnail = None
+    for thumbnail in thumbnails:
+        if (size := await get_content_size(thumbnail["url"])) >= max_size:
+            max_size = size
+            largest_thumbnail = thumbnail["url"]
+
+    if not largest_thumbnail:
+        log.error("No largest thumbnail?!")
+        return
+
+    result = {
         "title": info["title"],
         "description": info["description"],
-        "uploader_id": info["uploader_id"],
-        "webpage_url": info["webpage_url"],
-        "thumb": thumbnails[0]["url"],
+        "thumb": largest_thumbnail,
     }
 
     videos = []
@@ -136,7 +141,7 @@ async def get_xiaohongshu_links(link: str) -> Optional[XiaohongshuMedia]:
         ):
             videos.append(video_format)
 
-    content_videos = []
+    result["content"] = []
     for video in sorted(videos, key=lambda x: x["filesize"], reverse=True):
         cookies = {}
         if video_cookies := video.get("cookies"):
@@ -161,12 +166,116 @@ async def get_xiaohongshu_links(link: str) -> Optional[XiaohongshuMedia]:
                 **extra,
             )
         ):
-            content_videos.append(
-                XiaohongshuVideo(
-                    video["url"],
-                    _size,
-                    extra,
-                )
+            result["content"].append(
+                {
+                    "link": video["url"],
+                    "size": _size,
+                    "extra": extra,
+                }
             )
 
-    return XiaohongshuMedia(**video_info, content=content_videos)
+    return result
+
+
+async def get_links_seekin(link):
+    log.info("API: Seekin AI.")
+
+    result = {}
+    if (
+        response := await make_request(
+            "https://api.seekin.ai/ikool/media/download",
+            headers={
+                **FAKE_HEADERS,
+                "Accept": "*/*",
+                "Referer": "https://www.seekin.ai/",
+                "Content-Type": "application/json",
+                "Origin": "https://www.seekin.ai",
+                "DNT": "1",
+                "Sec-GPC": "1",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-site",
+                "Priority": "u=0",
+            },
+            json={"url": link},
+        )
+    ).is_error:
+        log.info("No response.")
+        return
+    try:
+        info = orjson.loads(response.content)
+    except orjson.JSONDecodeError:
+        log.warning("Couldn't decode json response: %r.", response.content)
+        return
+
+    if not (code := info.get("code", "")) or code != "0000":
+        log.warning("No success code found: %r.", code)
+        return
+
+    if not (data := info.get("data", "")):
+        log.warning("No success code found: %r.", info["code"])
+        return
+
+    if "|||" in data["title"]:
+        result["title"], result["description"] = data["title"].split("|||")
+    else:
+        result["title"], result["description"] = data["title"], ""
+    result["thumb"] = data["imageUrl"]
+    result["content"] = []
+    for media in data["medias"]:
+        video = {}
+        video["link"] = media["url"]
+        video["size"] = media["fileSize"]
+        video["extra"] = {}
+        result["content"].append(video)
+
+    return result
+
+
+async def convert_dictionary_to_namedtuple(
+    result: dict[str, str | int],
+) -> XiaohongshuMedia:
+    content = []
+    for video_dict in result["content"]:
+        video_tuple = XiaohongshuVideo(
+            link=video_dict["link"],
+            size=video_dict["size"],
+            extra=video_dict["extra"],
+        )
+        content.append(video_tuple)
+
+    media = XiaohongshuMedia(
+        id=result["id"],
+        source=result["source"],
+        title=result["title"],
+        description=result["description"],
+        thumb=result["thumb"],
+        content=content,
+    )
+
+    return media
+
+
+async def get_xiaohongshu_links(link: str) -> Optional[XiaohongshuMedia]:
+    """Gets xiaohongshu links.
+
+    Args:
+        link (str): xiaohongshu link.
+
+    Returns:
+        Optional[XiaohongshuMedia]: full xiaohongshu info.
+    """
+    data = {
+        "id": link.rsplit("/")[-1],
+        "source": link,
+    }
+    for get_links in (
+        get_links_ytdlp,  # good
+        get_links_seekin,  # good
+    ):
+        if result := await get_links(link):
+            return await convert_dictionary_to_namedtuple({**data, **result})
+        log.info("Trying another API...")
+    else:
+        log.error("Couldn't get content.")
+        return

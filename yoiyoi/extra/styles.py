@@ -376,18 +376,17 @@ class XiaohongshuStyle(Style):
         style: int,
         vid: XiaohongshuMedia,
     ) -> str:
-        link, title, user_id, desc = (
+        link, title, desc = (
             escape_html(vid.source),
             escape_html(vid.title),
-            escape_html(vid.uploader_id),
             escape_html(vid.description),
         )
         match style:
             case cls.VIDEO_LINK_DESC:
                 return f"{link}\n\n{desc}"
             case cls.VIDEO_INFO_EMBED_LINK:
-                return f"<a href='{link}'><b>{title} | @{user_id}</b></a>"
+                return f"<a href='{link}'><b>{title}</b></a>"
             case cls.VIDEO_INFO_EMBED_LINK_DESC:
-                return f"<a href='{link}'>>b>{title} | @{user_id}</b></a>\n\n{desc}"
+                return f"<a href='{link}'>>b>{title}</b></a>\n\n{desc}"
             case cls.VIDEO_LINK | _:
                 return link
