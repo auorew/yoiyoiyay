@@ -9,7 +9,7 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.12"
 python-telegram-bot = {version = "^22.5", extras = ["job-queue", "webhooks"]}
-python-dotenv = "^1.1.1"
+python-dotenv = "^1.2.1"
 sqlalchemy = "2.0.40"
 alembic = "^1.17.0"
 sqlalchemy-repr = "^0.1.0"
@@ -22,12 +22,12 @@ pillow = "^12.0.0"
 logtail-python = "^0.3.4"
 pixivpy-async = "^1.2.14"
 aiocache = "^0.12.3"
-orjson = "^3.11.3"
+orjson = "^3.11.4"
 python-dateutil = "^2.9.0.post0"
 gallery-dl = "^1.30.10"
 psycopg2-binary = "2.9.10"
-yt-dlp = {version = "^2025.10.22.232844.dev0", allow-prereleases = true}
-fastapi = "^0.120.0"
+yt-dlp = {version = "^2025.10.27.232853.dev0", allow-prereleases = true}
+fastapi = "^0.120.1"
 uvicorn = "0.34.2"
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
@@ -35,7 +35,7 @@ httpx = {version = "0.28.1", extras = ["socks"]}
 pillow-heif = "0.22.0"
 pydantic-settings = "^2.11.0"
 cryptography = "^46.0.3"
-structlog = "^25.4.0"
+structlog = "^25.5.0"
 colorama = "^0.4.6"
 dataclasses-json = "^0.6.7"
 lxml = "^6.0.2"
