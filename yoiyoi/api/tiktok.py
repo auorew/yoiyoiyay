@@ -163,7 +163,7 @@ async def get_tikmate_app_info(link: str) -> dict:
         url=api,
         headers={
             **FAKE_HEADERS,
-            "Content-Type": f"multipart/form-data; boundary={boundary[2:]}",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
             "Origin": f"https://{base}",
             "Referer": f"https://{base}/",
         },
