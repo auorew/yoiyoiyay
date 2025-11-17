@@ -780,9 +780,13 @@ async def get_links_unduhtiktok(
         for image, preview in zip(images, previews):
             _prev = preview
             _link = image
-            _size = await get_content_size(_link)
             _name = await get_content_name(_link, REGEX_TIKTOK_CDN)
-            content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+            if _size := await get_content_size(_link):
+                content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+            else:
+                log.error("Failed to download.")
+                content_images = []
+                return content
         _link = video
         if _ext := await get_content_extension(_link, cookies=cookies):
             log.info("Video extension: %s.", _ext)
@@ -860,9 +864,13 @@ async def get_links_tikgo(
                 elif media.get("type") == "image":
                     _prev = media.get("url")
                     _link = media.get("url")
-                    _size = await get_content_size(_link)
                     _name = await get_content_name(_link, REGEX_TIKTOK_CDN)
-                    content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+                    if _size := await get_content_size(_link):
+                        content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+                    else:
+                        log.error("Failed to download.")
+                        content_images = []
+                        return content
     return content
 
 
@@ -931,9 +939,13 @@ async def get_slides_links_tikmate_io(
             for photo in photos:
                 _prev = photo.img["src"]
                 _link = photo.div.a["href"]
-                _size = await get_content_size(_link)
                 _name = await get_content_name(_link, REGEX_TIKMATE_IO)
-                content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+                if _size := await get_content_size(_link):
+                    content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+                else:
+                    log.error("Failed to download.")
+                    content_images = []
+                    return content
     return content
 
 
@@ -996,9 +1008,13 @@ async def get_slides_links_snaptik(
         for photo in photos:
             _prev = photo.img["src"]
             _link = photo.div.a["href"]
-            _size = await get_content_size(_link)
             _name = await get_content_name(_link, REGEX_SNAPTIK_APP)
-            content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+            if _size := await get_content_size(_link):
+                content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+            else:
+                log.error("Failed to download.")
+                content_images = []
+                return content
     return content
 
 
@@ -1070,9 +1086,13 @@ async def get_links_downr(
                 elif media.get("type") == "image":
                     _prev = media.get("url")
                     _link = media.get("url")
-                    _size = await get_content_size(_link)
                     _name = await get_content_name(_link, REGEX_TIKTOK_CDN)
-                    content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+                    if _size := await get_content_size(_link):
+                        content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+                    else:
+                        log.error("Failed to download.")
+                        content_images = []
+                        return content
     return content
 
 
