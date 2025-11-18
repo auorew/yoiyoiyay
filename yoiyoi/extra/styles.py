@@ -116,12 +116,12 @@ class TwitterStyle(Style):
         style: int,
         art: TweetMedia,
     ) -> str:
-        user, username, link = (
+        user, username, link, desc = (
             escape_html(art.user),
             escape_html(art.username),
             escape_html(art.source),
+            escape_html(art.desc),
         )
-        desc = art.desc.replace("<br />", "\n")
         match style:
             case cls.IMAGE_LINK:
                 return link
