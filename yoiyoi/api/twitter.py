@@ -365,6 +365,9 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
             else:
                 api_log.warning("Dead tweet: %s/%s.", TWEET_URL, tweet_id)
             return
+        if tweet_info.get("note_tweet", None):
+            api_log.warning("Note tweet: %s/%s.", TWEET_URL, tweet_id)
+            return
         if not (
             (user := tweet_info.get("user")) and (username := user.get("screen_name"))
         ):
@@ -617,6 +620,14 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
                 id=tweet_info.get("user_id_str"),
                 displayname=user.get("name"),
             )
+            # check text
+            tweet_text = ""
+            if note_tweet := data.get("note_tweet"):
+                if note_tweet_results := note_tweet.get("note_tweet_results"):
+                    if result := note_tweet_results.get("result"):
+                        tweet_text = result.get("text", "")
+            else:
+                tweet_text = tweet_info.get("full_text", "")
             # check media
             tweet_media = []
             if not (tweet_info["entities"].get("media", None)):
@@ -701,8 +712,8 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
                     author=tweet_user.username,
                 ),
                 date=parse(tweet_info["created_at"]),
-                rawContent=tweet_info["full_text"],
-                renderedContent=tweet_info["full_text"],
+                rawContent=tweet_text,
+                renderedContent=tweet_text,
                 id=tweet_id,
                 user=tweet_user,
                 replyCount=tweet_info["reply_count"],
