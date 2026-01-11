@@ -2,9 +2,9 @@
 
 import asyncio
 import re
+import secrets
 
 from http.cookies import SimpleCookie
-from random import randrange
 from typing import Optional
 
 # parse json
@@ -148,24 +148,31 @@ async def get_tikmate_app_info(link: str) -> dict:
     base = "tikmate.app"
     api = f"https://api.{base}/api/lookup"
     # form request
-    boundary = 4 * "-" + "geckoformboundary" + ("%030x" % randrange(16**32))
-    data = "\r\n".join(
-        (
-            boundary,
-            'Content-Disposition: form-data; name="url"',
-            "",
-            link,
-            boundary + "--\r\n",
-        )
-    )
+    boundary = f"----geckoformboundary{secrets.token_hex(16)}"
+    payload_parts = [
+        f"--{boundary}",  # Note: Boundaries in the body must start with --
+        'Content-Disposition: form-data; name="url"',
+        "",
+        link,
+        f"--{boundary}--",  # Note: The final boundary ends with --
+        "",
+    ]
+    data = "\r\n".join(payload_parts)
     # send request
     if response := await make_request(
         url=api,
         headers={
             **get_fake_headers(),
+            "Accept": "*/*",
             "Content-Type": f"multipart/form-data; boundary={boundary}",
             "Origin": f"https://{base}",
-            "Referer": f"https://{base}/",
+            "DNT": "1",
+            "Sec-GPC": "1",
+            "Connection": "keep-alive",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "Priority": "u=0",
         },
         data=data,
         proxy=True,
