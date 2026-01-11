@@ -63,24 +63,6 @@
     level = "WARNING"
 
 [[lib]]
-    # pyrogram dispatcher
-    name = "pyrogram.dispatcher"
-    enable = true
-    level = "WARNING"
-
-[[lib]]
-    # pyrogram connection
-    name = "pyrogram.connection"
-    enable = true
-    level = "WARNING"
-
-[[lib]]
-    # pyrogram session
-    name = "pyrogram.session"
-    enable = true
-    level = "WARNING"
-
-[[lib]]
     # SQL echoing
     name = "sqlalchemy.engine"
     enable = true

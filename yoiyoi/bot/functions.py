@@ -57,7 +57,7 @@ from yoiyoi.api.twitter import get_twitter_links
 from yoiyoi.api.xiaohongshu import get_xiaohongshu_links
 from yoiyoi.api.youtube_short import get_youtube_short_links
 
-# get constants and pyrogram app
+# get constants
 from yoiyoi.bot import CACHE_DIR, QUEUE_SIZE, PixivParse
 
 # bot filters

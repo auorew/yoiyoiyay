@@ -1,15 +1,12 @@
 """Main module"""
 
-import sys
+import asyncio
 
 # working with env
 from dotenv import load_dotenv
 
 # start main bot
 from yoiyoi.app.main import start_app
-
-# start pyro bot
-from yoiyoi.app.pyro import pyro_app
 
 # settings
 from yoiyoi.extra.loggers import root_log
@@ -19,4 +16,7 @@ if __name__ == "__main__":
     load_dotenv()
     # start bot
     root_log.info("Starting the bot...")
-    sys.exit(pyro_app.run(start_app()))
+    try:
+        asyncio.run(start_app())
+    except KeyboardInterrupt:
+        root_log.info("Bot stopped.")

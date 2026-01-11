@@ -3,9 +3,6 @@
 # telegram core bot api extension
 from telegram.ext import Application
 
-# pyrogram app
-from yoiyoi.app.pyro import pyro_app
-
 # settings
 from yoiyoi.extra.settings import bot_settings
 
@@ -75,10 +72,8 @@ class PixivParse:
     ) = range(4)
 
 
-async def on_bot_init(_: Application) -> None:
-    await pyro_app.start()
+async def on_bot_init(_: Application) -> None: ...
 
 
 async def on_bot_stop(_: Application) -> None:
-    await pyro_app.log_out()
     await upload_log(_)

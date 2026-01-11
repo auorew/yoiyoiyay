@@ -18,9 +18,6 @@ log/
 # Databases
 *.db
 
-# Pyrogram
-*.session*
-
 # Other stuff
 .*/
 !.github
