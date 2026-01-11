@@ -666,7 +666,7 @@ async def send_youtube_short(
         filepath = None
         for vid in video.content:
             if 0 < vid.size < 50 << 20:
-                filepath = await save_file(vid.link)
+                filepath = await save_file(vid.link, headers=vid.headers)
                 break
         else:
             # if file is too big

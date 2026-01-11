@@ -33,8 +33,7 @@ def hunter(input_string, delimiter, target_offset, source_base):
                 source_string = source_string * 10 + delimiter.index(ch)
             except ValueError:
                 source_string = source_string * 10 + int(ch)
-            finally:
-                continue
+            continue
         target_string.append(
             chr(convert_base(str(source_string), source_base, 10) - target_offset)
         )

@@ -188,7 +188,17 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
             content.append(
                 YouTubeShortContent(
                     url,
-                    video.get("filesize", 0) or video.get("filesize_approx", 0) or 0,
+                    (
+                        video.get("filesize", 0)
+                        or video.get("filesize_approx", 0)
+                        or await get_content_size(
+                            video["url"],
+                            headers=video["http_headers"],
+                        )
+                        or 0
+                    ),
+                    video["http_headers"],
+                    {},
                 )
             )
     except Exception as exception:
@@ -238,7 +248,7 @@ async def get_10downloader_links(link: Link) -> list[Optional[YouTubeShortConten
         for download_link in soup.find_all("a", class_="downloadBtn")[:2]:
             if download_link["download"].endswith("mp4"):
                 if (_size := await get_content_size(_link := download_link["href"])) > 0:
-                    content.append(YouTubeShortContent(_link, _size))
+                    content.append(YouTubeShortContent(_link, _size, {}, {}))
     return content
 
 

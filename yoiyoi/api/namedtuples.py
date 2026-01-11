@@ -83,6 +83,8 @@ YouTubeShortContent = namedtuple(
     (
         "link",
         "size",
+        "headers",
+        "kwargs",
     ),
 )
 
