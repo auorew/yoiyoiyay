@@ -42,10 +42,10 @@ from yoiyoi.extra import PROXY, PROXY_SET
 
 # fake headers and request helpers
 from yoiyoi.extra.request_helpers import (
-    FAKE_HEADERS,
     get_content_extension,
     get_content_name,
     get_content_size,
+    get_fake_headers,
     make_request,
 )
 
@@ -162,7 +162,7 @@ async def get_tikmate_app_info(link: str) -> dict:
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Content-Type": f"multipart/form-data; boundary={boundary}",
             "Origin": f"https://{base}",
             "Referer": f"https://{base}/",
@@ -269,7 +269,7 @@ async def get_basic_info_downr(link: str) -> dict:
             api,
             method="POST",
             headers={
-                **FAKE_HEADERS,
+                **get_fake_headers(),
                 "Referer": "https://downr.org/",
                 "Content-Type": "application/json",
                 "Origin": "https://downr.org",
@@ -386,7 +386,7 @@ async def get_info_tokcounter(basic_info: dict) -> dict:
     if response := await make_request.retry_with(stop=stop_after_attempt(1))(
         url=f"{api}/{basic_info['id']}",
         method="GET",
-        headers={**FAKE_HEADERS, "Origin": "https://tokcounter.com"},
+        headers={**get_fake_headers(), "Origin": "https://tokcounter.com"},
     ):
         # check response
         if response.is_error:
@@ -430,7 +430,7 @@ async def get_info_lovetik(basic_info: dict) -> dict:
     if response := await make_request.retry_with(stop=stop_after_attempt(1))(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Content-Type": "application/x-www-form-urlencoded;" " charset=UTF-8",
             "Referer": f"https://{base}/",
         },
@@ -565,7 +565,7 @@ async def get_links_tokcounter(
     if response := await make_request.retry_with(stop=stop_after_attempt(1))(
         url=f"{api}/{tiktok_info['id']}",
         method="GET",
-        headers={**FAKE_HEADERS, "Origin": "https://tokcounter.com"},
+        headers={**get_fake_headers(), "Origin": "https://tokcounter.com"},
     ):
         # check response
         if response.is_error:
@@ -652,7 +652,7 @@ async def get_links_lovetik(
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Content-Type": "application/x-www-form-urlencoded;" " charset=UTF-8",
             "Referer": f"https://{base}/",
         },
@@ -712,7 +712,7 @@ async def get_links_unduhtiktok(
     if cookie := await make_request(
         "https://unduhtiktok.com/wp-content/plugins/app-snaptik//api/check.php",
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Referer": "https://unduhtiktok.com/",
             "DNT": "1",
             "Sec-GPC": "1",
@@ -737,7 +737,7 @@ async def get_links_unduhtiktok(
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Content-Type": "application/json",
             "Origin": "https://unduhtiktok.com",
             "Connection": "keep-alive",
@@ -821,7 +821,7 @@ async def get_links_tikgo(
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Referer": f"{base}/slide",
             "Content-Type": "application/json",
             "Origin": base,
@@ -901,7 +901,7 @@ async def get_slides_links_tikmate_io(
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": base,
             "Referer": f"{base}/",
@@ -976,7 +976,7 @@ async def get_slides_links_snaptik(
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": base,
             "Referer": f"{base}/",
@@ -1038,7 +1038,7 @@ async def get_links_downr(
         api,
         method="POST",
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Referer": "https://downr.org/",
             "Content-Type": "application/json",
             "Origin": "https://downr.org",

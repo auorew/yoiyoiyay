@@ -23,7 +23,7 @@ from telegram.ext import ContextTypes
 from yoiyoi.extra import PROXY, PROXY_CID, PROXY_LIMIT, PROXY_SET, PROXY_TIMEOUT
 
 # get fake headers & retry requets
-from yoiyoi.extra.request_helpers import FAKE_HEADERS
+from yoiyoi.extra.request_helpers import get_fake_headers
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -88,7 +88,7 @@ class GetProxy:
                     if (
                         main_response := await shared_client.get(
                             random.choice(self.test_links),
-                            headers=FAKE_HEADERS,
+                            headers=get_fake_headers(),
                         )
                     ) and main_response.is_error:
                         raise httpx.RequestError("Tiktok: Couldn't reach")
@@ -197,7 +197,7 @@ async def health_checker(
     try:
         hcu = str(bot_settings.health_check_url)
         async with httpx.AsyncClient(timeout=5) as client:
-            if (response := await client.get(hcu, headers=FAKE_HEADERS)).is_error:
+            if (response := await client.get(hcu, headers=get_fake_headers())).is_error:
                 log.warning(
                     "PingInstance: failed to reach %s. Status: %s",
                     hcu,

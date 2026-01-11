@@ -31,7 +31,7 @@ from yoiyoi.api.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
 from yoiyoi.extra import PROXY, PROXY_SET
 
 # fake headers and request helpers
-from yoiyoi.extra.request_helpers import FAKE_HEADERS, get_content_size, make_request
+from yoiyoi.extra.request_helpers import get_content_size, get_fake_headers, make_request
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -89,7 +89,7 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
     if response := await make_request(
         url=api,
         method="GET",
-        headers={**FAKE_HEADERS, "Origin": base},
+        headers={**get_fake_headers(), "Origin": base},
         params={
             "key": "foo1",
             "quotaUser": "8zPW8L9nyFzpnJcTHFeFJWAGTxqssC3686F4wKoT",

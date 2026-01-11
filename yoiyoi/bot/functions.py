@@ -99,9 +99,9 @@ from yoiyoi.db.updaters import update_chat
 
 # get file size
 from yoiyoi.extra.request_helpers import (
-    FAKE_HEADERS,
     PIXIV_HEADERS,
     get_content_type,
+    get_fake_headers,
     save_file,
 )
 
@@ -748,7 +748,7 @@ async def send_pixiv(
             filepath = await save_file(
                 media.original,
                 headers={
-                    **FAKE_HEADERS,
+                    **get_fake_headers(),
                     "Range": "bytes=0-",
                     "Referer": "https://t-hk.ugoira.com/",
                 },

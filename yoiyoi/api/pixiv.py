@@ -19,9 +19,9 @@ from yoiyoi.api.namedtuples import PixivContent, PixivMedia
 
 # get file size
 from yoiyoi.extra.request_helpers import (
-    FAKE_HEADERS,
     PIXIV_HEADERS,
     get_content_size,
+    get_fake_headers,
     make_request,
     retry_request,
 )
@@ -45,7 +45,7 @@ async def get_pixiv_media(illust: dict, get_sizes: bool = False) -> PixivMedia:
         if not (
             response := await make_request(
                 "https://ugoira.com/api/illusts/queue",
-                headers={**FAKE_HEADERS, "Content-Type": "application/json"},
+                headers={**get_fake_headers(), "Content-Type": "application/json"},
                 referer="https://ugoira.com/",
                 data=orjson.dumps({"text": str(illust.id)}),
             )

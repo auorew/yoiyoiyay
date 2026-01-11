@@ -37,7 +37,7 @@ from yoiyoi.api.namedtuples import TweetContent, TweetMedia
 from yoiyoi.bot.formatters import unescape_html
 
 # fake headers and request helpers
-from yoiyoi.extra.request_helpers import FAKE_HEADERS, get_content_size, make_request
+from yoiyoi.extra.request_helpers import get_content_size, get_fake_headers, make_request
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -191,7 +191,7 @@ async def fetch_tweet_info(tweet_id: str) -> Optional[httpx.Response]:
     delay = 2
 
     for _ in range(max_retries):
-        response = await make_request(url, "GET", headers=FAKE_HEADERS)
+        response = await make_request(url, "GET", headers=get_fake_headers())
         if response and not response.is_error:
             return response
         api_log.debug("No tweet info found, retrying after %s seconds...", delay)

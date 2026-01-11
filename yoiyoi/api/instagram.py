@@ -25,9 +25,9 @@ from yoiyoi.api.namedtuples import InstaMedia
 
 # request helpers
 from yoiyoi.extra.request_helpers import (
-    FAKE_HEADERS,
     get_content_extension,
     get_content_name,
+    get_fake_headers,
     make_request,
 )
 
@@ -80,7 +80,7 @@ async def get_links_igramworld(link: str) -> list[InstaMedia]:
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Accept": "application/json, text/plain, */*",
             "Content-Type": "application/json",
             "Origin": origin,
@@ -152,7 +152,7 @@ async def get_links_downr(link: str) -> list[InstaMedia]:
         api,
         method="POST",
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Referer": "https://downr.org/",
             "Content-Type": "application/json",
             "Origin": "https://downr.org",
@@ -251,7 +251,7 @@ async def get_links_snapinstato(link: str) -> list[InstaMedia]:
     if token_response := await make_request(
         url=f"{base}/api/userverify",
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Accept": "*/*",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Referer": base,
@@ -281,7 +281,7 @@ async def get_links_snapinstato(link: str) -> list[InstaMedia]:
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Origin": base,
             "Referer": f"{base}/",
         },
@@ -362,7 +362,7 @@ async def get_links_clipdownapp(link: str) -> list[InstaMedia]:
     if token_response := await make_request(
         url=f"{origin}/api/userverify",
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Accept": "*/*",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Referer": f"{origin}/en",
@@ -392,7 +392,7 @@ async def get_links_clipdownapp(link: str) -> list[InstaMedia]:
     if response := await make_request(
         url=api,
         headers={
-            **FAKE_HEADERS,
+            **get_fake_headers(),
             "Origin": origin,
             "Referer": f"{origin}/",
         },

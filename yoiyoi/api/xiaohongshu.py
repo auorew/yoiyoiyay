@@ -23,8 +23,8 @@ from yoiyoi.extra import PROXY, PROXY_SET
 
 # fake headers and request helpers
 from yoiyoi.extra.request_helpers import (
-    FAKE_HEADERS,
     get_content_size,
+    get_fake_headers,
     make_request,
 )
 
@@ -185,7 +185,7 @@ async def get_links_seekin(link):
         response := await make_request(
             "https://api.seekin.ai/ikool/media/download",
             headers={
-                **FAKE_HEADERS,
+                **get_fake_headers(),
                 "Accept": "*/*",
                 "Referer": "https://www.seekin.ai/",
                 "Content-Type": "application/json",
