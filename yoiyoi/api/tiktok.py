@@ -434,7 +434,8 @@ async def get_tiktok_thumbnail(basic_info: dict) -> Optional[AdvancedInfo]:
     if info := await fetch_api_json(
         url=f'https://www.tiktok.com/oembed?url={basic_info["source"]}',
         method="GET",
-        retry_with=dict(stop=stop_after_attempt(1)),
+        retry_with=dict(stop=stop_after_attempt(2)),
+        with_proxy=True,
     ):
         if info["author_name"] == "@":
             api_log.warning("TikTok Embed: Hidden content.")
@@ -465,7 +466,8 @@ async def get_info_tokcounter(basic_info: dict) -> Optional[AdvancedInfo]:
         url=f"{api}/{basic_info['id']}",
         method="GET",
         headers={**get_fake_headers(), "Origin": "https://tokcounter.com"},
-        retry_with=dict(stop=stop_after_attempt(1)),
+        retry_with=dict(stop=stop_after_attempt(2)),
+        with_proxy=True,
     ):
         # process response
         if not info["success"]:
@@ -502,7 +504,8 @@ async def get_info_lovetik(basic_info: dict) -> Optional[AdvancedInfo]:
         },
         # fallback source, since /photo/ URLs are not currently supported
         data={"query": basic_info["fallback"]},
-        retry_with=dict(stop=stop_after_attempt(1)),
+        retry_with=dict(stop=stop_after_attempt(2)),
+        with_proxy=True,
     ):
         # process response
         if info["status"] != "ok" or info["mess"].startswith("Error"):
@@ -621,7 +624,8 @@ async def get_links_tokcounter(
         url=f"{api}/{tiktok_info['id']}",
         method="GET",
         headers={**get_fake_headers(), "Origin": "https://tokcounter.com"},
-        retry_with=dict(stop=stop_after_attempt(1)),
+        retry_with=dict(stop=stop_after_attempt(2)),
+        with_proxy=True,
     ):
         # process response
         if not info["success"]:
