@@ -36,8 +36,11 @@ from yoiyoi.api.namedtuples import TweetContent, TweetMedia
 # escape markdown and get file name
 from yoiyoi.bot.formatters import unescape_html
 
-# fake headers and request helpers
-from yoiyoi.extra.request_helpers import get_content_size, get_fake_headers, make_request
+# request helpers
+from yoiyoi.extra.request_helpers import get_fake_headers
+
+# requests
+from yoiyoi.extra.requests import get_content_size, make_request
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -346,7 +349,7 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
             "TE": "trailers",
         },
         params={"id": str(tweet_id), "lang": "en", "token": "ghostery"},
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if response.is_error:

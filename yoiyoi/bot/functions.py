@@ -97,13 +97,11 @@ from yoiyoi.db.models import Chat
 # database helpers
 from yoiyoi.db.updaters import update_chat
 
+# request helpers
+from yoiyoi.extra.request_helpers import PIXIV_HEADERS, get_fake_headers
+
 # get file size
-from yoiyoi.extra.request_helpers import (
-    PIXIV_HEADERS,
-    get_content_type,
-    get_fake_headers,
-    save_file,
-)
+from yoiyoi.extra.requests import get_content_type, save_file
 
 # media styles
 from yoiyoi.extra.styles import (

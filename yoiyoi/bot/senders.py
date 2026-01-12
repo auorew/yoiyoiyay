@@ -7,7 +7,7 @@ import structlog
 from telegram import Message, Update
 
 # retry requets
-from yoiyoi.extra.request_helpers import retry_request
+from yoiyoi.extra.request_retriers import retry_request
 
 # get logger
 log = structlog.get_logger(__name__)

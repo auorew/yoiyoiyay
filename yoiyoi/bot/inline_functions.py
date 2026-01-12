@@ -70,7 +70,7 @@ from yoiyoi.db.models import Chat
 from yoiyoi.db.updaters import update_chat
 
 # get file size
-from yoiyoi.extra.request_helpers import get_content_size
+from yoiyoi.extra.requests import get_content_size
 
 # settings
 from yoiyoi.extra.settings import bot_settings

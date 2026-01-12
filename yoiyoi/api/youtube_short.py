@@ -1,5 +1,6 @@
 """YouTube Short module"""
 
+import asyncio
 import re
 import time
 
@@ -15,6 +16,9 @@ import structlog
 # yt-dlp
 import yt_dlp
 
+# async caching
+from aiocache import cached
+
 # beautiful soup
 from bs4 import BeautifulSoup
 
@@ -27,11 +31,20 @@ from yoiyoi.api import LINKS
 # YouTubeShortMedia namedtuple
 from yoiyoi.api.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
 
-# any extra data
-from yoiyoi.extra import PROXY, PROXY_SET
+# proxy
+from yoiyoi.app.proxy import proxy_manager
 
-# fake headers and request helpers
-from yoiyoi.extra.request_helpers import get_content_size, get_fake_headers, make_request
+# retry proxy max tries
+from yoiyoi.extra import RETRY_PROXY_MAX_TRIES
+
+# request helpers
+from yoiyoi.extra.request_helpers import get_fake_headers
+
+# retriers
+from yoiyoi.extra.request_retriers import retry_request
+
+# requests
+from yoiyoi.extra.requests import get_content_size, make_request
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -124,44 +137,48 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
         }
 
 
-async def get_ytdlp_with_proxy(link: Link):
-    attempt = 0
-    while attempt < 5:
-        if not PROXY["active"]:
-            if PROXY_SET:
-                proxy_url = PROXY_SET.pop()
-                log.info("Using proxy: %s.", proxy_url)
-                PROXY["active"] = proxy_url
-        try:
-            with yt_dlp.YoutubeDL(
-                {
-                    **ytdlp_ops,
-                    "cookiefile": StringIO(
-                        Fernet(bot_settings.yt_key)
-                        .decrypt(bot_settings.yt_cookies.encode())
-                        .decode()
-                    ),
-                    "proxy": PROXY["active"] if PROXY["active"] else None,
-                }
-            ) as ytdl:
-                return ytdl.extract_info(link.link)
-        except Exception as exception:
-            attempt += 1
-            log.warning(
-                "yt-dlp: Failed because of %s: %r.",
-                exception.__class__.__name__,
-                exception,
-                exc_info=True,
-                # function info
-                link=link,
-            )
-            if not PROXY_SET:
-                PROXY["active"] = None
-                return
-            else:
-                proxy_url = PROXY_SET.pop()
-                log.info("Using proxy: %s.", proxy_url)
-                PROXY["active"] = proxy_url
+@cached(
+    ttl=15,
+    key_builder=lambda fn, *a, **kw: a[0],
+    skip_cache_func=lambda r: r is None,
+)
+@retry_request
+async def get_ytdlp_with_proxy(link: str):
+    api_log = log.bind(api="yt-dlp")
+    use_proxy = (
+        proxy_manager.active and proxy_manager.request_attempts <= RETRY_PROXY_MAX_TRIES
+    )
+    current_proxy = proxy_manager.active if use_proxy else None
+
+    def _extract():
+        with yt_dlp.YoutubeDL(
+            {
+                **ytdlp_ops,
+                "cookiefile": StringIO(
+                    Fernet(bot_settings.yt_key)
+                    .decrypt(bot_settings.yt_cookies.encode())
+                    .decode()
+                ),
+                "proxy": current_proxy,
+            }
+        ) as ytdl:
+            return ytdl.extract_info(link, download=False)
+
+    try:
+        info = await asyncio.to_thread(_extract)
+        proxy_manager.reset_attempts()
+        return info
+
+    except Exception as exception:
+        api_log.warning(
+            "yt-dlp: Failed because of %s: %r.",
+            exception.__class__.__name__,
+            exception,
+            exc_info=True,
+            # function info
+            link=link,
+        )
+        raise
 
 
 async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
@@ -175,7 +192,7 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
     """
     content = []
     try:
-        if not (info := await get_ytdlp_with_proxy(link)):
+        if not (info := await get_ytdlp_with_proxy(link.link)):
             log.warning("Got no data from yt-dlp!")
             return content
         videos = []

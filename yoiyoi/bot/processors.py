@@ -41,7 +41,7 @@ from yoiyoi.bot.formatters import esc
 from yoiyoi.bot.senders import send_error, send_reply
 
 # get file size
-from yoiyoi.extra.request_helpers import save_file
+from yoiyoi.extra.requests import save_file
 
 # settings
 from yoiyoi.extra.settings import bot_settings

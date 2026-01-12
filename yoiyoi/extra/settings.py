@@ -103,10 +103,10 @@ class BotSettings(BaseSettings):
     gd_log: Optional[str] = Field("")
 
     # health check URL
-    health_check_url: Optional[AnyUrl] = Field(None)
+    health_check_url: Optional[AnyUrl] = None
 
     # your proxy URL
-    proxy_url: Optional[AnyUrl] = Field(None)
+    proxy_url: Optional[AnyUrl] = None
 
     class Config:
         env_file = ".env"

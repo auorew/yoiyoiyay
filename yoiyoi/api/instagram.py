@@ -24,10 +24,12 @@ from yoiyoi.api.dehunter import dehunter
 from yoiyoi.api.namedtuples import InstaMedia
 
 # request helpers
-from yoiyoi.extra.request_helpers import (
+from yoiyoi.extra.request_helpers import get_fake_headers
+
+# requests
+from yoiyoi.extra.requests import (
     get_content_extension,
     get_content_name,
-    get_fake_headers,
     make_request,
 )
 
@@ -95,7 +97,7 @@ async def get_links_igramworld(link: str) -> list[InstaMedia]:
             "_s": secret_string,
         },
         follow_redirects=True,
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if response.is_error:
@@ -164,7 +166,7 @@ async def get_links_downr(link: str) -> list[InstaMedia]:
         },
         json={"url": link},
         follow_redirects=True,
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if response.is_error:
@@ -262,7 +264,7 @@ async def get_links_snapinstato(link: str) -> list[InstaMedia]:
             "Sec-Fetch-Site": "same-origin",
         },
         data={"url": link},
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if token_response.is_error:
@@ -292,7 +294,7 @@ async def get_links_snapinstato(link: str) -> list[InstaMedia]:
             "v": "v2",
             "cftoken": token,
         },
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if response.is_error:
@@ -373,7 +375,7 @@ async def get_links_clipdownapp(link: str) -> list[InstaMedia]:
             "Sec-Fetch-Site": "same-origin",
         },
         data={"url": link},
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if token_response.is_error:
@@ -403,7 +405,7 @@ async def get_links_clipdownapp(link: str) -> list[InstaMedia]:
             "v": "v2",
             "cftoken": token,
         },
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if response.is_error:

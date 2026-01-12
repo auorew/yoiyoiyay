@@ -7,7 +7,7 @@ import structlog
 from bs4 import BeautifulSoup
 
 # making requests
-from yoiyoi.extra.request_helpers import make_request
+from yoiyoi.extra.requests import make_request
 
 # setup logger
 log = structlog.get_logger(__name__)
@@ -17,7 +17,7 @@ async def expand_with_urlex(link: str) -> Optional[str]:
     if response := await make_request(
         url="https://urlex.org/",
         data={"s": link},
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if response.is_error:

@@ -49,7 +49,7 @@ from yoiyoi.bot.functions import process_link
 from yoiyoi.bot.inline_functions import inliner
 
 # bot jobs
-from yoiyoi.bot.jobs import get_proxy, health_checker
+from yoiyoi.bot.jobs import job_get_proxy, job_health_checker
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -234,9 +234,9 @@ def create_bot_app() -> Application:
     if not (jobs := application.job_queue):
         raise RuntimeError("Job queue was not initialized.")
     # get new proxy every 10 minutes
-    jobs.run_repeating(get_proxy, **JOB_GET_PROXY)
+    jobs.run_repeating(job_get_proxy, **JOB_GET_PROXY)
     # keep alive services with health checkc requests
-    jobs.run_repeating(health_checker, **JOB_HEALTH_CHECKER)
+    jobs.run_repeating(job_health_checker, **JOB_HEALTH_CHECKER)
 
     return application
 

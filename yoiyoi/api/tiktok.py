@@ -38,14 +38,22 @@ from yoiyoi.api.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
 from yoiyoi.api.urlexpander import expand_with_expandurl, expand_with_urlex
 
 # proxy
-from yoiyoi.extra import PROXY, PROXY_SET
+from yoiyoi.app.proxy import proxy_manager
 
-# fake headers and request helpers
-from yoiyoi.extra.request_helpers import (
+# retry proxy max tries
+from yoiyoi.extra import RETRY_PROXY_MAX_TRIES
+
+# request helpers
+from yoiyoi.extra.request_helpers import get_fake_headers
+
+# retriers
+from yoiyoi.extra.request_retriers import retry_request
+
+# requests
+from yoiyoi.extra.requests import (
     get_content_extension,
     get_content_name,
     get_content_size,
-    get_fake_headers,
     make_request,
 )
 
@@ -187,7 +195,8 @@ def build_multipart_form(fields: dict, boundary: str) -> str:
     key_builder=lambda fn, *a, **kw: a[0],
     skip_cache_func=lambda r: r is None,
 )
-async def get_ytdlp_info(link: str) -> Optional[dict]:
+@retry_request
+async def get_ytdlp_info(link: str) -> Optional[AdvancedInfo]:
     """Gets tiktok info from yt-dlp.
 
     Args:
@@ -196,39 +205,31 @@ async def get_ytdlp_info(link: str) -> Optional[dict]:
     Returns:
         Optional[dict]: tiktok info.
     """
-    api_log = log.bind(api="yt-dlp", type="info")
-    attempt = 0
-    while attempt < 5:
-        if not PROXY["active"]:
-            if PROXY_SET:
-                proxy_url = PROXY_SET.pop()
-                api_log.info("Using proxy: %s.", proxy_url)
-                PROXY["active"] = proxy_url
-        try:
-            with yt_dlp.YoutubeDL(
-                {
-                    **ytdlp_ops,
-                    "proxy": PROXY["active"] if PROXY["active"] else None,
-                }
-            ) as ytdl:
-                return ytdl.extract_info(link)
-        except Exception as exception:
-            attempt += 1
-            api_log.warning(
-                "yt-dlp: Failed because of %s: %r.",
-                exception.__class__.__name__,
-                exception,
-                exc_info=True,
-                # function info
-                link=link,
-            )
-            if not PROXY_SET:
-                PROXY["active"] = None
-                return
-            else:
-                proxy_url = PROXY_SET.pop()
-                api_log.info("Using proxy: %s.", proxy_url)
-                PROXY["active"] = proxy_url
+    api_log = log.bind(api="yt-dlp")
+    use_proxy = (
+        proxy_manager.active and proxy_manager.request_attempts <= RETRY_PROXY_MAX_TRIES
+    )
+    current_proxy = proxy_manager.active if use_proxy else None
+
+    def _extract():
+        with yt_dlp.YoutubeDL({**ytdlp_ops, "proxy": current_proxy}) as ytdl:
+            return ytdl.extract_info(link, download=False)
+
+    try:
+        info = await asyncio.to_thread(_extract)
+        proxy_manager.reset_attempts()
+        return info
+
+    except Exception as exception:
+        api_log.warning(
+            "yt-dlp: Failed because of %s: %r.",
+            exception.__class__.__name__,
+            exception,
+            exc_info=True,
+            # function info
+            link=link,
+        )
+        raise
 
 
 async def get_tikmate_app_info(link: str) -> Optional[dict]:
@@ -264,7 +265,7 @@ async def get_tikmate_app_info(link: str) -> Optional[dict]:
             "Priority": "u=0",
         },
         data=build_multipart_form({"url": link}, boundary),
-        proxy=True,
+        with_proxy=True,
     ):
         # process response
         if not info.get("success", False):
@@ -314,7 +315,7 @@ async def get_basic_info_tiktok(link: str) -> Optional[TikTokInfo]:
     api_log = log.bind(api="tiktok", type="info")
     # send request
     if (
-        (response := await make_request(link, method="HEAD", proxy=True))
+        (response := await make_request(link, method="HEAD", with_proxy=True))
         and response.is_success
         and response.url.path != "/"
         and (info := re.search(TT["info"], response.url.path))
@@ -378,7 +379,7 @@ async def get_basic_info_downr(link: str) -> Optional[TikTokInfo]:
         },
         json={"url": link},
         follow_redirects=True,
-        proxy=True,
+        with_proxy=True,
     ):
         # process response
         tiktok_type = "video"
@@ -775,7 +776,7 @@ async def get_links_unduhtiktok(
             "Referer": "https://unduhtiktok.com/",
         },
         cookies=cookies,
-        proxy=True,
+        with_proxy=True,
         json={
             "url": f"https://www.tiktok.com/@web/video/{tiktok_info['id']}",
         },
@@ -849,7 +850,7 @@ async def get_links_tikgo(
             "url": tiktok_info["fallback"],
         },
         follow_redirects=True,
-        proxy=True,
+        with_proxy=True,
     ):
         # process response
         # if metadata := info.get("metadata"):
@@ -892,7 +893,7 @@ async def get_slides_links_tikmate_io(
     api = f"{base}/abc.php"
     # get token
     token = ""
-    if response := await make_request(url=base, method="GET", proxy=True):
+    if response := await make_request(url=base, method="GET", with_proxy=True):
         # check response
         if response.is_error:
             api_log.warning("Request to the website failed: %s.", response)
@@ -920,7 +921,7 @@ async def get_slides_links_tikmate_io(
             "token": token,
         },
         follow_redirects=True,
-        proxy=True,
+        with_proxy=True,
     ):
         # check response
         if response.is_error:
@@ -967,7 +968,7 @@ async def get_slides_links_snaptik(
     api = f"{base}/abc2.php"
     # get token
     token = ""
-    if response := await make_request(url=base, method="GET", proxy=True):
+    if response := await make_request(url=base, method="GET", with_proxy=True):
         # check response
         if response.is_error:
             api_log.warning("Request to the website failed: %s.", response)
@@ -994,7 +995,7 @@ async def get_slides_links_snaptik(
             "token": token,
         },
         follow_redirects=True,
-        proxy=True,
+        with_proxy=True,
     ):
         # process response
         if response.is_error:
@@ -1057,7 +1058,7 @@ async def get_links_downr(
         },
         json={"url": tiktok_info["fallback"]},
         follow_redirects=True,
-        proxy=True,
+        with_proxy=True,
     ):
         # process response
         if info["error"]:

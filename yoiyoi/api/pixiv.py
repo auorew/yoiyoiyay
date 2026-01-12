@@ -17,14 +17,16 @@ from yoiyoi.api import LINKS
 # PixivMedia namedtuple
 from yoiyoi.api.namedtuples import PixivContent, PixivMedia
 
-# get file size
-from yoiyoi.extra.request_helpers import (
-    PIXIV_HEADERS,
-    get_content_size,
-    get_fake_headers,
-    make_request,
-    retry_request,
-)
+# request helpers
+from yoiyoi.extra.request_helpers import PIXIV_HEADERS, get_fake_headers
+
+# request retriers
+from yoiyoi.extra.request_retriers import retry_request
+
+# requests
+from yoiyoi.extra.requests import get_content_size, make_request
+
+# bot settings
 from yoiyoi.extra.settings import bot_settings
 
 # get logger

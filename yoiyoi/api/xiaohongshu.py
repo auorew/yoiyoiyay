@@ -1,5 +1,7 @@
 """Xiaohongshu module"""
 
+import asyncio
+
 from http.cookies import SimpleCookie
 from typing import Optional
 
@@ -19,14 +21,19 @@ from aiocache import cached
 from yoiyoi.api.namedtuples import XiaohongshuMedia, XiaohongshuVideo
 
 # proxy
-from yoiyoi.extra import PROXY, PROXY_SET
+from yoiyoi.app.proxy import proxy_manager
 
-# fake headers and request helpers
-from yoiyoi.extra.request_helpers import (
-    get_content_size,
-    get_fake_headers,
-    make_request,
-)
+# retry proxy max tries
+from yoiyoi.extra import RETRY_PROXY_MAX_TRIES
+
+# request helpers
+from yoiyoi.extra.request_helpers import get_fake_headers
+
+# retriers
+from yoiyoi.extra.request_retriers import retry_request
+
+# requests
+from yoiyoi.extra.requests import get_content_size, make_request
 
 # setup logger
 log = structlog.get_logger(__name__)
@@ -44,6 +51,7 @@ ytdlp_ops = {
     key_builder=lambda fn, *a, **kw: a[0],
     skip_cache_func=lambda r: r is None,
 )
+@retry_request
 async def get_ytdlp_info(link: str) -> dict:
     """Gets xhs info from yt-dlp.
 
@@ -53,39 +61,31 @@ async def get_ytdlp_info(link: str) -> dict:
     Returns:
         dict: xhs info.
     """
-    attempt = 0
-    while attempt < 5:
-        if not PROXY["active"]:
-            if PROXY_SET:
-                proxy_url = PROXY_SET.pop()
-                log.info("Using proxy: %s.", proxy_url)
-                PROXY["active"] = proxy_url
-        try:
-            with yt_dlp.YoutubeDL(
-                {
-                    **ytdlp_ops,
-                    "proxy": PROXY["active"] if PROXY["active"] else None,
-                }
-            ) as ytdl:
-                return ytdl.extract_info(link)
+    api_log = log.bind(api="yt-dlp")
+    use_proxy = (
+        proxy_manager.active and proxy_manager.request_attempts <= RETRY_PROXY_MAX_TRIES
+    )
+    current_proxy = proxy_manager.active if use_proxy else None
 
-        except Exception as exception:
-            attempt += 1
-            log.warning(
-                "yt-dlp: Failed because of %s: %r.",
-                exception.__class__.__name__,
-                exception,
-                exc_info=True,
-                # function info
-                link=link,
-            )
-            if not PROXY_SET:
-                PROXY["active"] = None
-                return
-            else:
-                proxy_url = PROXY_SET.pop()
-                log.info("Using proxy: %s.", proxy_url)
-                PROXY["active"] = proxy_url
+    def _extract():
+        with yt_dlp.YoutubeDL({**ytdlp_ops, "proxy": current_proxy}) as ytdl:
+            return ytdl.extract_info(link, download=False)
+
+    try:
+        info = await asyncio.to_thread(_extract)
+        proxy_manager.reset_attempts()
+        return info
+
+    except Exception as exception:
+        api_log.warning(
+            "yt-dlp: Failed because of %s: %r.",
+            exception.__class__.__name__,
+            exception,
+            exc_info=True,
+            # function info
+            link=link,
+        )
+        raise
 
 
 async def get_info_ytdlp(link: str) -> dict:

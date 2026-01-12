@@ -16,9 +16,11 @@ import structlog
 # telegram core bot api extension
 from telegram.ext import Application
 
-# retry requests
+# get log filename
 from yoiyoi.extra.loggers import get_log_filename
-from yoiyoi.extra.request_helpers import retry_request
+
+# retry requests
+from yoiyoi.extra.request_retriers import retry_request
 
 # settings
 from yoiyoi.extra.settings import bot_settings, log_settings
