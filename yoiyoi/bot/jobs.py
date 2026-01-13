@@ -1,5 +1,7 @@
 """Bot Jobs"""
 
+# memory stats
+import tracemalloc
 
 # http requests
 import httpx
@@ -19,6 +21,9 @@ from yoiyoi.extra.request_helpers import get_fake_headers
 # settings
 from yoiyoi.extra.settings import bot_settings
 
+# collect memory stats
+from yoiyoi.extra.tracemalloc_helpers import display_top
+
 # setup logger
 log = structlog.get_logger(__name__)
 
@@ -31,6 +36,8 @@ async def job_get_proxy(
     Args:
         _ (ContextTypes): callback context (not used)
     """
+    snapshot_before = tracemalloc.take_snapshot()
+
     if proxy_manager.is_static:
         log.debug("Proxy is static. Skipping getter job.")
         return
@@ -38,6 +45,9 @@ async def job_get_proxy(
     proxy_manager.update_pool(proxy_set)
     if not proxy_manager.active:
         await proxy_manager.rotate()
+
+    snapshot_after = tracemalloc.take_snapshot()
+    display_top(snapshot_after, prev_snapshot=snapshot_before)
 
 
 async def job_health_checker(
