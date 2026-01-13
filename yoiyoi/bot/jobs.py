@@ -1,6 +1,5 @@
 """Bot Jobs"""
 
-import asyncio
 
 # http requests
 import httpx

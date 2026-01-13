@@ -146,6 +146,17 @@ async def fetch_api_json(
         response = await make_request.retry_with(**retry_with)(
             url=url, method=method, **kwargs
         )
+    if response is None:
+        api_log.error(
+            "No response object!",
+            request={
+                "method": method,
+                "url": url,
+                "headers": kwargs.get("headers", {}),
+                "body": kwargs.get("data", None) or kwargs.get("json", None),
+            },
+        )
+        return {}
     request_info = await get_request_info(response)
     if response.is_error:
         api_log.warning(
