@@ -108,6 +108,8 @@ class ProxyGetter:
         return self._semaphore
 
     async def get(self):
+        self._semaphore = None
+
         self.log.debug("Clearing working proxy and proxy list...")
         self.working_proxy.clear()
         self.proxy_list.clear()
@@ -192,12 +194,10 @@ class ProxyGetter:
                         ) = (el.text for el in row.find_all("td"))
                         if https == "yes":
                             variants.add(("http", ip, port))
-
-                tasks = []
-                for variant in variants:
-                    if not self.country or variant[2] in self.country:
-                        tasks.append(asyncio.create_task(self.test_proxy(*variant)))
-                await asyncio.wait(tasks)
+                async with asyncio.TaskGroup() as tg:
+                    for variant in variants:
+                        if not self.country or variant[2] in self.country:
+                            tg.create_task(self.test_proxy(*variant))
 
         except Exception as ex:
             self.log.warning(
