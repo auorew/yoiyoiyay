@@ -84,7 +84,7 @@ from yoiyoi.extra.styles import (
 from yoiyoi.extra.utils import delete_files, move_file
 
 # link types and other info
-from yoiyoi.services import LinkType, TikTokMediaKind
+from yoiyoi.services.constants import LinkType
 
 # instagram api
 from yoiyoi.services.instagram.api import get_instagram_links

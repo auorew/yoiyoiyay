@@ -40,7 +40,7 @@ from yoiyoi.extra.requests import get_content_size, make_request
 from yoiyoi.extra.settings import bot_settings
 
 # link types and other info
-from yoiyoi.services import LINKS
+from yoiyoi.services.constants import LINKS
 
 # TweetMedia & TweetContent namedtuples
 from yoiyoi.services.namedtuples import TweetContent, TweetMedia

@@ -46,7 +46,7 @@ from yoiyoi.extra.requests import (
 )
 
 # link types and other info
-from yoiyoi.services import LINKS, TikTokMediaKind
+from yoiyoi.services.constants import LINKS, TikTokMediaKind
 
 # deobfuscate js response
 from yoiyoi.services.dehunter import dehunter

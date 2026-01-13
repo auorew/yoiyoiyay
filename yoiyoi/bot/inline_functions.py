@@ -58,7 +58,7 @@ from yoiyoi.extra.settings import bot_settings
 from yoiyoi.extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
 
 # link types and other info
-from yoiyoi.services import LinkType
+from yoiyoi.services.constants import LinkType
 
 # instagram api
 from yoiyoi.services.instagram.api import get_instagram_links

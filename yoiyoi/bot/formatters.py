@@ -28,7 +28,7 @@ from telegram.helpers import escape_markdown
 from yoiyoi.bot import PixivParse
 
 # link types and other info
-from yoiyoi.services import LINKS
+from yoiyoi.services.constants import LINKS
 
 # Link namedtuple
 from yoiyoi.services.namedtuples import Link

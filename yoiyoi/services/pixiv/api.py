@@ -24,7 +24,7 @@ from yoiyoi.extra.requests import get_content_size, make_request
 from yoiyoi.extra.settings import bot_settings
 
 # link types, link dictionary
-from yoiyoi.services import LINKS
+from yoiyoi.services.constants import LINKS
 
 # PixivMedia namedtuple
 from yoiyoi.services.namedtuples import PixivContent, PixivMedia
