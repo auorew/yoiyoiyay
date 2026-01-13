@@ -14,7 +14,7 @@ import httpx
 import structlog
 
 # parsing html
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 
 # get proxy dict and constant
 from yoiyoi.extra import PROXY_CID, PROXY_LIMIT, PROXY_TIMEOUT
@@ -174,26 +174,32 @@ class ProxyGetter:
                     page = await client.get(source, timeout=5, follow_redirects=True)
                     if page.is_error:
                         continue
-                    soup = BeautifulSoup(page.text, "html.parser")
-                    if not (container := soup.find_all("div", {"class": "fpl-list"})):
-                        continue
-                    if not (table := container[0].table):
-                        continue
-                    if not (tbody := table.tbody):
-                        continue
-                    for row in tbody:
-                        (
-                            ip,
-                            port,
-                            country_code,
-                            country_name,
-                            anon,
-                            google,
-                            https,
-                            checked,
-                        ) = (el.text for el in row.find_all("td"))
-                        if https == "yes":
-                            variants.add(("http", ip, port))
+                    soup = BeautifulSoup(
+                        markup=page.content,
+                        features="lxml",
+                        parse_only=SoupStrainer("div", {"class": "fpl-list"}),
+                    )
+                    for container in soup:
+                        if not (table := container.table) or not (tbody := table.tbody):
+                            continue
+                        for row in tbody:
+                            (
+                                ip,
+                                port,
+                                country_code,
+                                country_name,
+                                anon,
+                                google,
+                                https,
+                                checked,
+                            ) = (el.text for el in row.find_all("td"))
+                            if https == "yes":
+                                variants.add(("http", ip, port))
+                    # delete html tree
+                    soup.decompose()
+                    # close response
+                    await page.aclose()
+                # now check every proxy
                 async with asyncio.TaskGroup() as tg:
                     for variant in variants:
                         if not self.country or variant[2] in self.country:
