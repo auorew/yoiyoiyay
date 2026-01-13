@@ -2,6 +2,9 @@
 
 import re
 
+# http requests
+import httpx
+
 # structured logging
 import structlog
 
@@ -64,6 +67,19 @@ def get_fake_headers():
         headers.update({})
 
     return headers
+
+
+async def get_request_info(response: httpx.Response):
+    try:
+        request_body = response.request.read().decode("utf-8", errors="replace")
+    except httpx.RequestNotRead:
+        request_body = "[Unable to read request body]"
+    return {
+        "method": response.request.method,
+        "url": str(response.request.url),
+        "headers": dict(response.request.headers),
+        "body": request_body,
+    }
 
 
 # regex

@@ -44,7 +44,7 @@ from yoiyoi.app.proxy import proxy_manager
 from yoiyoi.extra import RETRY_PROXY_MAX_TRIES
 
 # request helpers
-from yoiyoi.extra.request_helpers import get_fake_headers
+from yoiyoi.extra.request_helpers import get_fake_headers, get_request_info
 
 # retriers
 from yoiyoi.extra.request_retriers import retry_request
@@ -146,12 +146,7 @@ async def fetch_api_json(
         response = await make_request.retry_with(**retry_with)(
             url=url, method=method, **kwargs
         )
-    request_info = {
-        "method": response.request.method,
-        "url": str(response.request.url),
-        "headers": dict(response.request.headers),
-        "body": response.request.content.decode("utf-8", errors="replace"),
-    }
+    request_info = await get_request_info(response)
     if response.is_error:
         api_log.warning(
             "Request to API failed: %s.",
