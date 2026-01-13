@@ -1,6 +1,8 @@
 """Main module"""
 
 import asyncio
+import os
+import signal
 import sys
 
 # working with env
@@ -39,3 +41,6 @@ if __name__ == "__main__":
         asyncio.run(start_app())
     except KeyboardInterrupt:
         root_log.info("Bot stopped.")
+    except MemoryError:
+        root_log.critical("RAM EXHAUSTED. SHUTTING DOWN SYSTEM.")
+        os.kill(os.getpid(), signal.SIGKILL)  # Force the bot to die immediately
