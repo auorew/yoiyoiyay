@@ -19,14 +19,20 @@ from telegram.constants import ParseMode as PM
 # cache dir
 from yoiyoi.bot import CACHE_DIR
 
-# telegrm senders
+# bot formatters
 from yoiyoi.bot.formatters import make_file_name
-from yoiyoi.bot.processors import process_image
+
+# bot processors
+from yoiyoi.bot.processors import process_image, process_video
+
+# bot senders
 from yoiyoi.bot.senders import send_error, send_media_group
-from yoiyoi.extra.requests import save_file
-from yoiyoi.extra.utils import delete_files, move_file
 
 # http requests
+from yoiyoi.extra.requests import save_file
+
+# file utils
+from yoiyoi.extra.utils import delete_files, move_file
 
 # setup logger
 log = structlog.get_logger(__name__)
@@ -42,6 +48,13 @@ class MediaItem:
     width: int = 0
     height: int = 0
     duration: int = 0
+
+
+class SenderError(Exception):
+    def __init__(self, message: str, telegram_message: str):
+        super().__init__(message)
+        self.message = message
+        self.telegram_message = telegram_message
 
 
 class BaseSender(ABC):
@@ -64,6 +77,8 @@ class BaseSender(ABC):
         self.files_to_clean = set()
         self.storage = set()
 
+        self.error_text = f"[*This {self.SERVICE} content*]({self.link.link})"
+
     @abstractmethod
     async def get_media_generator(self):
         """Yields MediaItem objects one by one."""
@@ -75,15 +90,35 @@ class BaseSender(ABC):
             generator = self.get_media_generator()
             await self._send_batched(generator)
 
+        except SenderError as error:
+            log.error(
+                "SenderError in %s: %r.",
+                self.__class__.__name__,
+                error.message,
+                # more info
+                chat=self.chat,
+                storage=self.storage,
+            )
+            await send_error(
+                self.update,
+                f"{self.error_text} {error.message}",
+                do_quote=not self.chat.delete_link,
+            )
+
         except Exception as exception:
             log.error(
                 "Error in %s: %r.",
                 self.__class__.__name__,
                 exception,
                 exc_info=True,
-                # function info
+                # more info
                 chat=self.chat,
                 storage=self.storage,
+            )
+            await send_error(
+                self.update,
+                f"{self.error_text} crashed the bot unexpectedly.",
+                do_quote=not self.chat.delete_link,
             )
         finally:
             self._cleanup()
@@ -155,6 +190,7 @@ class BaseSender(ABC):
                 do_quote=not self.chat.delete_link,
             ):
                 log.info("Sent media group.")
+                self.sent_any = True
                 if not doc_group:
                     return
                 log.info("Sending document group...")
@@ -172,31 +208,47 @@ class BaseSender(ABC):
             except Exception as exception:
                 log.warning("Incremental cleanup failed: %r.", exception)
 
-    async def download_helper(self, url: str, headers: dict = None) -> Optional[Path]:
+    async def download_helper(
+        self, url: str, headers: dict = None
+    ) -> tuple[Optional[Path], Optional[Path]]:
         """Downloads a file, saves it to storage_dir, and tracks it for cleanup."""
         if not (temp_path := await save_file(url, headers=headers)):
-            return None
+            return None, None
+
         filename = await make_file_name(self.SERVICE, url, temp_path)
         filepath = move_file(temp_path, self.storage_dir / filename)
         self.storage.add(filepath)
 
-        if filepath.suffix.lower() in (".jiff", ".jpg", ".jpeg", ".png", ".webp"):
-            if not (imagepath := await process_image(filepath)):
-                log.error("Couldn't resize image: %s", filepath.name)
-                await send_error(
-                    self.update,
-                    f"Post from {self.SERVICE} contains images the bot couldn't resize!",
-                    do_quote=not self.chat.delete_link,
-                )
-                return None
+        procpath = filepath
 
-            imagepath = Path(imagepath)
-            if imagepath != filepath:
+        # image processing
+        if filepath.suffix.lower() in {".jiff", ".jpg", ".jpeg", ".png", ".webp"}:
+            if not (procpath := await process_image(filepath)):
+                log.error("Couldn't resize image: %s", filepath.name)
+                raise SenderError(
+                    message="contains images the bot couldn't resize!",
+                    telegram_message="contains images the bot couldn't resize\\!",
+                )
+            procpath = Path(procpath)
+            if procpath != filepath:
                 resized_name = f"RE_{filepath.stem}{filepath.suffix}"
-                filepath = move_file(imagepath, self.storage_dir / resized_name)
+                filepath = move_file(procpath, self.storage_dir / resized_name)
                 self.storage.add(filepath)
 
-        return filepath
+        # video processing
+        elif filepath.suffix.lower() in {".mp4", ".mov", ".mkv"}:
+            if not (processed_video := await process_video(filepath)):
+                log.error("Couldn't process video: %s", filepath.name)
+                raise SenderError(
+                    message="contains videos the bot couldn't process!",
+                    telegram_message="contains videos the bot couldn't process\\!",
+                )
+
+            procpath = Path(processed_video)
+            if procpath != filepath:
+                self.storage.add(procpath)
+
+        return procpath, filepath
 
     def _cleanup(self):
         """Deletes all tracked files and the directory."""

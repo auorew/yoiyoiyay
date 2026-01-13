@@ -3,7 +3,6 @@
 import asyncio
 
 from pathlib import Path
-from typing import Optional
 
 # structured logging
 import structlog
@@ -15,7 +14,6 @@ from structlog.contextvars import unbind_contextvars
 from telegram import InputMediaDocument, InputMediaPhoto, InputMediaVideo, Update
 
 # telegram constants
-from telegram.constants import MessageLimit as ML
 from telegram.constants import ParseMode as PM
 
 # telegram errors
@@ -43,7 +41,7 @@ from yoiyoi.bot.formatters import (
 )
 
 # bot helpers
-from yoiyoi.bot.helpers import notify
+from yoiyoi.bot.helpers import get_info, notify
 
 # content processor
 from yoiyoi.bot.processors import (
@@ -73,8 +71,6 @@ from yoiyoi.extra.requests import get_content_type, save_file
 # media styles
 from yoiyoi.extra.styles import (
     PixivStyle,
-    Style,
-    TikTokStyle,
     TwitterStyle,
     XiaohongshuStyle,
     YouTubeShortStyle,
@@ -93,21 +89,15 @@ from yoiyoi.services.instagram.api import get_instagram_links
 from yoiyoi.services.namedtuples import (
     Link,
     PixivContent,
-    PixivMedia,
-    TikTokMedia,
-    TikTokPhoto,
-    TikTokVideo,
     TweetContent,
-    TweetMedia,
     XiaohongshuVideo,
-    YouTubeShortMedia,
 )
 
 # pixiv api
 from yoiyoi.services.pixiv.api import get_pixiv_links
 
 # tiktok api
-from yoiyoi.services.tiktok.api import get_tiktok_links
+from yoiyoi.services.registry import TikTokSender
 
 # twitter api
 from yoiyoi.services.twitter.api import get_twitter_links
@@ -126,23 +116,6 @@ update_queue = asyncio.Queue(QUEUE_SIZE)
 
 # current media groups
 media_groups = set()
-
-# media type
-Media = TweetMedia | PixivMedia | TikTokMedia | YouTubeShortMedia
-
-
-async def generate_info(link: Link, style: Style, style_id: int, media: Media) -> str:
-    info = style.get_format(style_id, media)
-    if link.info:
-        info = f"{link.info}\n\n{info}"
-    if len(info) > ML.CAPTION_LENGTH:
-        info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + "..."
-    return info
-
-
-async def get_info(link: Link, style: Style, chat: Chat, media: Media) -> Optional[str]:
-    if chat.include_link:
-        return await generate_info(link, style, getattr(chat, style.field), media)
 
 
 async def send_collection(
@@ -492,152 +465,6 @@ async def send_instagram(
             "can't be found or downloaded\\. "
             "If this seems to be wrong, try again later\\."
         ),
-        do_quote=not chat.delete_link,
-    )
-
-
-async def send_tiktok(
-    update: Update,
-    link: Link,
-    chat: Chat,
-) -> None:
-    """Sends tiktok video
-
-    Args:
-        update (Update): current update
-        link (Link): tiktok link
-        chat (Chat): current chat
-    """
-    error_text = f"[*This tiktok content*]({link.link}) "
-    log.info("TikTok Link: %s.", link.link)
-    file_handlers, doc_handlers = [], []
-    # get media
-    if media := await get_tiktok_links(link.link):
-        info = await get_info(link, TikTokStyle, chat, media)
-        files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update.update_id))
-        storage_folder.mkdir(parents=True, exist_ok=True)
-        if media.kind == TikTokMediaKind.SLIDESHOW and chat.tt_slide_mode == 1:
-            photos = list(filter(lambda x: isinstance(x, TikTokPhoto), media.content))
-            i, j = 0, 10
-            while i < len(photos):
-                for idx, media_photo in enumerate(photos[i:j], i):
-                    filelink = media_photo.link
-                    filepath = await save_file(filelink)
-                    if not (filename := media_photo.name):
-                        filename = await make_file_name("tiktok", filelink, filepath)
-                    else:
-                        filename = await join_file_name(filename, filepath)
-                    filepath = move_file(filepath, storage_folder / filename)
-                    storage.add(filepath)
-                    log.debug("Filename: %r.", filename)
-                    if not (imagepath := await process_image(filepath)):
-                        log.error("Couldn't resize image.")
-                        await send_error(
-                            update,
-                            error_text + "contains images the bot couldn't resize\\!",
-                            do_quote=not chat.delete_link,
-                        )
-                        return
-                    if (imagepath := Path(imagepath)) != filepath:
-                        imagepath = move_file(
-                            imagepath,
-                            storage_folder / f"RE_{filepath.stem}{filepath.suffix}",
-                        )
-                        storage.add(imagepath)
-                    # add to collection
-                    image_handler = imagepath.open("rb")
-                    file_handlers.append(image_handler)
-                    files.append(
-                        InputMediaPhoto(
-                            media=image_handler,
-                            caption=info if idx == i else None,
-                            parse_mode=PM.HTML,
-                        )
-                    )
-                    if chat.tt_orig:
-                        doc_handler = filepath.open("rb")
-                        doc_handlers.append(doc_handler)
-                        docs.append(
-                            InputMediaDocument(
-                                media=doc_handler,
-                                parse_mode=PM.HTML,
-                                disable_content_type_detection=True,
-                            )
-                        )
-                # get next 10 photos/docs
-                i, j = j, j + 10
-        else:
-            videos = list(filter(lambda x: isinstance(x, TikTokVideo), media.content))
-            # check size
-            filepath = None
-            if not videos:
-                if media.kind == TikTokMediaKind.SLIDESHOW:
-                    error_text += (
-                        "can't be sent, because didn't find rendered video\\! "
-                        "Consider changing TikTok mode to slideshow mode with "
-                        "/tiktok\\_mode command\\."
-                    )
-                    log.error("Can's send as video.")
-                else:
-                    error_text += "can't be sent, because didn't find any video\\!"
-                    log.error("Can's send as video.")
-            else:
-                for vid in videos:
-                    if 0 < vid.size < 50 << 20:
-                        filepath = await save_file(vid.link, "GET", **vid.extra)
-                        break
-                else:
-                    # if file is too big
-                    error_text += "can't be sent, because video file is too big\\!"
-                    log.error("Video file is too big.")
-            # upload video if any
-            if filepath:
-                filename = await join_file_name(str(media.id), filepath)
-                videopath = move_file(filepath, storage_folder / filename)
-                storage.add(videopath)
-                videoinfo = await get_video_info(videopath)
-                thumbpath = await save_file(media.thumb)
-                thumbname = await make_thumb_name(filename, thumbpath)
-                thumbpath = move_file(thumbpath, storage_folder / thumbname)
-                storage.add(thumbpath)
-                # add to collection
-                video_handler = videopath.open("rb")
-                file_handlers.append(video_handler)
-                files.append(
-                    InputMediaVideo(
-                        media=video_handler,
-                        thumbnail=thumbpath.read_bytes(),
-                        caption=info,
-                        parse_mode=PM.HTML,
-                        width=videoinfo[0],
-                        height=videoinfo[1],
-                        duration=videoinfo[2],
-                    )
-                )
-        if files:
-            log.debug("Finished adding to collection.")
-            log.debug("Caption: %r.", info)
-            if await send_collection(
-                update,
-                chat,
-                storage,
-                file_handlers,
-                files,
-                doc_handlers,
-                docs,
-            ):
-                return
-    # if there is no video
-    else:
-        log.error("Couldn't get tiktok content.")
-        error_text += (
-            "can't be found or downloaded\\! If this seems to be wrong, try "
-            "again later\\."
-        )
-    await send_error(
-        update,
-        error_text,
         do_quote=not chat.delete_link,
     )
 
@@ -1111,7 +938,7 @@ async def process_link(
                     case LinkType.INSTAGRAM:
                         await send_instagram(update, link, chat)
                     case LinkType.TIKTOK:
-                        await send_tiktok(update, link, chat)
+                        await TikTokSender(update, link, chat).run()
                     case LinkType.YOUTUBE_SHORT:
                         await send_youtube_short(update, link, chat)
                     case LinkType.PIXIV:

@@ -1,13 +1,43 @@
 """Bot helpers"""
 
 # structured logging
+from typing import Optional
+
 import structlog
 
 # telegram core bot api
 from telegram import Update
 
+# telegram constants
+from telegram.constants import MessageLimit as ML
+
+# database table
+from yoiyoi.db.models import Chat
+
+# media style
+from yoiyoi.extra.styles import Style
+
+# media link
+from yoiyoi.services.namedtuples import AnyMedia, Link
+
 # get logger
 log = structlog.get_logger(__name__)
+
+
+async def generate_info(link: Link, style: Style, style_id: int, media: AnyMedia) -> str:
+    info = style.get_format(style_id, media)
+    if link.info:
+        info = f"{link.info}\n\n{info}"
+    if len(info) > ML.CAPTION_LENGTH:
+        info = info[: (ML.CAPTION_LENGTH - 6)].rsplit(None, 1)[0] + "..."
+    return info
+
+
+async def get_info(
+    link: Link, style: Style, chat: Chat, media: AnyMedia
+) -> Optional[str]:
+    if chat.include_link:
+        return await generate_info(link, style, getattr(chat, style.field), media)
 
 
 def notify(

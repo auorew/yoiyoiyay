@@ -171,3 +171,14 @@ XiaohongshuVideo = namedtuple(
         "extra",
     ),
 )
+
+
+# media type
+AnyMedia = (
+    TweetMedia
+    | PixivMedia
+    | TikTokMedia
+    | YouTubeShortMedia
+    | XiaohongshuMedia
+    | DiscordMedia
+)

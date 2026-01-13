@@ -1,4 +1,4 @@
-"""TikTok module"""
+"""TikTok API"""
 
 import asyncio
 import re
