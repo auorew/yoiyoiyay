@@ -1,4 +1,4 @@
-"""Base for media senders"""
+"""Base module for services"""
 
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
@@ -22,7 +22,7 @@ from yoiyoi.bot import CACHE_DIR
 # telegrm senders
 from yoiyoi.bot.formatters import make_file_name
 from yoiyoi.bot.processors import process_image
-from yoiyoi.bot.senders.telegram import send_error, send_media_group
+from yoiyoi.bot.senders import send_error, send_media_group
 from yoiyoi.extra.requests import save_file
 from yoiyoi.extra.utils import delete_files, move_file
 

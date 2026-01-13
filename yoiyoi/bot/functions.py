@@ -56,7 +56,7 @@ from yoiyoi.bot.processors import (
 )
 
 # bot senders
-from yoiyoi.bot.senders.telegram import send_error, send_media_group, send_reply
+from yoiyoi.bot.senders import send_error, send_media_group, send_reply
 
 # database table
 from yoiyoi.db.models import Chat

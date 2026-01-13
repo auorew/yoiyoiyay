@@ -55,7 +55,10 @@ from yoiyoi.services.dehunter import dehunter
 from yoiyoi.services.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
 
 # url expanders
-from yoiyoi.services.urlexpander import expand_with_expandurl, expand_with_urlex
+from yoiyoi.services.urlexpander.api import (
+    expand_with_expandurl,
+    expand_with_urlex,
+)
 
 # setup logger
 log = structlog.get_logger(__name__)

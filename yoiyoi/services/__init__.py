@@ -1,4 +1,4 @@
-"""API module"""
+"""Service module"""
 
 from enum import Enum, auto
 

@@ -20,7 +20,7 @@ from yoiyoi.bot.filters import clear_context
 from yoiyoi.bot.helpers import notify
 
 # bor senders
-from yoiyoi.bot.senders.telegram import send_reply
+from yoiyoi.bot.senders import send_reply
 
 # bot switchers
 from yoiyoi.bot.switchers import change_style, toggler
