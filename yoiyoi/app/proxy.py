@@ -30,14 +30,15 @@ log = structlog.get_logger(__name__)
 
 class ProxyManager:
     def __init__(self, static_url: Optional[str] = None):
-        self.active = None
-        self.is_static = False
+        self.active: Optional[str] = None
+        self.is_static: bool = False
         if static_url is not None:
             self.active = str(static_url)
             self.is_static = True
-        self.pool = []
+        self.pool: list = []
+        self.log: structlog.BoundLogger = log.bind(app="proxy_manager")
         self._lock = asyncio.Lock()
-        self.request_attempts = 0
+        self.request_attempts: int = 0
 
     async def rotate(self):
         """Thread-safe rotation. Does nothing if proxy is static."""
@@ -48,10 +49,10 @@ class ProxyManager:
             self.request_attempts += 1
             if self.pool:
                 self.active = self.pool.pop()
-                log.info("Proxy rotated.", new_proxy=self.active)
+                self.log.info("Proxy rotated.", new_proxy=self.active)
             else:
                 self.active = None
-                log.warning("Proxy pool empty. Continuing without proxy.")
+                self.log.warning("Proxy pool empty. Continuing without proxy.")
             return self.active
 
     def reset_attempts(self):
@@ -97,17 +98,24 @@ class ProxyGetter:
         self.limit = limit
         self.working_proxy = set()
         self.proxy_list = set()
-        self.semaphore = asyncio.Semaphore(self.limit)
+        self.log: structlog.BoundLogger = log.bind(app="proxy_getter")
+        self._semaphore = None
+
+    @property
+    def semaphore(self):
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.limit)
+        return self._semaphore
 
     async def get(self):
-        log.debug("GetProxy: Clearing working proxy and proxy list...")
+        self.log.debug("Clearing working proxy and proxy list...")
         self.working_proxy.clear()
         self.proxy_list.clear()
 
-        log.debug("GetProxy: Getting new proxies...")
+        self.log.debug("Getting new proxies...")
         await self.get_proxy()
 
-        log.debug("GetProxy: Returning new proxies...")
+        self.log.debug("Returning new proxies...")
         return self.working_proxy
 
     def get_sync_wrapper(self) -> set:
@@ -149,8 +157,8 @@ class ProxyGetter:
             ):
                 return
             except Exception as ex:
-                log.warning(
-                    "GetProxy: Test proxy exception. %s: %s.",
+                self.log.warning(
+                    "Test proxy exception. %s: %s.",
                     ex.__class__.__name__,
                     ex,
                 )
@@ -192,8 +200,8 @@ class ProxyGetter:
                 await asyncio.wait(tasks)
 
         except Exception as ex:
-            log.warning(
-                "GetProxy: Request to proxy API or parsing failed. %s: %s.",
+            self.log.warning(
+                "Request to proxy API or parsing failed. %s: %s.",
                 ex.__class__.__name__,
                 ex,
                 exc_info=True,
