@@ -4,6 +4,7 @@ import asyncio
 import os
 import signal
 import sys
+import tracemalloc
 
 # working with env
 from dotenv import load_dotenv
@@ -33,6 +34,8 @@ def set_memory_limit(maxsize_mb):
 
 if __name__ == "__main__":
     # set_memory_limit(512)
+    # start collecting memory stats
+    tracemalloc.start()
     # load .env file
     load_dotenv()
     # start bot
