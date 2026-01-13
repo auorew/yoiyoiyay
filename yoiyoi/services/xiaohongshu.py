@@ -17,9 +17,6 @@ import yt_dlp
 # async caching
 from aiocache import cached
 
-# TikTokVideo namedtuple
-from yoiyoi.api.namedtuples import XiaohongshuMedia, XiaohongshuVideo
-
 # proxy
 from yoiyoi.app.proxy import proxy_manager
 
@@ -34,6 +31,9 @@ from yoiyoi.extra.request_retriers import retry_request
 
 # requests
 from yoiyoi.extra.requests import get_content_size, make_request
+
+# TikTokVideo namedtuple
+from yoiyoi.services.namedtuples import XiaohongshuMedia, XiaohongshuVideo
 
 # setup logger
 log = structlog.get_logger(__name__)

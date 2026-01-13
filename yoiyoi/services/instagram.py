@@ -17,12 +17,6 @@ import structlog
 # beautiful soup
 from bs4 import BeautifulSoup
 
-# deobfuscate js response
-from yoiyoi.api.dehunter import dehunter
-
-# InstaMedia namedtuple
-from yoiyoi.api.namedtuples import InstaMedia
-
 # request helpers
 from yoiyoi.extra.request_helpers import get_fake_headers
 
@@ -32,6 +26,12 @@ from yoiyoi.extra.requests import (
     get_content_name,
     make_request,
 )
+
+# deobfuscate js response
+from yoiyoi.services.dehunter import dehunter
+
+# InstaMedia namedtuple
+from yoiyoi.services.namedtuples import InstaMedia
 
 # get logger
 log = structlog.get_logger(__name__)

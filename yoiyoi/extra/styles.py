@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from html import escape as escape_html
 
 # PixivMedia & TweetMedia namedtuples
-from yoiyoi.api.namedtuples import (
+from yoiyoi.services.namedtuples import (
     PixivMedia,
     TikTokMedia,
     TweetMedia,

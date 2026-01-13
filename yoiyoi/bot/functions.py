@@ -24,41 +24,6 @@ from telegram.error import BadRequest
 # telegram core bot api extension
 from telegram.ext import ContextTypes
 
-# link types and other info
-from yoiyoi.api import LinkType, TikTokMediaKind
-
-# instagram api
-from yoiyoi.api.instagram import get_instagram_links
-
-# Link, PixivContent, TweetContent namedtuples
-from yoiyoi.api.namedtuples import (
-    Link,
-    PixivContent,
-    PixivMedia,
-    TikTokMedia,
-    TikTokPhoto,
-    TikTokVideo,
-    TweetContent,
-    TweetMedia,
-    XiaohongshuVideo,
-    YouTubeShortMedia,
-)
-
-# pixiv api
-from yoiyoi.api.pixiv import get_pixiv_links
-
-# tiktok api
-from yoiyoi.api.tiktok import get_tiktok_links
-
-# twitter api
-from yoiyoi.api.twitter import get_twitter_links
-
-# xiaohongshu api
-from yoiyoi.api.xiaohongshu import get_xiaohongshu_links
-
-# youtube api
-from yoiyoi.api.youtube_short import get_youtube_short_links
-
 # get constants
 from yoiyoi.bot import CACHE_DIR, QUEUE_SIZE, PixivParse
 
@@ -117,6 +82,41 @@ from yoiyoi.extra.styles import (
 
 # extra utilities
 from yoiyoi.extra.utils import delete_files, move_file
+
+# link types and other info
+from yoiyoi.services import LinkType, TikTokMediaKind
+
+# instagram api
+from yoiyoi.services.instagram import get_instagram_links
+
+# Link, PixivContent, TweetContent namedtuples
+from yoiyoi.services.namedtuples import (
+    Link,
+    PixivContent,
+    PixivMedia,
+    TikTokMedia,
+    TikTokPhoto,
+    TikTokVideo,
+    TweetContent,
+    TweetMedia,
+    XiaohongshuVideo,
+    YouTubeShortMedia,
+)
+
+# pixiv api
+from yoiyoi.services.pixiv import get_pixiv_links
+
+# tiktok api
+from yoiyoi.services.tiktok import get_tiktok_links
+
+# twitter api
+from yoiyoi.services.twitter import get_twitter_links
+
+# xiaohongshu api
+from yoiyoi.services.xiaohongshu import get_xiaohongshu_links
+
+# youtube api
+from yoiyoi.services.youtube_short import get_youtube_short_links
 
 # setup logger
 log = structlog.get_logger(__name__)

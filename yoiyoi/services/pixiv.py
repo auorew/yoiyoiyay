@@ -11,12 +11,6 @@ import structlog
 # pixiv api
 from pixivpy_async import AppPixivAPI, PixivClient
 
-# link types, link dictionary
-from yoiyoi.api import LINKS
-
-# PixivMedia namedtuple
-from yoiyoi.api.namedtuples import PixivContent, PixivMedia
-
 # request helpers
 from yoiyoi.extra.request_helpers import PIXIV_HEADERS, get_fake_headers
 
@@ -28,6 +22,12 @@ from yoiyoi.extra.requests import get_content_size, make_request
 
 # bot settings
 from yoiyoi.extra.settings import bot_settings
+
+# link types, link dictionary
+from yoiyoi.services import LINKS
+
+# PixivMedia namedtuple
+from yoiyoi.services.namedtuples import PixivContent, PixivMedia
 
 # get logger
 log = structlog.get_logger(__name__)

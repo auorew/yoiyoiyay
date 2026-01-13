@@ -25,18 +25,6 @@ from bs4 import BeautifulSoup
 # hardcore retrying
 from tenacity import stop_after_attempt
 
-# link types and other info
-from yoiyoi.api import LINKS, TikTokMediaKind
-
-# deobfuscate js response
-from yoiyoi.api.dehunter import dehunter
-
-# TikTokVideo namedtuple
-from yoiyoi.api.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
-
-# url expanders
-from yoiyoi.api.urlexpander import expand_with_expandurl, expand_with_urlex
-
 # proxy
 from yoiyoi.app.proxy import proxy_manager
 
@@ -56,6 +44,18 @@ from yoiyoi.extra.requests import (
     get_content_size,
     make_request,
 )
+
+# link types and other info
+from yoiyoi.services import LINKS, TikTokMediaKind
+
+# deobfuscate js response
+from yoiyoi.services.dehunter import dehunter
+
+# TikTokVideo namedtuple
+from yoiyoi.services.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
+
+# url expanders
+from yoiyoi.services.urlexpander import expand_with_expandurl, expand_with_urlex
 
 # setup logger
 log = structlog.get_logger(__name__)

@@ -25,12 +25,6 @@ from bs4 import BeautifulSoup
 # decrypting
 from cryptography.fernet import Fernet
 
-# link types and other info
-from yoiyoi.api import LINKS
-
-# YouTubeShortMedia namedtuple
-from yoiyoi.api.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
-
 # proxy
 from yoiyoi.app.proxy import proxy_manager
 
@@ -48,6 +42,12 @@ from yoiyoi.extra.requests import get_content_size, make_request
 
 # settings
 from yoiyoi.extra.settings import bot_settings
+
+# link types and other info
+from yoiyoi.services import LINKS
+
+# YouTubeShortMedia namedtuple
+from yoiyoi.services.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
 
 # setup logger
 log = structlog.get_logger(__name__)

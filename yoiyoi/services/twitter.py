@@ -27,12 +27,6 @@ from dateutil.parser import parse
 # twitter api class
 from gallery_dl.extractor.twitter import TwitterAPI
 
-# link types and other info
-from yoiyoi.api import LINKS
-
-# TweetMedia & TweetContent namedtuples
-from yoiyoi.api.namedtuples import TweetContent, TweetMedia
-
 # escape markdown and get file name
 from yoiyoi.bot.formatters import unescape_html
 
@@ -44,6 +38,12 @@ from yoiyoi.extra.requests import get_content_size, make_request
 
 # settings
 from yoiyoi.extra.settings import bot_settings
+
+# link types and other info
+from yoiyoi.services import LINKS
+
+# TweetMedia & TweetContent namedtuples
+from yoiyoi.services.namedtuples import TweetContent, TweetMedia
 
 # get logger
 log = structlog.get_logger(__name__)

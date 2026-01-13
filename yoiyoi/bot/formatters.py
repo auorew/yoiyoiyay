@@ -24,14 +24,14 @@ from telegram import Update
 # escape markdown
 from telegram.helpers import escape_markdown
 
-# link types and other info
-from yoiyoi.api import LINKS
-
-# Link namedtuple
-from yoiyoi.api.namedtuples import Link
-
 # pixiv parse states
 from yoiyoi.bot import PixivParse
+
+# link types and other info
+from yoiyoi.services import LINKS
+
+# Link namedtuple
+from yoiyoi.services.namedtuples import Link
 
 # escaping markdown v2
 esc = partial(escape_markdown, version=2)

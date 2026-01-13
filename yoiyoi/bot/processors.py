@@ -20,9 +20,6 @@ from pillow_heif import register_heif_opener
 # telegram core bot api
 from telegram import Update
 
-# TweetContent namedtuples
-from yoiyoi.api.namedtuples import TweetContent
-
 # app utils
 from yoiyoi.app.utils import convert_media_file, resize_image_file
 
@@ -48,6 +45,9 @@ from yoiyoi.extra.settings import bot_settings
 
 # extra utilities
 from yoiyoi.extra.utils import get_file_chunk, replace_file
+
+# TweetContent namedtuples
+from yoiyoi.services.namedtuples import TweetContent
 
 # setup logger
 log = structlog.get_logger(__name__)

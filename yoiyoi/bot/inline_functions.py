@@ -30,27 +30,6 @@ from telegram.error import BadRequest
 # telegram core bot api extension
 from telegram.ext import ContextTypes
 
-# link types and other info
-from yoiyoi.api import LinkType
-
-# instagram api
-from yoiyoi.api.instagram import get_instagram_links
-
-# Link namedtuple
-from yoiyoi.api.namedtuples import Link
-
-# pixiv api
-from yoiyoi.api.pixiv import get_pixiv_links
-
-# tiktok api
-from yoiyoi.api.tiktok import get_tiktok_links
-
-# twitter api
-from yoiyoi.api.twitter import get_twitter_links
-
-# youtube api
-from yoiyoi.api.youtube_short import get_youtube_short_links
-
 # pixiv parse states
 from yoiyoi.bot import PixivParse
 
@@ -77,6 +56,27 @@ from yoiyoi.extra.settings import bot_settings
 
 # media styles
 from yoiyoi.extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeShortStyle
+
+# link types and other info
+from yoiyoi.services import LinkType
+
+# instagram api
+from yoiyoi.services.instagram import get_instagram_links
+
+# Link namedtuple
+from yoiyoi.services.namedtuples import Link
+
+# pixiv api
+from yoiyoi.services.pixiv import get_pixiv_links
+
+# tiktok api
+from yoiyoi.services.tiktok import get_tiktok_links
+
+# twitter api
+from yoiyoi.services.twitter import get_twitter_links
+
+# youtube api
+from yoiyoi.services.youtube_short import get_youtube_short_links
 
 # get logger
 log = structlog.get_logger(__name__)

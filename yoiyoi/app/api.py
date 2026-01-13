@@ -20,9 +20,6 @@ from structlog.contextvars import bind_contextvars, unbind_contextvars
 # telegram core bot api
 from telegram import Update
 
-# twitter api
-from yoiyoi.api.twitter import get_twitter_links
-
 # app strings
 from yoiyoi.app import IM_FMT, VI_FMT
 
@@ -34,6 +31,9 @@ from yoiyoi.app.utils import convert_media_file, request_space, resize_image_fil
 
 # bot settings
 from yoiyoi.extra.settings import bot_settings
+
+# twitter api
+from yoiyoi.services.twitter import get_twitter_links
 
 # get logger
 log = structlog.get_logger(__name__)
