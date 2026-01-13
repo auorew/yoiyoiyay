@@ -264,16 +264,19 @@ async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
         # check links
         tweet_links = []
         for facet in tweet_info["raw_text"]["facets"]:
-            if facet["type"] in {"mention", "hashtag"}:
+            if facet["type"] in {"mention", "hashtag", "inline_media"}:
                 continue
-            tweet_links.append(
-                TextLink(
-                    text=facet["display"],
-                    url=facet["replacement"],
-                    tcourl=facet["original"],
-                    indices=facet["indices"],
+            elif facet["type"] in {"media"}:
+                tweet_links.append(
+                    TextLink(
+                        text=facet["display"],
+                        url=facet["replacement"],
+                        tcourl=facet["original"],
+                        indices=facet["indices"],
+                    )
                 )
-            )
+            else:
+                api_log.error("Exotic facet: %s.", facet["type"])
         # check quote
         tweet_quote = None
         if quote_info := tweet_info.get("quote"):
@@ -853,8 +856,8 @@ async def get_twitter_links(
         return
 
     for get_tweet in (
-        get_from_twimg_api,  # from twitter
-        get_from_twitter_api,  # great
+        # get_from_twimg_api,  # from twitter
+        # get_from_twitter_api,  # great
         get_from_fixtweet_api,  # great
     ):
         if tweet := await get_tweet(tweet_id):
