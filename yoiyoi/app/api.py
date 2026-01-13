@@ -33,7 +33,7 @@ from yoiyoi.app.utils import convert_media_file, request_space, resize_image_fil
 from yoiyoi.extra.settings import bot_settings
 
 # twitter api
-from yoiyoi.services.twitter import get_twitter_links
+from yoiyoi.services.twitter.api import get_twitter_links
 
 # get logger
 log = structlog.get_logger(__name__)

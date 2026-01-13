@@ -61,22 +61,22 @@ from yoiyoi.extra.styles import PixivStyle, TikTokStyle, TwitterStyle, YouTubeSh
 from yoiyoi.services import LinkType
 
 # instagram api
-from yoiyoi.services.instagram import get_instagram_links
+from yoiyoi.services.instagram.api import get_instagram_links
 
 # Link namedtuple
 from yoiyoi.services.namedtuples import Link
 
 # pixiv api
-from yoiyoi.services.pixiv import get_pixiv_links
+from yoiyoi.services.pixiv.api import get_pixiv_links
 
 # tiktok api
-from yoiyoi.services.tiktok import get_tiktok_links
+from yoiyoi.services.tiktok.api import get_tiktok_links
 
 # twitter api
-from yoiyoi.services.twitter import get_twitter_links
+from yoiyoi.services.twitter.api import get_twitter_links
 
 # youtube api
-from yoiyoi.services.youtube_short import get_youtube_short_links
+from yoiyoi.services.youtube_short.api import get_youtube_short_links
 
 # get logger
 log = structlog.get_logger(__name__)

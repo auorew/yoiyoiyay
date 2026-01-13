@@ -87,7 +87,7 @@ from yoiyoi.extra.utils import delete_files, move_file
 from yoiyoi.services import LinkType, TikTokMediaKind
 
 # instagram api
-from yoiyoi.services.instagram import get_instagram_links
+from yoiyoi.services.instagram.api import get_instagram_links
 
 # Link, PixivContent, TweetContent namedtuples
 from yoiyoi.services.namedtuples import (
@@ -104,19 +104,19 @@ from yoiyoi.services.namedtuples import (
 )
 
 # pixiv api
-from yoiyoi.services.pixiv import get_pixiv_links
+from yoiyoi.services.pixiv.api import get_pixiv_links
 
 # tiktok api
-from yoiyoi.services.tiktok import get_tiktok_links
+from yoiyoi.services.tiktok.api import get_tiktok_links
 
 # twitter api
-from yoiyoi.services.twitter import get_twitter_links
+from yoiyoi.services.twitter.api import get_twitter_links
 
 # xiaohongshu api
-from yoiyoi.services.xiaohongshu import get_xiaohongshu_links
+from yoiyoi.services.xiaohongshu.api import get_xiaohongshu_links
 
 # youtube api
-from yoiyoi.services.youtube_short import get_youtube_short_links
+from yoiyoi.services.youtube_short.api import get_youtube_short_links
 
 # setup logger
 log = structlog.get_logger(__name__)
