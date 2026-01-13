@@ -35,7 +35,7 @@ async def job_get_proxy(
     if proxy_manager.is_static:
         log.debug("Proxy is static. Skipping getter job.")
         return
-    proxy_set = await asyncio.to_thread(proxy_getter.get_sync_wrapper)
+    proxy_set = await proxy_getter.get()
     proxy_manager.update_pool(proxy_set)
     if not proxy_manager.active:
         await proxy_manager.rotate()
