@@ -12,7 +12,7 @@ from telegram import Update
 from yoiyoi.bot.helpers import notify
 
 # bot senders
-from yoiyoi.bot.senders import send_error, send_reply
+from yoiyoi.bot.senders.telegram import send_error, send_reply
 
 # database helpers
 from yoiyoi.db.updaters import cycle_style, switch_style, toggle_field

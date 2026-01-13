@@ -38,7 +38,7 @@ from yoiyoi.bot import (
 from yoiyoi.bot.formatters import esc
 
 # bot senders
-from yoiyoi.bot.senders import send_error, send_reply
+from yoiyoi.bot.senders.telegram import send_error, send_reply
 
 # get file size
 from yoiyoi.extra.requests import save_file

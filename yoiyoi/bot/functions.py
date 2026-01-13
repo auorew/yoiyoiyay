@@ -53,8 +53,10 @@ from yoiyoi.api.tiktok import get_tiktok_links
 # twitter api
 from yoiyoi.api.twitter import get_twitter_links
 
-# youtube api
+# xiaohongshu api
 from yoiyoi.api.xiaohongshu import get_xiaohongshu_links
+
+# youtube api
 from yoiyoi.api.youtube_short import get_youtube_short_links
 
 # get constants
@@ -89,7 +91,7 @@ from yoiyoi.bot.processors import (
 )
 
 # bot senders
-from yoiyoi.bot.senders import send_error, send_media_group, send_reply
+from yoiyoi.bot.senders.telegram import send_error, send_media_group, send_reply
 
 # database table
 from yoiyoi.db.models import Chat
