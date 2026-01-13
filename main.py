@@ -32,7 +32,7 @@ def set_memory_limit(maxsize_mb):
 
 
 if __name__ == "__main__":
-    set_memory_limit(512)
+    # set_memory_limit(512)
     # load .env file
     load_dotenv()
     # start bot
