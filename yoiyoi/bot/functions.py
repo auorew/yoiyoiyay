@@ -45,7 +45,6 @@ from yoiyoi.bot.helpers import get_info, notify
 
 # content processor
 from yoiyoi.bot.processors import (
-    choose_twitter_video,
     convert_image,
     create_thumbnail,
     crop_thumbnail,
@@ -71,7 +70,6 @@ from yoiyoi.extra.requests import get_content_type, save_file
 # media styles
 from yoiyoi.extra.styles import (
     PixivStyle,
-    TwitterStyle,
     XiaohongshuStyle,
     YouTubeShortStyle,
 )
@@ -89,7 +87,6 @@ from yoiyoi.services.instagram.api import get_instagram_links
 from yoiyoi.services.namedtuples import (
     Link,
     PixivContent,
-    TweetContent,
     XiaohongshuVideo,
 )
 
@@ -97,10 +94,7 @@ from yoiyoi.services.namedtuples import (
 from yoiyoi.services.pixiv.api import get_pixiv_links
 
 # tiktok api
-from yoiyoi.services.registry import TikTokSender
-
-# twitter api
-from yoiyoi.services.twitter.api import get_twitter_links
+from yoiyoi.services.registry import TikTokSender, TwitterSender
 
 # xiaohongshu api
 from yoiyoi.services.xiaohongshu.api import get_xiaohongshu_links
@@ -175,166 +169,6 @@ async def send_collection(
             for doc_handler in doc_handlers:
                 doc_handler.close()
         Path(CACHE_DIR / str(update.update_id)).rmdir()
-
-
-async def send_twitter(
-    update: Update,
-    link: Link,
-    chat: Chat,
-) -> None:
-    """Sends twitter media
-
-    Args:
-        update (Update): current update
-        link (Link): tweet link
-        chat (Chat): current chat
-    """
-    error_text = f"[*This twitter content*]({link.link}) "
-    log.info("Twitter Link: %s.", link.link)
-    file_handlers, doc_handlers = [], []
-    # get media
-    if (tweet := await get_twitter_links(link.id)) and (count := len(tweet.content)):
-        info = await get_info(link, TwitterStyle, chat, tweet)
-        files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update.update_id))
-        storage_folder.mkdir(parents=True, exist_ok=True)
-        ids = tuple(range(1, count + 1))
-        parsed_ids = await pixiv_parse(link.illust, count)
-        if link.illust:
-            match parsed_ids[0]:
-                case PixivParse.SUCCESS:
-                    ids = parsed_ids[1]
-                case PixivParse.OUT_OF_RANGE:
-                    error_text += (
-                        "can't be sent, because the bot "
-                        "*can't* send more than 10 files\\!"
-                    )
-                case PixivParse.NOT_WITHIN_RANGE:
-                    error_text += (
-                        "can't be sent, because the numbers "
-                        "are *not within* range: "
-                        f"\\[`1`\\-`{count}`\\]\\!"
-                    )
-                case PixivParse.NO_INFO:
-                    error_text += (
-                        "can't be sent, because the bot requires "
-                        "the order of illustrations to be specified "
-                        "with \\[`link`\\] `+` \\[`ids`\\] syntax\\! "
-                        "See */help* for more info\\.\n\n"
-                        "Choose illustrations in range: "
-                        f"\\[`1`\\-`{count}`\\]\\.\n"
-                    )
-                case _:
-                    error_text += (
-                        "can't be sent, because something went wrong "
-                        "while parsing your input."
-                    )
-        for idx in ids:
-            media: TweetContent = tweet.content[idx - 1]
-            if media.type == "photo":
-                filepath = await save_file(media.links[0])
-                filename = await make_file_name("twitter", media.links[0], filepath)
-                filepath = move_file(filepath, storage_folder / filename)
-                storage.add(filepath)
-                log.debug("Filename: %r.", filename)
-                if not (imagepath := await process_image(filepath)):
-                    log.error("Couldn't resize image.")
-                    await send_error(
-                        update,
-                        error_text + "contains images the bot couldn't resize\\!",
-                        do_quote=not chat.delete_link,
-                    )
-                    return
-                if (imagepath := Path(imagepath)) != filepath:
-                    imagepath = move_file(
-                        imagepath, storage_folder / f"RE_{filepath.stem}{filepath.suffix}"
-                    )
-                    storage.add(imagepath)
-                # add to collection
-                image_handler = imagepath.open("rb")
-                file_handlers.append(image_handler)
-                files.append(
-                    InputMediaPhoto(
-                        media=image_handler,
-                        caption=info if idx == ids[0] else None,
-                        parse_mode=PM.HTML,
-                    )
-                )
-                if chat.tw_orig:
-                    doc_handler = filepath.open("rb")
-                    doc_handlers.append(doc_handler)
-                    docs.append(
-                        InputMediaDocument(
-                            media=doc_handler,
-                            parse_mode=PM.HTML,
-                            disable_content_type_detection=True,
-                        )
-                    )
-            else:
-                if not (videolink := await choose_twitter_video(update, media)):
-                    log.error("Couldn't get links.")
-                    await send_error(
-                        update,
-                        error_text + "contains videos the bot couldn't send\\!",
-                        do_quote=not chat.delete_link,
-                    )
-                    return
-                filepath = await save_file(videolink)
-                filename = await make_file_name("twitter", videolink, filepath)
-                filepath = move_file(filepath, storage_folder / filename)
-                storage.add(filepath)
-                if not (videopath := await process_video(filepath)):
-                    log.error("Couldn't add sound to video.")
-                    await send_error(
-                        update,
-                        error_text + "contains videos the bot couldn't send\\!",
-                        do_quote=not chat.delete_link,
-                    )
-                    return
-                if videopath != filepath:
-                    storage.add(videopath)
-                videoinfo = await get_video_info(videopath)
-                thumbpath = await save_file(media.thumb)
-                thumbname = await make_thumb_name(filename, thumbpath)
-                thumbpath = move_file(thumbpath, storage_folder / thumbname)
-                storage.add(thumbpath)
-                # add to collection
-                video_handler = videopath.open("rb")
-                file_handlers.append(video_handler)
-                files.append(
-                    InputMediaVideo(
-                        media=video_handler,
-                        thumbnail=thumbpath.read_bytes(),
-                        caption=info if idx == ids[0] else None,
-                        parse_mode=PM.HTML,
-                        width=videoinfo[0],
-                        height=videoinfo[1],
-                        duration=videoinfo[2],
-                    )
-                )
-        log.debug("Finished adding to collection.")
-        log.debug("Caption: %r.", info)
-        if await send_collection(
-            update,
-            chat,
-            storage,
-            file_handlers,
-            files,
-            doc_handlers,
-            docs,
-        ):
-            return
-    # if no links returned
-    log.error("Couldn't get twitter content.")
-    await send_error(
-        update,
-        error_text
-        + (
-            "can't be found or downloaded\\. "
-            "If this seems to be wrong, try again later\\."
-        ),
-        do_quote=not chat.delete_link,
-    )
 
 
 async def send_instagram(
@@ -934,7 +768,7 @@ async def process_link(
                         media_groups.add(media_group_id)
                 match link.type:
                     case LinkType.TWITTER:
-                        await send_twitter(update, link, chat)
+                        await TwitterSender(update, link, chat).run()
                     case LinkType.INSTAGRAM:
                         await send_instagram(update, link, chat)
                     case LinkType.TIKTOK:

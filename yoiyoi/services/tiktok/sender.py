@@ -37,7 +37,7 @@ class TikTokSender(BaseSender):
     SERVICE = "tiktok"
 
     async def get_media_generator(self):
-        log.info("TikTok Link: %s.", self.link.link)
+        self.log.info("TikTok Link: %s.", self.link.link)
 
         if not (media := await get_tiktok_links(self.link.link)):
             raise SenderError(

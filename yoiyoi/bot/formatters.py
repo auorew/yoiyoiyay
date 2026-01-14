@@ -88,6 +88,7 @@ async def pixiv_parse(
     if len(ids) > max_amount:
         log.error("Pixiv Parse: Can't choose more than %d files.", max_amount)
         return (PixivParse.OUT_OF_RANGE, tuple(ids[:max_amount]))
+    # else everything is fine
     log.debug("Pixiv Parse: Chosen artworks: %r.", ids)
     return (PixivParse.SUCCESS, tuple(ids))
 

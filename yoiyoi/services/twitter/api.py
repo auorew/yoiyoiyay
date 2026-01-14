@@ -1,4 +1,4 @@
-"""Twitter module"""
+"""Twitter API"""
 
 import asyncio
 import dataclasses

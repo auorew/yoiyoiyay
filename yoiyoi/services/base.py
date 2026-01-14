@@ -28,11 +28,17 @@ from yoiyoi.bot.processors import process_image, process_video
 # bot senders
 from yoiyoi.bot.senders import send_error, send_media_group
 
+# database table
+from yoiyoi.db.models import Chat
+
 # http requests
 from yoiyoi.extra.requests import save_file
 
 # file utils
 from yoiyoi.extra.utils import delete_files, move_file
+
+# Link namedtuple
+from yoiyoi.services.namedtuples import Link
 
 # setup logger
 log = structlog.get_logger(__name__)
@@ -60,24 +66,27 @@ class SenderError(Exception):
 class BaseSender(ABC):
     SERVICE: str = None
 
-    def __init__(self, update: Update, link: object, chat: object):
+    def __init__(self, update: Update, link: Link, chat: Chat):
         if self.SERVICE is None:
             raise NotImplementedError(
                 f"Class {self.__class__.__name__} must define a 'SERVICE' attribute."
             )
 
-        self.update = update
-        self.link = link
-        self.chat = chat
-        self.update_id = update.update_id
+        self.update: Update = update
+        self.link: Link = link
+        self.chat: Chat = chat
+        self.update_id: int = update.update_id
 
         # setup storage
-        self.storage_dir = Path(CACHE_DIR / str(self.update_id))
+        self.storage_dir: Path = Path(CACHE_DIR / str(self.update_id))
         self.storage_dir.mkdir(parents=True, exist_ok=True)
-        self.files_to_clean = set()
-        self.storage = set()
+        self.storage: set = set()
 
-        self.error_text = f"[*This {self.SERVICE} content*]({self.link.link})"
+        # error message
+        self.error_text: str = f"[*This {self.SERVICE} content*]({self.link.link})"
+
+        # sender logger
+        self.log: structlog.BoundLogger = log.bind(service=self.SERVICE)
 
     @abstractmethod
     async def get_media_generator(self):
@@ -91,7 +100,7 @@ class BaseSender(ABC):
             await self._send_batched(generator)
 
         except SenderError as error:
-            log.error(
+            self.log.error(
                 "SenderError in %s: %r.",
                 self.__class__.__name__,
                 error.message,
@@ -106,7 +115,7 @@ class BaseSender(ABC):
             )
 
         except Exception as exception:
-            log.error(
+            self.log.error(
                 "Error in %s: %r.",
                 self.__class__.__name__,
                 exception,
@@ -183,19 +192,19 @@ class BaseSender(ABC):
                         )
                     )
 
-            log.info("Sending media group...")
+            self.log.info("Sending media group...")
             if post := await send_media_group(
                 self.update.effective_message,
                 media=media_group,
                 do_quote=not self.chat.delete_link,
             ):
-                log.info("Sent media group.")
+                self.log.info("Sent media group.")
                 self.sent_any = True
                 if not doc_group:
                     return
-                log.info("Sending document group...")
+                self.log.info("Sending document group...")
                 if await send_media_group(post[0], media=doc_group, do_quote=True):
-                    log.info("Sent document group.")
+                    self.log.info("Sent document group.")
         for item in items:
             try:
                 item.path.unlink(missing_ok=True)
@@ -206,7 +215,7 @@ class BaseSender(ABC):
                 # Remove from the global set so _cleanup doesn't try again
                 self.storage.discard(item.path)
             except Exception as exception:
-                log.warning("Incremental cleanup failed: %r.", exception)
+                self.log.warning("Incremental cleanup failed: %r.", exception)
 
     async def download_helper(
         self, url: str, headers: dict = None
@@ -224,7 +233,7 @@ class BaseSender(ABC):
         # image processing
         if filepath.suffix.lower() in {".jiff", ".jpg", ".jpeg", ".png", ".webp"}:
             if not (procpath := await process_image(filepath)):
-                log.error("Couldn't resize image: %s", filepath.name)
+                self.log.error("Couldn't resize image: %s", filepath.name)
                 raise SenderError(
                     message="contains images the bot couldn't resize!",
                     telegram_message="contains images the bot couldn't resize\\!",
@@ -238,7 +247,7 @@ class BaseSender(ABC):
         # video processing
         elif filepath.suffix.lower() in {".mp4", ".mov", ".mkv"}:
             if not (processed_video := await process_video(filepath)):
-                log.error("Couldn't process video: %s", filepath.name)
+                self.log.error("Couldn't process video: %s", filepath.name)
                 raise SenderError(
                     message="contains videos the bot couldn't process!",
                     telegram_message="contains videos the bot couldn't process\\!",
@@ -252,11 +261,13 @@ class BaseSender(ABC):
 
     def _cleanup(self):
         """Deletes all tracked files and the directory."""
-        log.debug("Cleaning up storage for update %s: %s.", self.update_id, self.storage)
+        self.log.debug(
+            "Cleaning up storage for update %s: %s.", self.update_id, self.storage
+        )
         delete_files(self.storage)
 
         try:
             if self.storage_dir.exists():
                 self.storage_dir.rmdir()
         except Exception as exception:
-            log.warning("Could not remove storage directory: %r.", exception)
+            self.log.warning("Could not remove storage directory: %r.", exception)
