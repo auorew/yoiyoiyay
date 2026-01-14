@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.12-trixie AS base
+FROM python:3.14.2-trixie AS base
 
 # Set env
 ENV LANG=C.UTF-8
