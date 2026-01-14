@@ -130,10 +130,10 @@ class TwitterSender(BaseSender):
                         ),
                         telegram_message=(
                             "can't be downloaded\\! "
-                            "The bot failed to download the content\\."    
+                            "The bot failed to download the content\\."
                         ),
                     )
-                    
+
                 yield MediaItem(
                     path=procpath,
                     type="photo",
@@ -157,7 +157,7 @@ class TwitterSender(BaseSender):
                         ),
                         telegram_message=(
                             "can't be downloaded\\! "
-                            "The bot failed to download the content\\."    
+                            "The bot failed to download the content\\."
                         ),
                     )
 

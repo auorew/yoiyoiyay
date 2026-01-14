@@ -22,8 +22,8 @@ from telegram import (
 from telegram.constants import MediaGroupLimit as MGL
 from telegram.constants import ParseMode as PM
 
-# cache dir
-from yoiyoi.bot import CACHE_DIR
+# bot constants and cache dir
+from yoiyoi.bot import CACHE_DIR, MAX_REQUEST_SIZE
 
 # bot formatters
 from yoiyoi.bot.formatters import make_file_name
@@ -142,13 +142,31 @@ class BaseSender(ABC):
     async def _send_batched(self, generator):
         """Processes items in chunks with automatic memory flushing."""
         batch_items = []
+        current_media_size = 0
+        current_doc_size = 0
 
         async for item in generator:
-            batch_items.append(item)
+            # get sizes
+            item_media_size = item.path.stat().st_size
+            item_doc_size = item.orig_path.stat().st_size if item.orig_path else 0
 
-            if len(batch_items) == MGL.MAX_MEDIA_LENGTH:
-                await self._process_and_flush(batch_items)
-                batch_items.clear()
+            # if reached any limit then flush
+            if (
+                (len(batch_items) >= MGL.MAX_MEDIA_LENGTH)
+                or ((current_media_size + item_media_size) > MAX_REQUEST_SIZE)
+                or ((current_doc_size + item_doc_size) > MAX_REQUEST_SIZE)
+            ):
+                if batch_items:
+                    await self._process_and_flush(batch_items)
+                    batch_items.clear()
+                    current_media_size = 0
+                    current_doc_size = 0
+
+            # add otherwise
+            batch_items.append(item)
+            # accumulate sizes
+            current_media_size += item_media_size
+            current_doc_size += item_doc_size
 
         if batch_items:
             await self._process_and_flush(batch_items)

@@ -38,17 +38,20 @@ MAX_SIZE = (2560, 2560)
 # telegram max photo size sum
 MAX_PHOTO_SIZE_SUM = 10000
 
-# telegram max photo size (10 MB)
+# telegram max photo size (10 MiB)
 MAX_PHOTO_FILE_SIZE = 10 << 20
 
-# presumed max gif file size (3 MB)
+# presumed max gif file size (3 MiB)
 MAX_GIF_FILE_SIZE = 3 << 20
 
 # max video duration (15 minutes, in seconds)
 MAX_VIDEO_DURATION = 15 * 60
 
-# max video size (50 MB), but use slightly less (45 MB) to avoid hitting memory limits
-MAX_VIDEO_SIZE = (50 - 5) << 20
+# max video size (50 MiB), but use slightly less (48 MiB) to avoid hitting memory limits
+MAX_VIDEO_SIZE = (50 - 2) << 20
+
+# max media group size (50 MiB), use (48 MiB), same reason as above
+MAX_REQUEST_SIZE = (50 - 2) << 20
 
 # cache directory
 CACHE_DIR = bot_settings.cache_dir
