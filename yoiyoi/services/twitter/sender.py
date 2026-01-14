@@ -119,9 +119,9 @@ class TwitterSender(BaseSender):
 
         for i, idx in enumerate(ids):
             media: TweetContent = tweet.content[idx - 1]
-            procpath, filepath = await self.download_helper(media.links[0])
 
             if media.type == "photo":
+                procpath, filepath = await self.download_helper(media.links[0])
                 yield MediaItem(
                     path=procpath,
                     type="photo",
@@ -129,8 +129,12 @@ class TwitterSender(BaseSender):
                     orig_path=filepath if self.chat.tw_orig else None,
                 )
             else:
-                video_info = await get_video_info(procpath)
-                if not all(video_info):
+                if not (videolink := await self._choose_twitter_video(media)):
+                    self.log.info("Skipping downloading video...")
+                    continue
+                procpath, filepath = await self.download_helper(videolink)
+                videoinfo = await get_video_info(procpath)
+                if not all(videoinfo):
                     raise SenderError(
                         message=(
                             "can't be uploaded! "
@@ -154,9 +158,9 @@ class TwitterSender(BaseSender):
                     type="video",
                     caption=info,
                     thumb_path=thumbpath,
-                    width=video_info[0],
-                    height=video_info[1],
-                    duration=video_info[2],
+                    width=videoinfo[0],
+                    height=videoinfo[1],
+                    duration=videoinfo[2],
                 )
 
     async def _choose_twitter_video(self, content: TweetContent) -> Optional[str]:

@@ -47,8 +47,8 @@ MAX_GIF_FILE_SIZE = 3 << 20
 # max video duration (15 minutes, in seconds)
 MAX_VIDEO_DURATION = 15 * 60
 
-# max video size (50 MB)
-MAX_VIDEO_SIZE = 50 << 20
+# max video size (50 MB), but use slightly less (45 MB) to avoid hitting memory limits
+MAX_VIDEO_SIZE = (50 - 5) << 20
 
 # cache directory
 CACHE_DIR = bot_settings.cache_dir
