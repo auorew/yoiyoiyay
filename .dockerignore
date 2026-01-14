@@ -2,6 +2,10 @@
 **/__pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+
+# Git
+.git
 
 # Environments
 *.env
@@ -11,14 +15,14 @@
 log/
 *.log
 
-# Configs
-setup.cfg
-
 # VS Code
 .vscode
 
 # Databases
 *.db
+
+# Tests
+tests/
 
 # Other stuff
 .*/
