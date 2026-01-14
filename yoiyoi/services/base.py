@@ -1,5 +1,7 @@
 """Base module for services"""
 
+import asyncio
+
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
 from dataclasses import dataclass
@@ -21,6 +23,9 @@ from telegram import (
 # telegram constants
 from telegram.constants import MediaGroupLimit as MGL
 from telegram.constants import ParseMode as PM
+
+# yt-dlp
+from yt_dlp import YoutubeDL
 
 # bot constants and cache dir
 from yoiyoi.bot import CACHE_DIR, MAX_REQUEST_SIZE
@@ -272,15 +277,29 @@ class BaseSender(ABC):
         self,
         url: str,
         headers: Optional[dict] = None,
+        **kwargs,
     ) -> tuple[Optional[Path], Optional[Path]]:
         """Downloads a file, saves it to storage_dir, and tracks it for cleanup."""
-        if not (temppath := await save_file(url, headers=headers)):
-            return None, None
+        if ".m3u8" in url or "googlevideo.com" in url:
+            self.log.info("Detected HLS/YouTube stream, using yt-dlp downloader.")
+            filepath = self.storage_dir / f"{self.update_id}_yt.mp4"
+            ydl_opts = {
+                "format": "bestvideo+bestaudio/best",
+                "outtmpl": str(filepath),
+                "quiet": True,
+                "nocheckcertificate": True,
+                "headers": headers or {},
+            }
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, lambda: YoutubeDL(ydl_opts).download([url]))
+        else:
+            if not (temppath := await save_file(url, headers=headers, **kwargs)):
+                return None, None
 
-        if not (filename := await make_file_name(self.SERVICE, url, temppath)):
-            return None, None
+            if not (filename := await make_file_name(self.SERVICE, url, temppath)):
+                return None, None
 
-        filepath = move_file(temppath, self.storage_dir / filename)
+            filepath = move_file(temppath, self.storage_dir / filename)
         self.storage.add(filepath)
 
         procpath = filepath

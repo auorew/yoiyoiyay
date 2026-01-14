@@ -24,8 +24,8 @@ from telegram.error import BadRequest
 # telegram core bot api extension
 from telegram.ext import ContextTypes
 
-# get constants
-from yoiyoi.bot import CACHE_DIR, QUEUE_SIZE
+# bot constants
+from yoiyoi.bot import CACHE_DIR, MAX_VIDEO_SIZE, QUEUE_SIZE
 
 # bot filters
 from yoiyoi.bot.filters import clear_context
@@ -48,7 +48,6 @@ from yoiyoi.bot.helpers import get_info, notify
 from yoiyoi.bot.processors import (
     convert_image,
     create_thumbnail,
-    crop_thumbnail,
     process_image,
     process_video,
 )
@@ -62,16 +61,11 @@ from yoiyoi.db.models import Chat
 # database helpers
 from yoiyoi.db.updaters import update_chat
 
-# request helpers
-
 # get file size
 from yoiyoi.extra.requests import get_content_type, save_file
 
 # media styles
-from yoiyoi.extra.styles import (
-    XiaohongshuStyle,
-    YouTubeShortStyle,
-)
+from yoiyoi.extra.styles import XiaohongshuStyle
 
 # collect memory stats
 from yoiyoi.extra.tracemalloc_helpers import display_top
@@ -91,16 +85,16 @@ from yoiyoi.services.namedtuples import (
     XiaohongshuVideo,
 )
 
-# pixiv api
-
 # tiktok api
-from yoiyoi.services.registry import PixivSender, TikTokSender, TwitterSender
+from yoiyoi.services.registry import (
+    PixivSender,
+    TikTokSender,
+    TwitterSender,
+    YouTubeShortSender,
+)
 
 # xiaohongshu api
 from yoiyoi.services.xiaohongshu.api import get_xiaohongshu_links
-
-# youtube api
-from yoiyoi.services.youtube_short.api import get_youtube_short_links
 
 # setup logger
 log = structlog.get_logger(__name__)
@@ -314,84 +308,6 @@ async def send_instagram(
     )
 
 
-async def send_youtube_short(
-    update: Update,
-    link: Link,
-    chat: Chat,
-) -> None:
-    """Sends youtube short video
-
-    Args:
-        update (Update): current update
-        link (Link): youtube short link
-        chat (Chat): current chat
-    """
-    error_text = f"[*This youtube content*]({link.link}) "
-    log.info("YouTube Short Link: %s.", link.link)
-    file_handlers = []
-    # get media
-    if video := await get_youtube_short_links(link):
-        info = await get_info(link, YouTubeShortStyle, chat, video)
-        files, storage = [], set()
-        storage_folder = Path(CACHE_DIR / str(update.update_id))
-        storage_folder.mkdir(parents=True, exist_ok=True)
-        filepath = None
-        for vid in video.content:
-            if 0 < vid.size < 50 << 20:
-                filepath = await save_file(vid.link, headers=vid.headers)
-                break
-        else:
-            # if file is too big
-            error_text += "can't be sent, because video file is too big\\!"
-            log.error("Video file is too big.")
-        # upload video if any
-        if filepath:
-            filename = await join_file_name(video.id, filepath)
-            videopath = move_file(filepath, storage_folder / filename)
-            storage.add(videopath)
-            videoinfo = await get_video_info(videopath)
-            thumbpath = await save_file(video.thumb)
-            thumbname = await make_thumb_name(filename, thumbpath)
-            thumbpath = move_file(thumbpath, storage_folder / thumbname)
-            if await crop_thumbnail(thumbpath, videoinfo[0], videoinfo[1]):
-                log.info("Successfully cropped thumbnail.")
-            storage.add(thumbpath)
-            # add to collection
-            video_handler = videopath.open("rb")
-            file_handlers.append(video_handler)
-            files.append(
-                InputMediaVideo(
-                    media=video_handler,
-                    thumbnail=thumbpath.read_bytes(),
-                    caption=info,
-                    parse_mode=PM.HTML,
-                    width=videoinfo[0],
-                    height=videoinfo[1],
-                    duration=videoinfo[2],
-                )
-            )
-            log.debug("Finished adding to collection.")
-            log.debug("Caption: %r.", info)
-            if await send_collection(
-                update,
-                chat,
-                storage,
-                file_handlers,
-                files,
-            ):
-                return
-    # if there is no video
-    log.error("Couldn't get youtube short content.")
-    error_text += (
-        "can't be found or downloaded\\! If this seems to be wrong, try " "again later\\."
-    )
-    await send_error(
-        update,
-        error_text,
-        do_quote=not chat.delete_link,
-    )
-
-
 async def send_discord(
     update: Update,
     link: Link,
@@ -522,7 +438,7 @@ async def send_xiaohongshu(
             log.error("Can's send as video.")
         else:
             for vid in videos:
-                if 0 < vid.size < 50 << 20:
+                if 0 < vid.size < MAX_VIDEO_SIZE:
                     filepath = await save_file(vid.link, "GET", **vid.extra)
                     break
             else:
@@ -620,7 +536,7 @@ async def process_link(
                         case LinkType.TIKTOK:
                             await TikTokSender(update, link, chat).run()
                         case LinkType.YOUTUBE_SHORT:
-                            await send_youtube_short(update, link, chat)
+                            await YouTubeShortSender(update, link, chat).run()
                         case LinkType.PIXIV:
                             await PixivSender(update, link, chat).run()
                         case LinkType.DISCORD:

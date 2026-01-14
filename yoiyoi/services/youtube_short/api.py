@@ -1,4 +1,4 @@
-"""YouTube Short module"""
+"""YouTube Short API"""
 
 import asyncio
 import re

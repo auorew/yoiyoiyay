@@ -2,6 +2,9 @@
 
 import structlog
 
+# bot constants
+from yoiyoi.bot import MAX_VIDEO_SIZE
+
 # bot formatters
 from yoiyoi.bot.formatters import get_video_info, make_thumb_name
 
@@ -77,7 +80,7 @@ class TikTokSender(BaseSender):
 
         else:
             videos = [x for x in media.content if isinstance(x, TikTokVideo)]
-            target_video = next((v for v in videos if 0 < v.size < 50 << 20), None)
+            target_video = next((v for v in videos if 0 < v.size < MAX_VIDEO_SIZE), None)
             if target_video:
                 videopath, filepath = await self.download_helper(
                     target_video.link, headers=target_video.extra
