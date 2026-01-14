@@ -10,7 +10,13 @@ from typing import Optional
 import structlog
 
 # telegram core bot api
-from telegram import InputMediaDocument, InputMediaPhoto, InputMediaVideo, Update
+from telegram import (
+    InputFile,
+    InputMediaDocument,
+    InputMediaPhoto,
+    InputMediaVideo,
+    Update,
+)
 
 # telegram constants
 from telegram.constants import MediaGroupLimit as MGL
@@ -149,12 +155,21 @@ class BaseSender(ABC):
 
     async def _process_and_flush(self, items):
         """Opens files, sends to Telegram, and closes everything immediately."""
+        if not items:
+            return
+
         with ExitStack() as stack:
             media_group = []
             doc_group = []
 
             for idx, item in enumerate(items):
                 media_handle = stack.enter_context(item.path.open("rb"))
+                input_media = InputFile(
+                    media_handle,
+                    filename=item.path.name,
+                    read_file_handle=False,
+                )
+
                 caption = item.caption if idx == 0 else None
 
                 # Build Telegram objects
@@ -165,7 +180,7 @@ class BaseSender(ABC):
 
                     media_group.append(
                         InputMediaVideo(
-                            media=media_handle,
+                            media=input_media,
                             thumbnail=thumb_handle,
                             caption=caption,
                             parse_mode=PM.HTML,
@@ -177,7 +192,7 @@ class BaseSender(ABC):
                 else:
                     media_group.append(
                         InputMediaPhoto(
-                            media=media_handle,
+                            media=input_media,
                             caption=caption,
                             parse_mode=PM.HTML,
                         )
@@ -185,9 +200,14 @@ class BaseSender(ABC):
 
                 if item.orig_path:
                     doc_handle = stack.enter_context(item.orig_path.open("rb"))
+                    input_doc = InputFile(
+                        doc_handle,
+                        filename=item.orig_path.name,
+                        read_file_handle=False,
+                    )
                     doc_group.append(
                         InputMediaDocument(
-                            media=doc_handle,
+                            media=input_doc,
                             parse_mode=PM.HTML,
                             disable_content_type_detection=True,
                         )
