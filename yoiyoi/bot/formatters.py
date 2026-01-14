@@ -141,7 +141,7 @@ async def get_text(update: Update) -> str:
     )
 
 
-async def get_video_info(filepath: str) -> tuple[int, int, int]:
+async def get_video_info(filepath: str | Path) -> tuple[int, int, int]:
     # try ffprobe
     try:
         log.debug("Get video info: trying ffprobe...")

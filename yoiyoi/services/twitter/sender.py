@@ -122,6 +122,18 @@ class TwitterSender(BaseSender):
 
             if media.type == "photo":
                 procpath, filepath = await self.download_helper(media.links[0])
+                if not procpath:
+                    raise SenderError(
+                        message=(
+                            "can't be downloaded! "
+                            "The bot failed to download the content."
+                        ),
+                        telegram_message=(
+                            "can't be downloaded\\! "
+                            "The bot failed to download the content\\."    
+                        ),
+                    )
+                    
                 yield MediaItem(
                     path=procpath,
                     type="photo",
@@ -131,8 +143,24 @@ class TwitterSender(BaseSender):
             else:
                 if not (videolink := await self._choose_twitter_video(media)):
                     self.log.info("Skipping downloading video...")
-                    continue
+                    raise SenderError(
+                        message=("can't be sent, video is too huge!"),
+                        telegram_message=("can't be sent, video is too huge\\!"),
+                    )
+
                 procpath, filepath = await self.download_helper(videolink)
+                if not procpath:
+                    raise SenderError(
+                        message=(
+                            "can't be downloaded! "
+                            "The bot failed to download the content."
+                        ),
+                        telegram_message=(
+                            "can't be downloaded\\! "
+                            "The bot failed to download the content\\."    
+                        ),
+                    )
+
                 videoinfo = await get_video_info(procpath)
                 if not all(videoinfo):
                     raise SenderError(
