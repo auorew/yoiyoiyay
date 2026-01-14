@@ -1,4 +1,4 @@
-"""Pixiv module"""
+"""Pixiv API"""
 
 from typing import Optional
 

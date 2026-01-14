@@ -99,7 +99,7 @@ from yoiyoi.services.namedtuples import (
 from yoiyoi.services.pixiv.api import get_pixiv_links
 
 # tiktok api
-from yoiyoi.services.registry import TikTokSender, TwitterSender
+from yoiyoi.services.registry import PixivSender, TikTokSender, TwitterSender
 
 # xiaohongshu api
 from yoiyoi.services.xiaohongshu.api import get_xiaohongshu_links
@@ -795,7 +795,7 @@ async def process_link(
                         case LinkType.YOUTUBE_SHORT:
                             await send_youtube_short(update, link, chat)
                         case LinkType.PIXIV:
-                            await send_pixiv(update, link, chat)
+                            await PixivSender(update, link, chat).run()
                         case LinkType.DISCORD:
                             await send_discord(update, link, chat)
                         case LinkType.XIAOHONGSHU:
