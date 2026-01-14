@@ -32,9 +32,9 @@ def replace_file(filepath: str, replaced_filepath: str) -> None:
     os.rename(filepath, replaced_filepath)
 
 
-def move_file(src: str, dst: Path) -> Path:
+def move_file(src: str | Path, dst: str | Path) -> Path:
     shutil.move(src, dst)
-    return dst
+    return Path(dst)
 
 
 def delete_files(storage: set[Path]) -> None:

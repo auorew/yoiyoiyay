@@ -55,7 +55,7 @@ from yoiyoi.bot.processors import (
 )
 
 # bot senders
-from yoiyoi.bot.senders import send_error, send_media_group, send_reply
+from yoiyoi.bot.senders import reply_media_group, send_error, send_reply
 
 # database table
 from yoiyoi.db.models import Chat
@@ -137,14 +137,22 @@ async def send_collection(
         while i < len(files):
             # send media group
             log.info("Sending media group...")
-            if post := await send_media_group(message, media=files[i:j], do_quote=quoted):
+            if post := await reply_media_group(
+                message,
+                media=files[i:j],
+                do_quote=quoted,
+            ):
                 log.info("Sent media group.")
             for file_handler in file_handlers[i:j]:
                 file_handler.close()
             # send document group
             if docs and doc_handlers and post:
                 log.info("Sending document group...")
-                if await send_media_group(post[0], media=docs[i:j], do_quote=True):
+                if await reply_media_group(
+                    post[0],
+                    media=docs[i:j],
+                    do_quote=True,
+                ):
                     log.info("Sent document group.")
                 for doc_handler in doc_handlers[i:j]:
                     doc_handler.close()

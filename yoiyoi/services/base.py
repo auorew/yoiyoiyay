@@ -26,7 +26,7 @@ from yoiyoi.bot.formatters import make_file_name
 from yoiyoi.bot.processors import process_image, process_video
 
 # bot senders
-from yoiyoi.bot.senders import send_error, send_media_group
+from yoiyoi.bot.senders import reply_media_group, send_error
 
 # database table
 from yoiyoi.db.models import Chat
@@ -49,8 +49,8 @@ class MediaItem:
     path: Path
     type: str  # 'video', 'photo'
     caption: str = ""
-    thumb_path: Path = None
-    orig_path: Path = None
+    thumb_path: Optional[Path] = None
+    orig_path: Optional[Path] = None
     width: int = 0
     height: int = 0
     duration: int = 0
@@ -64,10 +64,10 @@ class SenderError(Exception):
 
 
 class BaseSender(ABC):
-    SERVICE: str = None
+    SERVICE: str = ""
 
     def __init__(self, update: Update, link: Link, chat: Chat):
-        if self.SERVICE is None:
+        if self.SERVICE is None or self.SERVICE == "":
             raise NotImplementedError(
                 f"Class {self.__class__.__name__} must define a 'SERVICE' attribute."
             )
@@ -195,17 +195,23 @@ class BaseSender(ABC):
                     )
 
             self.log.info("Sending media group...")
-            if post := await send_media_group(
-                self.update.effective_message,
-                media=media_group,
-                do_quote=not self.chat.delete_link,
+            if self.update.effective_message and (
+                post := await reply_media_group(
+                    self.update.effective_message,
+                    media=media_group,
+                    do_quote=not self.chat.delete_link,
+                )
             ):
                 self.log.info("Sent media group.")
                 self.sent_any = True
                 if not doc_group:
                     return
                 self.log.info("Sending document group...")
-                if await send_media_group(post[0], media=doc_group, do_quote=True):
+                if await reply_media_group(
+                    post[0],
+                    media=doc_group,
+                    do_quote=True,
+                ):
                     self.log.info("Sent document group.")
         for item in items:
             try:
@@ -220,7 +226,9 @@ class BaseSender(ABC):
                 self.log.warning("Incremental cleanup failed: %r.", exception)
 
     async def download_helper(
-        self, url: str, headers: dict = None
+        self,
+        url: str,
+        headers: Optional[dict] = None,
     ) -> tuple[Optional[Path], Optional[Path]]:
         """Downloads a file, saves it to storage_dir, and tracks it for cleanup."""
         if not (temppath := await save_file(url, headers=headers)):

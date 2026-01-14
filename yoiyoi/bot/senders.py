@@ -14,8 +14,8 @@ log = structlog.get_logger(__name__)
 
 
 @retry_request
-async def send_media_group(message: Message, **kwargs) -> Message:
-    """Sends media group in reply to post in current chat
+async def reply_media_group(message: Message, **kwargs) -> tuple[Message, ...]:
+    """Replies media group to post in current chat
 
     Args:
         message (Message): post to reply to
