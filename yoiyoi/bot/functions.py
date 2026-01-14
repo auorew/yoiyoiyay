@@ -1,6 +1,7 @@
 """Bot Functions"""
 
 import asyncio
+import gc
 import tracemalloc
 
 from pathlib import Path
@@ -114,6 +115,9 @@ update_queue = asyncio.Queue(QUEUE_SIZE)
 
 # current media groups
 media_groups = set()
+
+# limit number of simultaneous uploads
+UPLOAD_SEMAPHORE = asyncio.Semaphore(2)
 
 
 async def send_collection(
@@ -762,42 +766,43 @@ async def process_link(
     # put into limited queue
     await update_queue.put(update.update_id)
     try:
-        should_delete = False
-        # check for text
-        if text := await get_text(update):
-            # add media group id if needed
-            log.debug("Received text: %r.", text)
-            async for link in formatter(text):
-                if not should_delete:
-                    should_delete = True
-                    if media_group_id:
-                        media_groups.add(media_group_id)
-                match link.type:
-                    case LinkType.TWITTER:
-                        await TwitterSender(update, link, chat).run()
-                    case LinkType.INSTAGRAM:
-                        await send_instagram(update, link, chat)
-                    case LinkType.TIKTOK:
-                        await TikTokSender(update, link, chat).run()
-                    case LinkType.YOUTUBE_SHORT:
-                        await send_youtube_short(update, link, chat)
-                    case LinkType.PIXIV:
-                        await send_pixiv(update, link, chat)
-                    case LinkType.DISCORD:
-                        await send_discord(update, link, chat)
-                    case LinkType.XIAOHONGSHU:
-                        await send_xiaohongshu(update, link, chat)
-                    case _:
-                        await send_reply(update, esc(link.link))
-        # delete source post media group messages
-        else:
-            should_delete = media_group_id in media_groups
-        # delete if should
-        if chat.delete_link and should_delete:
-            try:
-                await update.effective_message.delete()
-            except BadRequest:
-                log.warning("Message to delete not found.")
+        async with UPLOAD_SEMAPHORE:
+            should_delete = False
+            # check for text
+            if text := await get_text(update):
+                # add media group id if needed
+                log.debug("Received text: %r.", text)
+                async for link in formatter(text):
+                    if not should_delete:
+                        should_delete = True
+                        if media_group_id:
+                            media_groups.add(media_group_id)
+                    match link.type:
+                        case LinkType.TWITTER:
+                            await TwitterSender(update, link, chat).run()
+                        case LinkType.INSTAGRAM:
+                            await send_instagram(update, link, chat)
+                        case LinkType.TIKTOK:
+                            await TikTokSender(update, link, chat).run()
+                        case LinkType.YOUTUBE_SHORT:
+                            await send_youtube_short(update, link, chat)
+                        case LinkType.PIXIV:
+                            await send_pixiv(update, link, chat)
+                        case LinkType.DISCORD:
+                            await send_discord(update, link, chat)
+                        case LinkType.XIAOHONGSHU:
+                            await send_xiaohongshu(update, link, chat)
+                        case _:
+                            await send_reply(update, esc(link.link))
+            # delete source post media group messages
+            else:
+                should_delete = media_group_id in media_groups
+            # delete if should
+            if chat.delete_link and should_delete:
+                try:
+                    await update.effective_message.delete()
+                except BadRequest:
+                    log.warning("Message to delete not found.")
     finally:
         # mark done and remove from limited queue
         update_queue.task_done()
@@ -807,6 +812,8 @@ async def process_link(
             media_groups.clear()
         # unbind update_id
         unbind_contextvars("update_id")
+        # force garbage collection
+        gc.collect()
 
         snapshot_after = tracemalloc.take_snapshot()
         display_top(snapshot_after, prev_snapshot=snapshot_before)
