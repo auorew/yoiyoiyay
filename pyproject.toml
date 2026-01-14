@@ -8,7 +8,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-python-telegram-bot = {version = "^22.5", extras = ["job-queue", "webhooks"]}
+python-telegram-bot = {version = "^22.5", extras = ["job-queue", "webhooks", "http2"]}
 python-dotenv = "^1.2.1"
 sqlalchemy = "2.0.45"
 alembic = "^1.18.0"
