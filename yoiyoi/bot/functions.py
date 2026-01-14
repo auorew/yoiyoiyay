@@ -25,7 +25,7 @@ from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 # get constants
-from yoiyoi.bot import CACHE_DIR, QUEUE_SIZE, PixivParse
+from yoiyoi.bot import CACHE_DIR, QUEUE_SIZE
 
 # bot filters
 from yoiyoi.bot.filters import clear_context
@@ -39,7 +39,6 @@ from yoiyoi.bot.formatters import (
     join_file_name,
     make_file_name,
     make_thumb_name,
-    pixiv_parse,
 )
 
 # bot helpers
@@ -64,14 +63,12 @@ from yoiyoi.db.models import Chat
 from yoiyoi.db.updaters import update_chat
 
 # request helpers
-from yoiyoi.extra.request_helpers import PIXIV_HEADERS, get_fake_headers
 
 # get file size
 from yoiyoi.extra.requests import get_content_type, save_file
 
 # media styles
 from yoiyoi.extra.styles import (
-    PixivStyle,
     XiaohongshuStyle,
     YouTubeShortStyle,
 )
@@ -91,12 +88,10 @@ from yoiyoi.services.instagram.api import get_instagram_links
 # Link, PixivContent, TweetContent namedtuples
 from yoiyoi.services.namedtuples import (
     Link,
-    PixivContent,
     XiaohongshuVideo,
 )
 
 # pixiv api
-from yoiyoi.services.pixiv.api import get_pixiv_links
 
 # tiktok api
 from yoiyoi.services.registry import PixivSender, TikTokSender, TwitterSender
@@ -390,174 +385,6 @@ async def send_youtube_short(
     error_text += (
         "can't be found or downloaded\\! If this seems to be wrong, try " "again later\\."
     )
-    await send_error(
-        update,
-        error_text,
-        do_quote=not chat.delete_link,
-    )
-
-
-async def send_pixiv(
-    update: Update,
-    link: Link,
-    chat: Chat,
-) -> None:
-    """Sends pixiv artwork
-
-    Args:
-        update (Update): current update
-        link (Link): pixiv artwork link
-        chat (Chat): current chat
-    """
-    error_text = f"[*This pixiv content*]({link.link}) "
-    log.info("Pixiv Link: %s.", link.link)
-    file_handlers, doc_handlers = [], []
-    # get media
-    if (art := await get_pixiv_links(link.id)) and (count := len(art.content)):
-        info = await get_info(link, PixivStyle, chat, art)
-        files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update.update_id))
-        storage_folder.mkdir(parents=True, exist_ok=True)
-        ids = [1]
-        parsed_ids = await pixiv_parse(link.illust, count)
-        if art.type == "ugoira":
-            media: PixivContent = art.content[0]
-            filepath = await save_file(
-                media.original,
-                headers={
-                    **get_fake_headers(),
-                    "Range": "bytes=0-",
-                    "Referer": "https://t-hk.ugoira.com/",
-                },
-            )
-            filename = await make_file_name("pixiv", media.original, filepath)
-            filepath = move_file(filepath, storage_folder / filename)
-            storage.add(filepath)
-            if not (videopath := await process_video(filepath)):
-                log.error("Couldn't add sound to video.")
-                await send_error(
-                    update,
-                    error_text + "contains videos the bot couldn't send\\!",
-                    do_quote=not chat.delete_link,
-                )
-                return
-            if videopath != filepath:
-                storage.add(videopath)
-            videoinfo = await get_video_info(videopath)
-            thumbpath = await save_file(media.thumb, headers=PIXIV_HEADERS)
-            thumbname = await make_thumb_name(filename, thumbpath)
-            thumbpath = move_file(thumbpath, storage_folder / thumbname)
-            storage.add(thumbpath)
-            # add to collection
-            video_handler = videopath.open("rb")
-            file_handlers.append(video_handler)
-            files.append(
-                InputMediaVideo(
-                    media=video_handler,
-                    thumbnail=thumbpath.read_bytes(),
-                    caption=info,
-                    parse_mode=PM.HTML,
-                    width=videoinfo[0],
-                    height=videoinfo[1],
-                    duration=videoinfo[2],
-                )
-            )
-        else:
-            if count > 1:
-                ids = []
-                match parsed_ids[0]:
-                    case PixivParse.SUCCESS:
-                        ids = parsed_ids[1]
-                    case PixivParse.OUT_OF_RANGE:
-                        error_text += (
-                            "can't be sent, because the bot "
-                            "*can't* send more than 10 files\\!"
-                        )
-                    case PixivParse.NOT_WITHIN_RANGE:
-                        error_text += (
-                            "can't be sent, because the numbers "
-                            "are *not within* range: "
-                            f"\\[`1`\\-`{count}`\\]\\!"
-                        )
-                    case PixivParse.NO_INFO:
-                        error_text += (
-                            "can't be sent, because the bot requires "
-                            "the order of illustrations to be specified "
-                            "with \\[`link`\\] `+` \\[`ids`\\] syntax\\! "
-                            "See */help* for more info\\.\n\n"
-                            "Choose illustrations in range: "
-                            f"\\[`1`\\-`{count}`\\]\\.\n"
-                        )
-                    case _:
-                        error_text += (
-                            "can't be sent, because something went wrong "
-                            "while parsing your input."
-                        )
-            i, j = 0, 10
-            while i < len(ids):
-                for idx in ids[i:j]:
-                    media = art.content[idx - 1]
-                    filelink = media.original
-                    filepath = await save_file(filelink, headers=PIXIV_HEADERS)
-                    filename = await make_file_name("pixiv", filelink, filepath)
-                    filepath = move_file(filepath, storage_folder / filename)
-                    storage.add(filepath)
-                    log.debug("Filename: %r.", filename)
-                    if not (imagepath := await process_image(filepath)):
-                        log.error("Couldn't resize image.")
-                        await send_error(
-                            update,
-                            error_text + "contains images the bot couldn't resize\\!",
-                            do_quote=not chat.delete_link,
-                        )
-                        return
-                    if (imagepath := Path(imagepath)) != filepath:
-                        imagepath = move_file(
-                            imagepath,
-                            storage_folder / f"RE_{filepath.stem}{filepath.suffix}",
-                        )
-                        storage.add(imagepath)
-                    # add to collection
-                    image_handler = imagepath.open("rb")
-                    file_handlers.append(image_handler)
-                    files.append(
-                        InputMediaPhoto(
-                            media=image_handler,
-                            caption=info if ids[i] == idx else None,
-                            parse_mode=PM.HTML,
-                        )
-                    )
-                    if chat.px_orig:
-                        doc_handler = filepath.open("rb")
-                        doc_handlers.append(doc_handler)
-                        docs.append(
-                            InputMediaDocument(
-                                media=doc_handler,
-                                parse_mode=PM.HTML,
-                                disable_content_type_detection=True,
-                            )
-                        )
-                # get next 10 photos/docs
-                i, j = j, j + 10
-        if files:
-            log.debug("Finished adding to collection.")
-            log.debug("Caption: %r.", info)
-            if await send_collection(
-                update,
-                chat,
-                storage,
-                file_handlers,
-                files,
-                doc_handlers,
-                docs,
-            ):
-                return
-    else:
-        log.error("Couldn't get pixiv content.")
-        error_text += (
-            "can't be found or downloaded\\. If this seems to be wrong, try "
-            "again later\\."
-        )
     await send_error(
         update,
         error_text,
