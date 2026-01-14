@@ -83,7 +83,8 @@ class BaseSender(ABC):
         self.storage: set = set()
 
         # error message
-        self.error_text: str = f"[*This {self.SERVICE} content*]({self.link.link})"
+        self.error: str = f"This {self.SERVICE} content({self.link.link})"
+        self.telegram_error: str = f"[*This {self.SERVICE} content*]({self.link.link})"
 
         # sender logger
         self.log: structlog.BoundLogger = log.bind(service=self.SERVICE)
@@ -110,7 +111,7 @@ class BaseSender(ABC):
             )
             await send_error(
                 self.update,
-                f"{self.error_text} {error.message}",
+                f"{self.telegram_error} {error.telegram_message}",
                 do_quote=not self.chat.delete_link,
             )
 
@@ -126,7 +127,7 @@ class BaseSender(ABC):
             )
             await send_error(
                 self.update,
-                f"{self.error_text} crashed the bot unexpectedly.",
+                f"{self.telegram_error} crashed the bot unexpectedly\\.",
                 do_quote=not self.chat.delete_link,
             )
         finally:
