@@ -36,7 +36,7 @@ class ProxyManager:
             self.active = str(static_url)
             self.is_static = True
         self.pool: list = []
-        self.log: structlog.BoundLogger = log.bind(app="proxy_manager")
+        self.log: structlog.BoundLogger = log.bind(service="proxy_manager")
         self._lock = asyncio.Lock()
         self.request_attempts: int = 0
 
@@ -98,7 +98,7 @@ class ProxyGetter:
         self.limit = limit
         self.working_proxy = set()
         self.proxy_list = set()
-        self.log: structlog.BoundLogger = log.bind(app="proxy_getter")
+        self.log: structlog.BoundLogger = log.bind(service="proxy_getter")
         self._semaphore = None
 
     @property
