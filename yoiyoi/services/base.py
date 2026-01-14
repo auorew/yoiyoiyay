@@ -170,18 +170,23 @@ class BaseSender(ABC):
                     read_file_handle=False,
                 )
 
+                thumb_handle = input_thumb = None
+                if item.thumb_path:
+                    thumb_handle = stack.enter_context(item.thumb_path.open("rb"))
+                    input_thumb = InputFile(
+                        media_handle,
+                        filename=item.path.name,
+                        read_file_handle=False,
+                    )
+
                 caption = item.caption if idx == 0 else None
 
                 # Build Telegram objects
                 if item.type == "video":
-                    thumb_handle = None
-                    if item.thumb_path:
-                        thumb_handle = stack.enter_context(item.thumb_path.open("rb"))
-
                     media_group.append(
                         InputMediaVideo(
                             media=input_media,
-                            thumbnail=thumb_handle,
+                            thumbnail=input_thumb,
                             caption=caption,
                             parse_mode=PM.HTML,
                             width=item.width,
@@ -208,6 +213,7 @@ class BaseSender(ABC):
                     doc_group.append(
                         InputMediaDocument(
                             media=input_doc,
+                            # thumbnail=input_thumb,
                             parse_mode=PM.HTML,
                             disable_content_type_detection=True,
                         )
