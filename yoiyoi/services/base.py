@@ -10,13 +10,7 @@ from typing import Optional
 import structlog
 
 # telegram core bot api
-from telegram import (
-    InputFile,
-    InputMediaDocument,
-    InputMediaPhoto,
-    InputMediaVideo,
-    Update,
-)
+from telegram import InputMediaDocument, InputMediaPhoto, InputMediaVideo, Update
 
 # telegram constants
 from telegram.constants import MediaGroupLimit as MGL
@@ -155,29 +149,16 @@ class BaseSender(ABC):
 
     async def _process_and_flush(self, items):
         """Opens files, sends to Telegram, and closes everything immediately."""
-        if not items:
-            return
-
         with ExitStack() as stack:
             media_group = []
             doc_group = []
 
             for idx, item in enumerate(items):
                 media_handle = stack.enter_context(item.path.open("rb"))
-                input_media = InputFile(
-                    media_handle,
-                    filename=item.path.name,
-                    read_file_handle=False,
-                )
 
-                thumb_handle = input_thumb = None
+                thumb_handle = None
                 if item.thumb_path:
                     thumb_handle = stack.enter_context(item.thumb_path.open("rb"))
-                    input_thumb = InputFile(
-                        media_handle,
-                        filename=item.path.name,
-                        read_file_handle=False,
-                    )
 
                 caption = item.caption if idx == 0 else None
 
@@ -185,8 +166,8 @@ class BaseSender(ABC):
                 if item.type == "video":
                     media_group.append(
                         InputMediaVideo(
-                            media=input_media,
-                            thumbnail=input_thumb,
+                            media=media_handle,
+                            thumbnail=thumb_handle,
                             caption=caption,
                             parse_mode=PM.HTML,
                             width=item.width,
@@ -197,7 +178,7 @@ class BaseSender(ABC):
                 else:
                     media_group.append(
                         InputMediaPhoto(
-                            media=input_media,
+                            media=media_handle,
                             caption=caption,
                             parse_mode=PM.HTML,
                         )
@@ -205,15 +186,9 @@ class BaseSender(ABC):
 
                 if item.orig_path:
                     doc_handle = stack.enter_context(item.orig_path.open("rb"))
-                    input_doc = InputFile(
-                        doc_handle,
-                        filename=item.orig_path.name,
-                        read_file_handle=False,
-                    )
                     doc_group.append(
                         InputMediaDocument(
-                            media=input_doc,
-                            # thumbnail=input_thumb,
+                            media=doc_handle,
                             parse_mode=PM.HTML,
                             disable_content_type_detection=True,
                         )
