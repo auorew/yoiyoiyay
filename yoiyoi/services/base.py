@@ -221,11 +221,13 @@ class BaseSender(ABC):
         self, url: str, headers: dict = None
     ) -> tuple[Optional[Path], Optional[Path]]:
         """Downloads a file, saves it to storage_dir, and tracks it for cleanup."""
-        if not (temp_path := await save_file(url, headers=headers)):
+        if not (temppath := await save_file(url, headers=headers)):
             return None, None
 
-        filename = await make_file_name(self.SERVICE, url, temp_path)
-        filepath = move_file(temp_path, self.storage_dir / filename)
+        if not (filename := await make_file_name(self.SERVICE, url, temppath)):
+            return None, None
+
+        filepath = move_file(temppath, self.storage_dir / filename)
         self.storage.add(filepath)
 
         procpath = filepath

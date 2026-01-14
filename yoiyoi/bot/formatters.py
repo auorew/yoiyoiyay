@@ -349,7 +349,15 @@ async def make_file_name(link_type: str, link: str, file: str | bytes) -> str:
     Returns:
         str: new file name
     """
-    return ".".join((extract_file_name(link_type, link), extract_file_ext(file)))
+    if link_type is None:
+        log.error("Link type is None!")
+        return ""
+    name = extract_file_name(link_type, link)
+    ext = extract_file_ext(file)
+    if not name:
+        name = f"{link_type}_{int(asyncio.get_event_loop().time())}"
+
+    return ".".join((name, ext))
 
 
 async def join_file_name(file_name: str, file: str | bytes) -> str:
