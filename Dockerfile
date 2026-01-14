@@ -2,6 +2,8 @@
 
 # First, we build
 
+FROM denoland/deno:bin-2.1.4 AS deno_binary
+
 FROM python:3.14.2-trixie AS builder
 
 # Set system, python, pip & poetry env
@@ -59,6 +61,7 @@ ENV LANG=C.UTF-8 \
 WORKDIR /app
 
 # Copy dependencies
+COPY --from=deno_binary /deno /usr/local/bin/deno
 COPY --from=builder /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
