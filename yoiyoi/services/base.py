@@ -296,8 +296,8 @@ class BaseSender(ABC):
             procpath = Path(procpath)
             if procpath != filepath:
                 resized_name = f"RE_{filepath.stem}{filepath.suffix}"
-                filepath = move_file(procpath, self.storage_dir / resized_name)
-                self.storage.add(filepath)
+                procpath = move_file(procpath, self.storage_dir / resized_name)
+                self.storage.add(procpath)
 
         # video processing
         elif filepath.suffix.lower() in {".mp4", ".mov", ".mkv"}:
