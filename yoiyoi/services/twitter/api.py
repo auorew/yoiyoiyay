@@ -46,7 +46,7 @@ from yoiyoi.services.constants import LINKS
 from yoiyoi.services.namedtuples import TweetContent, TweetMedia
 
 # get logger
-log = structlog.get_logger(__name__)
+log = structlog.get_logger(__name__, service="twitter")
 
 # twitter quality
 QUALITY = ("orig", "large", "medium", "small")

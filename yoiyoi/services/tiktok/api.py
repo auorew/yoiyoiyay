@@ -61,7 +61,7 @@ from yoiyoi.services.urlexpander.api import (
 )
 
 # setup logger
-log = structlog.get_logger(__name__)
+log = structlog.get_logger(__name__, service="tiktok")
 
 # tiktok thumbnail link
 TT = LINKS["tiktok"]
