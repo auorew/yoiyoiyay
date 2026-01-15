@@ -31,7 +31,7 @@ from yt_dlp import YoutubeDL
 from yoiyoi.bot import CACHE_DIR, MAX_REQUEST_SIZE
 
 # bot formatters
-from yoiyoi.bot.formatters import make_file_name
+from yoiyoi.bot.formatters import make_file_name, esc
 
 # bot processors
 from yoiyoi.bot.processors import process_image, process_video
@@ -95,7 +95,7 @@ class BaseSender(ABC):
 
         # error message
         self.error: str = f"This {self.SERVICE} content({self.link.link})"
-        self.telegram_error: str = f"[*This {self.SERVICE} content*]({self.link.link})"
+        self.telegram_error: str = f"[*This {esc(self.SERVICE)} content*]({self.link.link})"
 
         # sender logger
         self.log: structlog.BoundLogger = log.bind(service=self.SERVICE)
