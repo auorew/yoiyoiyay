@@ -57,10 +57,9 @@ log = structlog.get_logger(__name__)
 ydl_opts_base = {
     "extractor_args": {
         "youtube": {
-            "player_client": ["mweb", "ios"],
+            "player_client": ["mweb"],
             "skip": ["web"],
-            "pot_provider": "bgutil",
-            "script_path": "/app/bgutil/build/generate_once.js",
+            "youtubepot-bgutilhttp:base_url": "http://127.0.0.1:4416",
         }
     },
     "format": (
