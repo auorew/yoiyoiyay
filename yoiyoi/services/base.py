@@ -5,11 +5,15 @@ import asyncio
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 from typing import Optional
 
 # structured logging
 import structlog
+
+# decrypting
+from cryptography.fernet import Fernet
 
 # telegram core bot api
 from telegram import (
@@ -44,6 +48,9 @@ from yoiyoi.db.models import Chat
 
 # http requests
 from yoiyoi.extra.requests import save_file
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # file utils
 from yoiyoi.extra.utils import delete_files, move_file
@@ -325,6 +332,11 @@ class BaseSender(ABC):
                 filepath = self.storage_dir / f"{self.update_id}_yt_direct.mp4"
                 ydl_opts_direct = {
                     **ydl_opts_base,
+                    "cookiefile": StringIO(
+                        Fernet(bot_settings.yt_key)
+                        .decrypt(bot_settings.yt_cookies.encode())
+                        .decode()
+                    ),
                     "outtmpl": str(filepath),
                     "headers": headers or {},
                 }
@@ -344,6 +356,11 @@ class BaseSender(ABC):
                 filepath = self.storage_dir / f"{self.update_id}_{self.link.id}.mp4"
                 ydl_opts_fallback = {
                     **ydl_opts_base,
+                    "cookiefile": StringIO(
+                        Fernet(bot_settings.yt_key)
+                        .decrypt(bot_settings.yt_cookies.encode())
+                        .decode()
+                    ),
                     "outtmpl": str(filepath),
                     "headers": headers or {},
                 }
