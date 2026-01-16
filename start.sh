@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# monitor memory usage
+monitor_memory() {
+    while true; do
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] --- MEMORY REPORT ---"
+        # total memory used by all processes in MB
+        ps -eo size,rss,comm,pid --sort=-rss | awk '
+            BEGIN {printf "%-10s %-10s %-20s %s\n", "PID", "RSS(MB)", "COMMAND", "TOTAL"}
+            NR>1 {
+                rss_mb=$2/1024;
+                total+=rss_mb;
+                printf "%-10s %-10.2f %-20s\n", $4, rss_mb, $3
+            }
+            END {printf "\nTotal Physical Memory (RSS) in use: %.2f MB\n", total}'
+        echo "--------------------------"
+        sleep 300
+    done
+}
+
+monitor_memory &
+
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting POT provider..."
 node /app/bgutil/build/main.js --host 127.0.0.1 --port 4416 >/app/node_provider.log 2>&1 &
 

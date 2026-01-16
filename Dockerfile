@@ -89,6 +89,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     nodejs \
+    procps \
     libvips42 \
     libmagic-dev \
     file \
