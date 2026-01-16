@@ -201,14 +201,14 @@ typing-extensions = {version = ">=4.2", markers = "python_version < \"3.13\""}
 
 [[package]]
 name = "alembic"
-version = "1.18.0"
+version = "1.18.1"
 description = "A database migration tool for SQLAlchemy."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "alembic-1.18.0-py3-none-any.whl", hash = "sha256:3993fcfbc371aa80cdcf13f928b7da21b1c9f783c914f03c3c6375f58efd9250"},
-    {file = "alembic-1.18.0.tar.gz", hash = "sha256:0c4c03c927dc54d4c56821bdcc988652f4f63bf7b9017fd9d78d63f09fd22b48"},
+    {file = "alembic-1.18.1-py3-none-any.whl", hash = "sha256:f1c3b0920b87134e851c25f1f7f236d8a332c34b75416802d06971df5d1b7810"},
+    {file = "alembic-1.18.1.tar.gz", hash = "sha256:83ac6b81359596816fb3b893099841a0862f2117b2963258e965d70dc62fb866"},
 ]
 
 [package.dependencies]
@@ -339,6 +339,18 @@ files = [
 
 [package.dependencies]
 colorama = {version = "*", markers = "sys_platform == \"win32\""}
+
+[[package]]
+name = "bgutil-ytdlp-pot-provider"
+version = "1.2.2"
+description = ""
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "bgutil_ytdlp_pot_provider-1.2.2-py3-none-any.whl", hash = "sha256:f2ff0f340e36503f24119192c7dfa1c1957f37520e78764a3cdf3d99db46633a"},
+    {file = "bgutil_ytdlp_pot_provider-1.2.2.tar.gz", hash = "sha256:f597d7f453a3ceee24251405a5d769e1e3f31f39d5760670f273630fddae417e"},
+]
 
 [[package]]
 name = "brotli"
@@ -3664,4 +3676,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "e22b64fa53a7dc0d3d1bfac0e1fee8c1c9c2957916583a8f13d3229ff215d385"
+content-hash = "f28773bd6b271c74b24b217cf6a3639c7bc15f9cf4581f0f812abbc1e627a83a"

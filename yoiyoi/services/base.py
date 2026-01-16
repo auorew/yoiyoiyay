@@ -28,10 +28,10 @@ from telegram.constants import ParseMode as PM
 from yt_dlp import YoutubeDL
 
 # bot constants and cache dir
-from yoiyoi.bot import CACHE_DIR, MAX_REQUEST_SIZE
+from yoiyoi.bot import CACHE_DIR, MAX_REQUEST_SIZE, MAX_VIDEO_SIZE
 
 # bot formatters
-from yoiyoi.bot.formatters import make_file_name, esc
+from yoiyoi.bot.formatters import esc, make_file_name
 
 # bot processors
 from yoiyoi.bot.processors import process_image, process_video
@@ -53,6 +53,42 @@ from yoiyoi.services.namedtuples import Link
 
 # setup logger
 log = structlog.get_logger(__name__)
+
+ydl_opts_base = {
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["mweb", "ios"],
+            "skip": ["web"],
+            "pot_provider": "bgutil",
+            "script_path": "/app/bgutil/build/generate_once.js",
+        }
+    },
+    "format": (
+        f"bestvideo[ext=mp4][vcodec^=avc1][filesize_approx<{MAX_VIDEO_SIZE}]+"
+        f"bestaudio[ext=m4a]/best[ext=mp4][filesize_approx<{MAX_VIDEO_SIZE}]/best"
+    ),
+    "merge_output_format": "mp4",
+    "postprocessors": [
+        {
+            "key": "FFmpegVideoRemuxer",
+            "preferedformat": "mp4",
+        }
+    ],
+    # memory limiting
+    "buffersize": 1024 * 16,
+    "max_filesize": MAX_VIDEO_SIZE,
+    # remove metadata
+    "writethumbnail": False,
+    "write_all_thumbnails": False,
+    "addmetadata": False,
+    "writeinfojson": False,
+    "noplaylist": True,
+    # other settings
+    "quiet": True,
+    "nocheckcertificate": True,
+    "js_runtimes": {"deno": {}},
+    "remote_components": ["ejs:github"],
+}
 
 
 @dataclass
@@ -95,7 +131,9 @@ class BaseSender(ABC):
 
         # error message
         self.error: str = f"This {self.SERVICE} content({self.link.link})"
-        self.telegram_error: str = f"[*This {esc(self.SERVICE)} content*]({self.link.link})"
+        self.telegram_error: str = (
+            f"[*This {esc(self.SERVICE)} content*]({self.link.link})"
+        )
 
         # sender logger
         self.log: structlog.BoundLogger = log.bind(service=self.SERVICE)
@@ -280,18 +318,49 @@ class BaseSender(ABC):
         **kwargs,
     ) -> tuple[Optional[Path], Optional[Path]]:
         """Downloads a file, saves it to storage_dir, and tracks it for cleanup."""
-        if ".m3u8" in url or "googlevideo.com" in url:
-            self.log.info("Detected HLS/YouTube stream, using yt-dlp downloader.")
-            filepath = self.storage_dir / f"{self.update_id}_yt.mp4"
-            ydl_opts = {
-                "format": "bestvideo+bestaudio/best",
-                "outtmpl": str(filepath),
-                "quiet": True,
-                "nocheckcertificate": True,
-                "headers": headers or {},
-            }
+        # HLS / YouTube
+        if ".m3u8" in url or "googlevideo.com" in url or "youtube.com" in self.link.link:
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, lambda: YoutubeDL(ydl_opts).download([url]))
+            try:
+                self.log.info("Attempt 1: Downloading via direct URL...")
+                filepath = self.storage_dir / f"{self.update_id}_yt_direct.mp4"
+                ydl_opts_direct = {
+                    **ydl_opts_base,
+                    "outtmpl": str(filepath),
+                    "headers": headers or {},
+                }
+                await loop.run_in_executor(
+                    None, lambda: YoutubeDL(ydl_opts_direct).download([url])
+                )
+                if filepath.exists() and filepath.stat().st_size > 0:
+                    self.log.info("Attempt 1 successful.")
+                else:
+                    raise Exception("File empty or missing after Attempt 1.")
+
+            except Exception as e:
+                self.log.warning("Attempt 1 failed: %r. Switching to fallback...", e)
+
+            try:
+                self.log.info("Attempt 2: Downloading via Original Source Link...")
+                filepath = self.storage_dir / f"{self.update_id}_{self.link.id}.mp4"
+                ydl_opts_fallback = {
+                    **ydl_opts_base,
+                    "outtmpl": str(filepath),
+                    "headers": headers or {},
+                }
+                await loop.run_in_executor(
+                    None, lambda: YoutubeDL(ydl_opts_fallback).download([self.link.link])
+                )
+                if not filepath.exists():
+                    filepath = filepath.with_suffix(".mp4.webm")
+                if filepath.exists() and filepath.stat().st_size > 0:
+                    self.log.info("Attempt 2 successful.")
+
+            except Exception as e:
+                self.log.error("Attempt 2 (Fallback) failed: %r", e)
+
+            if not filepath.exists():
+                return None, None
         else:
             if not (temppath := await save_file(url, headers=headers, **kwargs)):
                 return None, None
@@ -319,7 +388,7 @@ class BaseSender(ABC):
                 self.storage.add(procpath)
 
         # video processing
-        elif filepath.suffix.lower() in {".mp4", ".mov", ".mkv"}:
+        elif filepath.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}:
             if not (processed_video := await process_video(filepath)):
                 self.log.error("Couldn't process video: %s", filepath.name)
                 raise SenderError(

@@ -11,7 +11,7 @@ python = "^3.12"
 python-telegram-bot = {version = "^22.5", extras = ["job-queue", "webhooks", "http2"]}
 python-dotenv = "^1.2.1"
 sqlalchemy = "2.0.45"
-alembic = "^1.18.0"
+alembic = "^1.18.1"
 sqlalchemy-repr = "^0.1.0"
 tzdata = "^2025.3"
 python-magic = {version = "^0.4.27", platform = "linux"}
@@ -43,6 +43,7 @@ python-multipart = "^0.0.21"
 rich = "^14.2.0"
 better-exceptions = "^0.3.3"
 fake-useragent = "^2.2.0"
+bgutil-ytdlp-pot-provider = "^1.2.2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.5.1"

@@ -150,6 +150,7 @@ async def get_video_info(filepath: str | Path) -> tuple[int, int, int]:
             "ffprobe",
             "-v", "quiet",
             "-show_entries", "stream=width,height,duration",
+            "-show_entries", "format=duration",
             "-of", "json",
             "-select_streams", "v:0",
             str(filepath),
@@ -165,14 +166,17 @@ async def get_video_info(filepath: str | Path) -> tuple[int, int, int]:
             raise Exception("process exited with non-zero value")
         if stderr := await process.stderr.read():
             raise Exception(stderr.decode("utf-8"))
-        if not (format_info := orjson.loads(await process.stdout.read())):
+        if not (json_info := orjson.loads(await process.stdout.read())):
             raise Exception("No parseable output")
-        if not (size_info := format_info["streams"]):
-            raise Exception("No video streams")
-        video_info = size_info[0]
-        width = video_info.get("width", 0)
-        height = video_info.get("height", 0)
-        duration = int(float(video_info.get("duration", 0)))
+        size_info = json_info.get("streams", [])
+        format_info = json_info.get("format", {})
+        if len(size_info) > 0:
+            video_info = size_info[0]
+            width = video_info.get("width", 0)
+            height = video_info.get("height", 0)
+            duration = int(float(video_info.get("duration", 0)))
+        if not duration:
+            duration = int(float(format_info.get("duration", 0)))
         log.info("Get video info: %d x %d, %ds...", width, height, duration)
         return width, height, duration
     except Exception as exception:
