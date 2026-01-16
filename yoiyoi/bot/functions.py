@@ -2,7 +2,6 @@
 
 import asyncio
 import gc
-import tracemalloc
 
 from pathlib import Path
 
@@ -66,9 +65,6 @@ from yoiyoi.extra.requests import get_content_type, save_file
 
 # media styles
 from yoiyoi.extra.styles import XiaohongshuStyle
-
-# collect memory stats
-from yoiyoi.extra.tracemalloc_helpers import display_top
 
 # extra utilities
 from yoiyoi.extra.utils import delete_files, move_file
@@ -504,8 +500,6 @@ async def process_link(
         update (Update): current update
         _ (ContextTypes): current context
     """
-    snapshot_before = tracemalloc.take_snapshot()
-
     notify(update, function="process_link")
     # get current chat
     chat = await update_chat(update.effective_chat)
@@ -565,6 +559,3 @@ async def process_link(
         unbind_contextvars("update_id")
         # force garbage collection
         gc.collect()
-
-        snapshot_after = tracemalloc.take_snapshot()
-        display_top(snapshot_after, prev_snapshot=snapshot_before)
