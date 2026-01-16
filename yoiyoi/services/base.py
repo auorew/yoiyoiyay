@@ -1,6 +1,7 @@
 """Base module for services"""
 
 import asyncio
+import gc
 
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
@@ -90,6 +91,13 @@ ydl_opts_base = {
     "addmetadata": False,
     "writeinfojson": False,
     "noplaylist": True,
+    # additional
+    "extract_flat": "in_playlist",
+    "check_formats": None,
+    "youtube_include_dash_manifest": False,
+    "youtube_include_hls_manifest": False,
+    "no_color": True,
+    "ignore_no_formats_error": True,
     # other settings
     "quiet": True,
     "nocheckcertificate": True,
@@ -318,6 +326,9 @@ class BaseSender(ABC):
             except Exception as exception:
                 self.log.warning("Incremental cleanup failed: %r.", exception)
 
+        # Force garbage collector
+        gc.collect()
+
     async def download_helper(
         self,
         url: str,
@@ -431,3 +442,6 @@ class BaseSender(ABC):
                 self.storage_dir.rmdir()
         except Exception as exception:
             self.log.warning("Could not remove storage directory: %r.", exception)
+
+        # Force garbage collector
+        gc.collect()
