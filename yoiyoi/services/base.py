@@ -71,15 +71,16 @@ ydl_opts_base = {
     },
     "format": (
         f"bestvideo[ext=mp4][vcodec^=avc1][filesize_approx<{MAX_VIDEO_SIZE}]+"
-        f"bestaudio[ext=m4a]/best[ext=mp4][filesize_approx<{MAX_VIDEO_SIZE}]/best"
+        f"bestaudio[ext=m4a]/best[ext=mp4][filesize_approx<{MAX_VIDEO_SIZE}]"
     ),
-    "merge_output_format": "mp4",
-    "postprocessors": [
-        {
-            "key": "FFmpegVideoRemuxer",
-            "preferedformat": "mp4",
-        }
-    ],
+    # convert to mp4
+    # "merge_output_format": "mp4",
+    # "postprocessors": [
+    #     {
+    #         "key": "FFmpegVideoRemuxer",
+    #         "preferedformat": "mp4",
+    #     }
+    # ],
     # memory limiting
     "buffersize": 1024 * 16,
     "max_filesize": MAX_VIDEO_SIZE,
