@@ -20,13 +20,22 @@ monitor_memory() {
 
 monitor_memory &
 
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting Telegram bot..."
+poetry run python3 main.py &
+PYTHON_PID=$!
+
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Bot initializing... waiting 60s before starting POT provider."
+
+# wait for bot init
+sleep 60
+
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting POT provider..."
-node /app/bgutil/build/main.js --host 127.0.0.1 --port 4416 >/app/node_provider.log 2>&1 &
+node /app/bgutil/build/main.js --host 0.0.0.0 --port 4416 >/app/node_provider.log 2>&1 &
 
 # capture pid
 NODE_PID=$!
 
-# wait for init
+# wait for pot init
 sleep 5
 
 # check for crashes
@@ -34,16 +43,14 @@ if ! kill -0 $NODE_PID >/dev/null 2>&1; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] FATAL: POT provider failed to start!"
     echo "--- node.js error logs ---"
     cat /app/node_provider.log
-    exit 1
     echo "--- file tree ---"
     find /app -maxdepth 3 -not -path '*/.*'
 fi
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: POT provider started (PID: $NODE_PID)."
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running (Python PID: $PYTHON_PID, Node PID: $NODE_PID)."
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting Telegram bot..."
-
-poetry run python3 main.py
+# 5. Wait for the Python process to finish
+wait $PYTHON_PID
 
 # looking for exit code
 PYTHON_EXIT_CODE=$?

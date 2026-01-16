@@ -98,6 +98,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy code
 COPY . .
 
+# Expose 8080/TCP port
+EXPOSE 8080/tcp
+
 # Make start script executable
 RUN chmod +x start.sh
 
