@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting POT provider..."
-node /app/bgutil/build/main.js >/app/node_provider.log 2>&1 &
+node /app/bgutil/build/main.js --host 127.0.0.1 --port 4416 >/app/node_provider.log 2>&1 &
 
 # capture pid
 NODE_PID=$!
