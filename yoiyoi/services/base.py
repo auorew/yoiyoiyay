@@ -197,6 +197,28 @@ class BaseSender(ABC):
         finally:
             self._cleanup()
 
+    async def download_helper(self, url: str, headers: Optional[dict] = None, **kwargs):
+        """Orchestrates the download and processing flow."""
+        # downloading
+        if self._is_youtube_or_hls(url):
+            filepath = await self._download_youtube(url, headers)
+        else:
+            filepath = await self._download_direct(url, headers, **kwargs)
+
+        if not filepath or not filepath.exists():
+            return None, None
+
+        # saving
+        self.storage.add(filepath)
+
+        # processing
+        procpath = await self._process_media(filepath)
+
+        # returning
+        return procpath, filepath
+
+    # helpers
+
     async def _send_batched(self, generator):
         """Processes items in chunks with automatic memory flushing."""
         batch_items = []
@@ -329,111 +351,105 @@ class BaseSender(ABC):
         # Force garbage collector
         gc.collect()
 
-    async def download_helper(
-        self,
-        url: str,
-        headers: Optional[dict] = None,
-        **kwargs,
-    ) -> tuple[Optional[Path], Optional[Path]]:
-        """Downloads a file, saves it to storage_dir, and tracks it for cleanup."""
-        # HLS / YouTube
-        if ".m3u8" in url or "googlevideo.com" in url or "youtube.com" in self.link.link:
-            loop = asyncio.get_event_loop()
-            try:
-                self.log.info("Attempt 1: Downloading via direct URL...")
-                filepath = self.storage_dir / f"{self.update_id}_yt_direct.mp4"
-                ydl_opts_direct = {
+    def _is_youtube_or_hls(self, url: str) -> bool:
+        return (
+            any(x in url for x in [".m3u8", "googlevideo.com"])
+            or "youtube.com" in self.link.link
+        )
+
+    async def _download_youtube(
+        self, url: str, headers: Optional[dict]
+    ) -> Optional[Path]:
+        """Handles the two-attempt logic for YouTube/HLS."""
+        loop = asyncio.get_event_loop()
+
+        # Attempt 1: Direct
+        try:
+            dest = str(self.storage_dir / f"{self.update_id}_yt_direct.mp4")
+            with YoutubeDL(
+                {
                     **ydl_opts_base,
+                    "outtmpl": str(dest),
+                    "headers": headers or {},
                     "cookiefile": StringIO(
                         Fernet(bot_settings.yt_key)
                         .decrypt(bot_settings.yt_cookies.encode())
                         .decode()
                     ),
-                    "outtmpl": str(filepath),
-                    "headers": headers or {},
                 }
+            ) as ydl:
                 await loop.run_in_executor(
-                    None, lambda: YoutubeDL(ydl_opts_direct).download([url])
+                    None,
+                    lambda: ydl.download([url]),
                 )
-                if filepath.exists() and filepath.stat().st_size > 0:
-                    self.log.info("Attempt 1 successful.")
-                else:
-                    raise Exception("File empty or missing after Attempt 1.")
+                if dest.exists() and dest.stat().st_size > 0:
+                    return dest
+        except Exception as exception:
+            self.log.warning(f"Attempt 1 failed: {exception}")
 
-            except Exception as e:
-                self.log.warning("Attempt 1 failed: %r. Switching to fallback...", e)
-
-            try:
-                self.log.info("Attempt 2: Downloading via Original Source Link...")
-                filepath = self.storage_dir / f"{self.update_id}_{self.link.id}.mp4"
-                ydl_opts_fallback = {
+        # Attempt 2: Fallback
+        try:
+            dest_tmpl = str(self.storage_dir / f"{self.update_id}_{self.link.id}.%(ext)s")
+            with YoutubeDL(
+                {
                     **ydl_opts_base,
+                    "outtmpl": str(dest_tmpl),
+                    "headers": headers or {},
                     "cookiefile": StringIO(
                         Fernet(bot_settings.yt_key)
                         .decrypt(bot_settings.yt_cookies.encode())
                         .decode()
                     ),
-                    "outtmpl": str(filepath),
-                    "headers": headers or {},
                 }
-                await loop.run_in_executor(
-                    None, lambda: YoutubeDL(ydl_opts_fallback).download([self.link.link])
+            ) as ydl:
+                info = await loop.run_in_executor(
+                    None,
+                    lambda: ydl.extract_info(self.link.link, download=False),
                 )
-                if not filepath.exists():
-                    filepath = filepath.with_suffix(".mp4.webm")
-                if filepath.exists() and filepath.stat().st_size > 0:
-                    self.log.info("Attempt 2 successful.")
+                dest = Path(ydl.prepare_filename(info))
+                await loop.run_in_executor(None, lambda: ydl.process_info(info))
+                return dest if dest.exists() else None
+        except Exception as exception:
+            self.log.error(f"Attempt 2 failed: {exception}")
+        return None
 
-            except Exception as e:
-                self.log.error("Attempt 2 (Fallback) failed: %r", e)
+    async def _download_direct(self, url, headers, **kwargs) -> Optional[Path]:
+        """Handles standard file downloads."""
+        if not (temppath := await save_file(url, headers=headers, **kwargs)):
+            return None
 
-            if not filepath.exists():
-                return None, None
-        else:
-            if not (temppath := await save_file(url, headers=headers, **kwargs)):
-                return None, None
+        if not (filename := await make_file_name(self.SERVICE, url, temppath)):
+            return None
 
-            if not (filename := await make_file_name(self.SERVICE, url, temppath)):
-                return None, None
+        return move_file(temppath, self.storage_dir / filename)
 
-            filepath = move_file(temppath, self.storage_dir / filename)
-        self.storage.add(filepath)
+    async def _process_media(self, filepath: Path) -> Path:
+        """Decides whether to process as image or video."""
+        ext = filepath.suffix.lower()
 
-        procpath = filepath
+        if ext in {".jpg", ".jpeg", ".png", ".webp"}:
+            procpath = await process_image(filepath)
+            if procpath and Path(procpath) != filepath:
+                final_path = move_file(procpath, self.storage_dir / f"RE_{filepath.name}")
+                self.storage.add(final_path)
+                return Path(final_path)
 
-        # image processing
-        if filepath.suffix.lower() in {".jiff", ".jpg", ".jpeg", ".png", ".webp"}:
-            if not (procpath := await process_image(filepath)):
-                self.log.error("Couldn't resize image: %s", filepath.name)
-                raise SenderError(
-                    message="contains images the bot couldn't resize!",
-                    telegram_message="contains images the bot couldn't resize\\!",
-                )
-            procpath = Path(procpath)
-            if procpath != filepath:
-                resized_name = f"RE_{filepath.stem}{filepath.suffix}"
-                procpath = move_file(procpath, self.storage_dir / resized_name)
-                self.storage.add(procpath)
+        if ext in {".mp4", ".mov", ".mkv", ".webm"}:
+            processed_video = await process_video(filepath)
+            if processed_video:
+                final_path = Path(processed_video)
+                if final_path != filepath:
+                    self.storage.add(final_path)
+                return final_path
 
-        # video processing
-        elif filepath.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}:
-            if not (processed_video := await process_video(filepath)):
-                self.log.error("Couldn't process video: %s", filepath.name)
-                raise SenderError(
-                    message="contains videos the bot couldn't process!",
-                    telegram_message="contains videos the bot couldn't process\\!",
-                )
-
-            procpath = Path(processed_video)
-            if procpath != filepath:
-                self.storage.add(procpath)
-
-        return procpath, filepath
+        return filepath
 
     def _cleanup(self):
         """Deletes all tracked files and the directory."""
         self.log.debug(
-            "Cleaning up storage for update %s: %s.", self.update_id, self.storage
+            "Cleaning up storage for update %s: %s.",
+            self.update_id,
+            self.storage,
         )
         delete_files(self.storage)
 
