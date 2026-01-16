@@ -21,7 +21,7 @@ monitor_memory() {
 monitor_memory &
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting Telegram bot..."
-poetry run python3 main.py &
+python3 main.py &
 PYTHON_PID=$!
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Bot initializing... waiting 60s before starting POT provider."
