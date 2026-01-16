@@ -4,8 +4,6 @@ import asyncio
 import os
 import signal
 import sys
-import threading
-import tracemalloc
 
 # working with env
 from dotenv import load_dotenv
@@ -15,9 +13,6 @@ from yoiyoi.app.main import start_app
 
 # settings
 from yoiyoi.extra.loggers import root_log
-
-# tracemalloc
-from yoiyoi.extra.tracemalloc_helpers import memory_monitor_task
 
 
 def set_memory_limit(maxsize_mb):
@@ -42,11 +37,6 @@ if __name__ == "__main__":
     load_dotenv()
     # start bot
     root_log.info("Starting the bot...")
-    # start collecting memory stats
-    tracemalloc.start()
-    monitor_thread = threading.Thread(target=memory_monitor_task, args=(60,), daemon=True)
-    monitor_thread.start()
-    root_log.info("Background memory monitor started (Interval: 5m)")
     try:
         asyncio.run(start_app())
     except KeyboardInterrupt:
