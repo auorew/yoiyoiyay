@@ -88,7 +88,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Install runtimw dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    yt-dlp \
+    nodejs \
     libvips42 \
     libmagic-dev \
     file \
@@ -97,5 +97,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy code
 COPY . .
 
+# Make start script executable
+RUN chmod +x start.sh
+
 # Run app
-CMD ["node", "/app/bgutil/build/main.js", "&", "poetry", "run", "python3", "main.py"]
+CMD ["./start.sh"]
