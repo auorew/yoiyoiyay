@@ -78,13 +78,12 @@ COPY --from=deno_binary /deno /usr/local/bin/deno
 
 WORKDIR /app
 
+# Copy bgutil
+COPY --from=builder /opt/bgutil /app/bgutil
+
 # Copy dependencies
 COPY --from=builder /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
-
-# Copy built POT script
-COPY --from=builder /opt/bgutil/server/build ./bgutil/build
-COPY --from=builder /opt/bgutil/server/node_modules ./bgutil/node_modules
 
 # Install runtimw dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -99,4 +98,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY . .
 
 # Run app
-CMD ["python3", "main.py"]
+CMD ["node", "/app/bgutil/build/main.js", "&", "poetry", "run", "python3", "main.py"]
