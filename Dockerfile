@@ -79,7 +79,7 @@ COPY --from=deno_binary /deno /usr/local/bin/deno
 WORKDIR /app
 
 # Copy bgutil
-COPY --from=builder /opt/bgutil /app/bgutil
+COPY --from=builder /opt/bgutil/server /app/bgutil
 
 # Copy dependencies
 COPY --from=builder /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages

@@ -15,6 +15,8 @@ if ! kill -0 $NODE_PID >/dev/null 2>&1; then
     echo "--- node.js error logs ---"
     cat /app/node_provider.log
     exit 1
+    echo "--- file tree ---"
+    find /app -maxdepth 3 -not -path '*/.*'
 fi
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: POT provider started (PID: $NODE_PID)."
