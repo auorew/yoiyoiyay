@@ -45,7 +45,7 @@ better-exceptions = "^0.3.3"
 fake-useragent = "^2.2.0"
 bgutil-ytdlp-pot-provider = "^1.2.2"
 memray = {platform = "linux", version = "^1.19.1"}
-textual-web = "^0.8.0"
+textual = "^7.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.5.1"

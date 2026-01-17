@@ -1,8 +1,0 @@
-[app.Memray]
-command = "memray run --live-remote --native main.py"
-slug = "bot-memory"
-title = "YoiYoi Memory Profiler"
-
-[web]
-port = 5000
-host = "0.0.0.0"
