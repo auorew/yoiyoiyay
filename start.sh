@@ -20,9 +20,16 @@ monitor_memory() {
 
 monitor_memory &
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting Telegram bot..."
-python3 main.py &
-PYTHON_PID=$!
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
+textual-web --config serve.toml &
+
+# capture textual pid
+TEXTUAL_PID=$!
+
+sleep 5
+
+# capture python pid
+PYTHON_PID=$(pgrep -f "memray run --live-remote --native main.py")
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Bot initializing... waiting 60s before starting POT provider."
 
@@ -32,7 +39,7 @@ sleep 60
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting POT provider..."
 node /app/bgutil/build/main.js --host 0.0.0.0 --port 4416 >/app/node_provider.log 2>&1 &
 
-# capture pid
+# capture node.js pid
 NODE_PID=$!
 
 # wait for pot init
@@ -47,12 +54,17 @@ if ! kill -0 $NODE_PID >/dev/null 2>&1; then
     find /app -maxdepth 3 -not -path '*/.*'
 fi
 
+if [ -z "$PYTHON_PID" ]; then
+    echo "FATAL: Could not find the Python process. Check serve.toml command."
+    kill $MANAGER_PID
+    exit 1
+fi
+
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running (Python PID: $PYTHON_PID, Node PID: $NODE_PID)."
 
-# 5. Wait for the Python process to finish
+# wait for python to finish
 wait $PYTHON_PID
 
-# looking for exit code
 PYTHON_EXIT_CODE=$?
 
 # check for status
