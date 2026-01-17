@@ -21,7 +21,7 @@ monitor_memory() {
 monitor_memory &
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
-textual-web --config serve.toml &
+textual-web --config memray.toml &
 
 # capture textual pid
 TEXTUAL_PID=$!
