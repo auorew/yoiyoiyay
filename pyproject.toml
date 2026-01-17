@@ -46,6 +46,8 @@ fake-useragent = "^2.2.0"
 bgutil-ytdlp-pot-provider = "^1.2.2"
 memray = {platform = "linux", version = "^1.19.1"}
 textual = "^7.3.0"
+textual-dev = "^1.8.0"
+uvloop = {version = "^0.22.1", platform = "linux"}
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.5.1"

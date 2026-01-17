@@ -31,7 +31,7 @@ sleep 5
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Bot initializing... waiting 60s before starting POT provider."
 
 # wait for bot init
-sleep 60
+sleep 15
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting POT provider..."
 node /app/bgutil/build/main.js --host 0.0.0.0 --port 4416 >/app/node_provider.log 2>&1 &
