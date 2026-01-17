@@ -28,9 +28,6 @@ TEXTUAL_PID=$!
 
 sleep 5
 
-# capture python pid
-PYTHON_PID=$(pgrep -f "memray run --live-remote --native main.py")
-
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Bot initializing... waiting 60s before starting POT provider."
 
 # wait for bot init
@@ -54,27 +51,4 @@ if ! kill -0 $NODE_PID >/dev/null 2>&1; then
     find /app -maxdepth 3 -not -path '*/.*'
 fi
 
-if [ -z "$PYTHON_PID" ]; then
-    echo "FATAL: Could not find the Python process. Check serve.toml command."
-    kill $MANAGER_PID
-    exit 1
-fi
-
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running (Python PID: $PYTHON_PID, Node PID: $NODE_PID)."
-
-# wait for python to finish
-wait $PYTHON_PID
-
-PYTHON_EXIT_CODE=$?
-
-# check for status
-if [ $PYTHON_EXIT_CODE -ne 0 ]; then
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] FATAL: Bot exited with $PYTHON_EXIT_CODE"
-    # kill it
-    kill $NODE_PID 2>/dev/null
-    exit $PYTHON_EXIT_CODE
-else
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Bot shut down normally."
-    kill $NODE_PID 2>/dev/null
-    exit 0
-fi
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running (textual PID: $TEXTUAL_PID, node.js PID: $NODE_PID)."
