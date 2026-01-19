@@ -20,23 +20,24 @@ monitor_memory() {
 
 monitor_memory &
 
+# starting bot
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
-textual serve --port 5000 --host 0.0.0.0 "memray run --live-remote --native main.py" &
-
-# capture textual pid
-TEXTUAL_PID=$!
-
+poetry run memray run --live-remote --native main.py &
+PYTHON_PID=$!
 sleep 5
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Bot initializing... waiting 60s before starting POT provider."
-
-# wait for bot init
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Bot initializing... waiting 15s."
 sleep 15
 
+# starting textual
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting textual..."
+textual serve --port 5000 --host 0.0.0.0 "memray live 5000" &
+TEXTUAL_PID=$!
+sleep 5
+
+# starting pot provider
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting POT provider..."
 node /app/bgutil/build/main.js --host 0.0.0.0 --port 4416 >/app/node_provider.log 2>&1 &
-
-# capture node.js pid
 NODE_PID=$!
 
 # wait for pot init
@@ -51,4 +52,7 @@ if ! kill -0 $NODE_PID >/dev/null 2>&1; then
     find /app -maxdepth 3 -not -path '*/.*'
 fi
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running (textual PID: $TEXTUAL_PID, node.js PID: $NODE_PID)."
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] textual PID: $TEXTUAL_PID"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] bot PID:     $PYTHON_PID"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] POT PID:     $NODE_PID"
