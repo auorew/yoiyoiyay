@@ -1,6 +1,7 @@
 """Web Application"""
 
 import asyncio
+import re
 
 from datetime import datetime
 
@@ -154,24 +155,22 @@ async def get_memory_interface(request: Request):
     async with httpx.AsyncClient(follow_redirects=True) as client:
         try:
             resp = await client.get(f"{INTERNAL_TEXTUAL_URL}/")
-            resp.raise_for_status() # Raise error if internal server fails
+            resp.raise_for_status()  # Raise error if internal server fails
         except Exception as e:
             log.error(f"Proxy Error: {e}")
-            return HTMLResponse(content=f"<h1>Proxy Error</h1><p>{e}</p>", status_code=500)
+            return HTMLResponse(
+                content=f"<h1>Proxy Error</h1><p>{e}</p>", status_code=500
+            )
 
     html_content = resp.text
     log.info(f"Original HTML start: {html_content[:100]}")
     public_path = f"/{bot_settings.token}/memory"
     html_content = re.sub(
-        r'https?://(?:127\.0\.0\.1|0\.0\.0\.0|localhost):\d+', 
-        public_path, 
-        html_content
+        r"https?://(?:127\.0\.0\.1|0\.0\.0\.0|localhost):\d+", public_path, html_content
     )
     public_ws_base = f"wss://{request.url.netloc}{public_path}"
     html_content = re.sub(
-        r'ws://(?:127\.0\.0\.1|0\.0\.0\.0|localhost):\d+', 
-        public_ws_base, 
-        html_content
+        r"ws://(?:127\.0\.0\.1|0\.0\.0\.0|localhost):\d+", public_ws_base, html_content
     )
     log.info(f"Modified HTML start: {html_content[:100]}")
 
