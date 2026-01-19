@@ -155,16 +155,11 @@ async def get_memory_interface(request: Request):
         resp = await client.get(f"{INTERNAL_TEXTUAL_URL}/")
         html_content = resp.text
 
-    # The public path the browser sees
     public_path = f"/{bot_settings.token}/memory"
-
-    # FORCE all internal http references to be relative to the public path
-    # This fixes Mixed Content because the browser will use the current HTTPS protocol
-    fixed_html = html_content.replace('src="/', f'src="{public_path}/')
-    fixed_html = fixed_html.replace('href="/', f'href="{public_path}/')
-
-    # Specifically target the WebSocket initialization in textual.js
-    fixed_html = fixed_html.replace("ws://", "wss://")  # Force secure websockets
+    fixed_html = html_content.replace("http://127.0.0.1:5001", public_path)
+    public_ws_base = f"wss://{request.url.netloc}{public_path}"
+    fixed_html = fixed_html.replace("ws://127.0.0.1:5001", public_ws_base)
+    fixed_html = fixed_html.replace("http://0.0.0.0:5001", public_path)
 
     return HTMLResponse(content=fixed_html)
 
