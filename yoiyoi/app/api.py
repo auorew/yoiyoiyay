@@ -177,8 +177,14 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
 async def proxy_textual_main(request: Request):
     """Proxies the main HTML page of the TUI"""
     async with httpx.AsyncClient() as client:
-        resp = await client.get(f"http://127.0.0.1:{INTERNAL_PORT}/")
-        return HTMLResponse(content=resp.text)
+        try:
+            resp = await client.get(f"http://127.0.0.1:{INTERNAL_PORT}/", timeout=2.0)
+            return HTMLResponse(content=resp.text)
+        except httpx.ConnectError:
+            return HTMLResponse(
+                content="<h1>TUI Server is starting...</h1><p>Please refresh in 5 seconds.</p>",
+                status_code=503,
+            )
 
 
 @api_application.get(f"/{bot_settings.token}/memory/static/{{path:path}}")
