@@ -63,6 +63,7 @@ from yoiyoi.services.namedtuples import Link
 log = structlog.get_logger(__name__)
 
 ydl_opts_base = {
+    # extractor settings
     "extractor_args": {
         "youtube": {
             "player_client": ["mweb"],
@@ -74,33 +75,30 @@ ydl_opts_base = {
         f"bestvideo[ext=mp4][vcodec^=avc1][filesize_approx<{MAX_VIDEO_SIZE}]+"
         f"bestaudio[ext=m4a]/best[ext=mp4][filesize_approx<{MAX_VIDEO_SIZE}]"
     ),
-    # convert to mp4
-    # "merge_output_format": "mp4",
-    # "postprocessors": [
-    #     {
-    #         "key": "FFmpegVideoRemuxer",
-    #         "preferedformat": "mp4",
-    #     }
-    # ],
+    "max_filesize": MAX_VIDEO_SIZE,
     # memory limiting
     "buffersize": 1024 * 16,
-    "max_filesize": MAX_VIDEO_SIZE,
-    # remove metadata
+    "noresizebuffer": True,
+    "http_chunk_size": 1024 * 1024,
+    "concurrent_fragment_downloads": 1,
+    "cachedir": False,
+    # metadata limiting
     "writethumbnail": False,
     "write_all_thumbnails": False,
     "addmetadata": False,
     "writeinfojson": False,
     "noplaylist": True,
+    "noprogress": True,
     # additional
     "extract_flat": "in_playlist",
-    "check_formats": None,
+    "hls_use_mpegts": True,
     "youtube_include_dash_manifest": False,
     "youtube_include_hls_manifest": False,
     "no_color": True,
     "ignore_no_formats_error": True,
+    "nocheckcertificate": True,
     # other settings
     "quiet": True,
-    "nocheckcertificate": True,
     "js_runtimes": {"deno": {}},
     "remote_components": ["ejs:github"],
 }
