@@ -26,6 +26,9 @@ poetry run textual serve --port 5000 --host 0.0.0.0 "memray live 1337" &
 TEXTUAL_PID=$!
 sleep 5
 
+# drain
+nc -lk -p 1337 >/dev/null &
+
 # starting bot
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
 poetry run memray run --live-remote --live-port 1337 --native main.py &

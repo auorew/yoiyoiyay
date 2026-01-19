@@ -2,6 +2,9 @@
 
 from datetime import datetime
 
+# http requests
+import httpx
+
 # file extension check
 import magic
 
@@ -11,8 +14,8 @@ import structlog
 # web application
 from fastapi import FastAPI, Request, Response, UploadFile
 
-# send json response
-from fastapi.responses import JSONResponse
+# web responses
+from fastapi.responses import JSONResponse, StreamingResponse
 
 # contextvars
 from structlog.contextvars import bind_contextvars, unbind_contextvars
@@ -135,4 +138,26 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
         return Response(
             content=media_out.read_bytes(),
             media_type=send_type,
+        )
+
+
+@api_application.api_route(
+    f"/{bot_settings.token}/memory/{{path:path}}", methods=["GET", "POST"]
+)
+async def proxy_textual(request: Request, path: str):
+    target_url = f"http://127.0.0.1:5000/{path}"
+
+    async with httpx.AsyncClient() as client:
+        proxy_req = client.build_request(
+            method=request.method,
+            url=target_url,
+            headers=request.headers.raw,
+            content=request.stream(),
+        )
+        proxy_resp = await client.send(proxy_req, stream=True)
+
+        return StreamingResponse(
+            proxy_resp.aiter_raw(),
+            status_code=proxy_resp.status_code,
+            headers=dict(proxy_resp.headers),
         )
