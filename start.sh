@@ -2,9 +2,9 @@
 
 # starting textual
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting server with textual..."
-poetry run textual serve --port 5001 --host 127.0.0.1 "memray live 1337" &
+poetry run textual serve --port 5001 --host 0.0.0.0 "memray live 1337" &
+wait $TEXTUAL_PID
 TEXTUAL_PID=$!
-sleep 5
 
 # starting bot
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
