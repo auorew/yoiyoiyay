@@ -1,8 +1,8 @@
 """Web Application"""
 
 import asyncio
-import re
 
+from contextlib import asynccontextmanager
 from datetime import datetime
 
 # http requests
@@ -29,6 +29,9 @@ from structlog.contextvars import bind_contextvars, unbind_contextvars
 # telegram core bot api
 from telegram import Update
 
+# textual server
+from textual_serve.server import Server
+
 # app strings
 from yoiyoi.app import IM_FMT, VI_FMT
 
@@ -47,7 +50,30 @@ from yoiyoi.services.twitter.api import get_twitter_links
 # get logger
 log = structlog.get_logger(__name__)
 
-api_application = FastAPI()
+INTERNAL_PORT = 5001
+PUBLIC_BASE_URL = f"https://{bot_settings.hook_url}/{bot_settings.token}/memory"
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manages the background TUI process"""
+    log.info("Starting internal Textual server for Memray...")
+    server = Server(
+        "memray live 1337",
+        host="127.0.0.1",
+        port=INTERNAL_PORT,
+        public_url=PUBLIC_BASE_URL,
+    )
+    tui_task = asyncio.create_task(asyncio.to_thread(server.serve))
+
+    yield
+
+    log.info("Shutting down TUI server...")
+    tui_task.cancel()
+
+
+# Initialize FastAPI with the lifespan handler
+api_application = FastAPI(lifespan=lifespan)
 
 ok_response = {
     "status": "ok",
@@ -147,40 +173,27 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
         )
 
 
-INTERNAL_TEXTUAL_URL = "http://127.0.0.1:5001"
-
-
 @api_application.get(f"/{bot_settings.token}/memory")
-async def get_memory_interface(request: Request):
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        try:
-            resp = await client.get(f"{INTERNAL_TEXTUAL_URL}/")
-            resp.raise_for_status()  # Raise error if internal server fails
-        except Exception as e:
-            log.error(f"Proxy Error: {e}")
-            return HTMLResponse(
-                content=f"<h1>Proxy Error</h1><p>{e}</p>", status_code=500
-            )
+async def proxy_textual_main(request: Request):
+    """Proxies the main HTML page of the TUI"""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"http://127.0.0.1:{INTERNAL_PORT}/")
+        return HTMLResponse(content=resp.text)
 
-    html_content = resp.text
-    log.info(f"Original HTML start: {html_content[:100]}")
-    public_path = f"/{bot_settings.token}/memory"
-    html_content = re.sub(
-        r"https?://(?:127\.0\.0\.1|0\.0\.0\.0|localhost):\d+", public_path, html_content
-    )
-    public_ws_base = f"wss://{request.url.netloc}{public_path}"
-    html_content = re.sub(
-        r"ws://(?:127\.0\.0\.1|0\.0\.0\.0|localhost):\d+", public_ws_base, html_content
-    )
-    log.info(f"Modified HTML start: {html_content[:100]}")
 
-    return HTMLResponse(content=html_content)
+@api_application.get(f"/{bot_settings.token}/memory/static/{{path:path}}")
+async def proxy_static(path: str):
+    """Proxies CSS/JS/Fonts"""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"http://127.0.0.1:{INTERNAL_PORT}/static/{path}")
+        return Response(content=resp.content, media_type=resp.headers.get("content-type"))
 
 
 @api_application.websocket(f"/{bot_settings.token}/memory/ws")
 async def websocket_proxy(websocket: WebSocket):
+    """Proxies the terminal data stream"""
     await websocket.accept()
-    async with websockets.connect("ws://127.0.0.1:5001/ws") as target_ws:
+    async with websockets.connect(f"ws://127.0.0.1:{INTERNAL_PORT}/ws") as target_ws:
 
         async def forward_to_client():
             async for message in target_ws:

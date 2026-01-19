@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# starting textual
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting server with textual..."
-poetry run textual serve --port 5001 --host 127.0.0.1 "memray live 1337" &
-TEXTUAL_PID=$!
-sleep 2
-
 # starting bot
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
 poetry run memray run --live-remote --live-port 1337 --native main.py &
