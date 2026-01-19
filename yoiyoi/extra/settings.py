@@ -110,6 +110,7 @@ class BotSettings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 
 bot_settings = BotSettings()
