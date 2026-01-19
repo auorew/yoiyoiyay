@@ -2,7 +2,7 @@
 
 # starting bot
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
-poetry run memray run --live-remote --live-port 1337 --native main.py &
+poetry run memray3.14 run --live-remote --live-port 1337 --native main.py &
 MEMRAY_PID=$!
 sleep 2
 
