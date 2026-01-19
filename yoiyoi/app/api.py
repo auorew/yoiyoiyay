@@ -1,5 +1,7 @@
 """Web Application"""
 
+import asyncio
+
 from datetime import datetime
 
 # http requests
@@ -11,11 +13,14 @@ import magic
 # structured logging
 import structlog
 
+# websockets
+import websockets
+
 # web application
-from fastapi import FastAPI, Request, Response, UploadFile
+from fastapi import FastAPI, Request, Response, UploadFile, WebSocket
 
 # web responses
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 # contextvars
 from structlog.contextvars import bind_contextvars, unbind_contextvars
@@ -141,23 +146,51 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
         )
 
 
-@api_application.api_route(
-    f"/{bot_settings.token}/memory/{{path:path}}", methods=["GET", "POST"]
-)
-async def proxy_textual(request: Request, path: str):
-    target_url = f"http://127.0.0.1:5000/{path}"
+INTERNAL_TEXTUAL_URL = "http://127.0.0.1:5001"
 
+
+@api_application.get(f"/{bot_settings.token}/memory")
+async def get_memory_interface(request: Request):
     async with httpx.AsyncClient() as client:
-        proxy_req = client.build_request(
-            method=request.method,
-            url=target_url,
-            headers=request.headers.raw,
-            content=request.stream(),
-        )
-        proxy_resp = await client.send(proxy_req, stream=True)
+        resp = await client.get(f"{INTERNAL_TEXTUAL_URL}/")
+        html_content = resp.text
 
-        return StreamingResponse(
-            proxy_resp.aiter_raw(),
+    # The public path the browser sees
+    public_path = f"/{bot_settings.token}/memory"
+
+    # FORCE all internal http references to be relative to the public path
+    # This fixes Mixed Content because the browser will use the current HTTPS protocol
+    fixed_html = html_content.replace('src="/', f'src="{public_path}/')
+    fixed_html = fixed_html.replace('href="/', f'href="{public_path}/')
+
+    # Specifically target the WebSocket initialization in textual.js
+    fixed_html = fixed_html.replace("ws://", "wss://")  # Force secure websockets
+
+    return HTMLResponse(content=fixed_html)
+
+
+@api_application.get(f"/{bot_settings.token}/memory/{{path:path}}")
+async def proxy_static_files(path: str):
+    async with httpx.AsyncClient() as client:
+        proxy_resp = await client.get(f"{INTERNAL_TEXTUAL_URL}/{path}")
+        return Response(
+            content=proxy_resp.content,
             status_code=proxy_resp.status_code,
             headers=dict(proxy_resp.headers),
         )
+
+
+@api_application.websocket(f"/{bot_settings.token}/memory/ws")
+async def websocket_proxy(websocket: WebSocket):
+    await websocket.accept()
+    async with websockets.connect("ws://127.0.0.1:5001/ws") as target_ws:
+
+        async def forward_to_client():
+            async for message in target_ws:
+                await websocket.send_text(message)
+
+        async def forward_to_server():
+            async for message in websocket.iter_text():
+                await target_ws.send(message)
+
+        await asyncio.gather(forward_to_client(), forward_to_server())
