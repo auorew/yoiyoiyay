@@ -151,28 +151,31 @@ INTERNAL_TEXTUAL_URL = "http://127.0.0.1:5001"
 
 @api_application.get(f"/{bot_settings.token}/memory")
 async def get_memory_interface(request: Request):
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{INTERNAL_TEXTUAL_URL}/")
-        html_content = resp.text
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        try:
+            resp = await client.get(f"{INTERNAL_TEXTUAL_URL}/")
+            resp.raise_for_status() # Raise error if internal server fails
+        except Exception as e:
+            log.error(f"Proxy Error: {e}")
+            return HTMLResponse(content=f"<h1>Proxy Error</h1><p>{e}</p>", status_code=500)
 
+    html_content = resp.text
+    log.info(f"Original HTML start: {html_content[:100]}")
     public_path = f"/{bot_settings.token}/memory"
-    fixed_html = html_content.replace("http://127.0.0.1:5001", public_path)
+    html_content = re.sub(
+        r'https?://(?:127\.0\.0\.1|0\.0\.0\.0|localhost):\d+', 
+        public_path, 
+        html_content
+    )
     public_ws_base = f"wss://{request.url.netloc}{public_path}"
-    fixed_html = fixed_html.replace("ws://127.0.0.1:5001", public_ws_base)
-    fixed_html = fixed_html.replace("http://0.0.0.0:5001", public_path)
+    html_content = re.sub(
+        r'ws://(?:127\.0\.0\.1|0\.0\.0\.0|localhost):\d+', 
+        public_ws_base, 
+        html_content
+    )
+    log.info(f"Modified HTML start: {html_content[:100]}")
 
-    return HTMLResponse(content=fixed_html)
-
-
-@api_application.get(f"/{bot_settings.token}/memory/{{path:path}}")
-async def proxy_static_files(path: str):
-    async with httpx.AsyncClient() as client:
-        proxy_resp = await client.get(f"{INTERNAL_TEXTUAL_URL}/{path}")
-        return Response(
-            content=proxy_resp.content,
-            status_code=proxy_resp.status_code,
-            headers=dict(proxy_resp.headers),
-        )
+    return HTMLResponse(content=html_content)
 
 
 @api_application.websocket(f"/{bot_settings.token}/memory/ws")
