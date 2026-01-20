@@ -24,3 +24,5 @@ echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: python PID:  $POETRY_PID"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: memray PID:  $MEMRAY_PID"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: bgutil PID:  $BGUTIL_PID"
+
+wait $POETRY_PID
