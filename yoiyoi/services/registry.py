@@ -10,10 +10,10 @@ from yoiyoi.services.youtube_short.sender import YouTubeShortSender
 
 __all__ = [
     "DiscordSender",
+    "InstagramSender",
+    "PixivSender",
     "TikTokSender",
     "TwitterSender",
-    "PixivSender",
-    "YouTubeShortSender",
-    "InstagramSender",
     "XiaohongshuSender",
+    "YouTubeShortSender",
 ]
