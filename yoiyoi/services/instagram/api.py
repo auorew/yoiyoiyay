@@ -1,4 +1,4 @@
-"""Instagram module"""
+"""Instagram API"""
 
 import asyncio
 import hashlib

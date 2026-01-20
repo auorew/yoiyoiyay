@@ -1,5 +1,6 @@
 """Services registry"""
 
+from yoiyoi.services.instagram.sender import InstagramSender
 from yoiyoi.services.pixiv.sender import PixivSender
 from yoiyoi.services.tiktok.sender import TikTokSender
 from yoiyoi.services.twitter.sender import TwitterSender
@@ -11,5 +12,6 @@ __all__ = [
     "TwitterSender",
     "PixivSender",
     "YouTubeShortSender",
+    "InstagramSender",
     "XiaohongshuSender",
 ]
