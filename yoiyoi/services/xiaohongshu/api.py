@@ -1,4 +1,4 @@
-"""Xiaohongshu module"""
+"""Xiaohongshu API"""
 
 import asyncio
 
