@@ -29,9 +29,6 @@ from structlog.contextvars import bind_contextvars, unbind_contextvars
 # telegram core bot api
 from telegram import Update
 
-# textual server
-from textual_serve.server import Server
-
 # app strings
 from yoiyoi.app import IM_FMT, VI_FMT
 
@@ -57,19 +54,9 @@ PUBLIC_BASE_URL = f"https://{bot_settings.hook_url}/{bot_settings.token}/memory"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manages the background TUI process"""
-    log.info("Starting internal Textual server for Memray...")
-    server = Server(
-        "memray live 1337",
-        host="127.0.0.1",
-        port=INTERNAL_PORT,
-        public_url=PUBLIC_BASE_URL,
-    )
-    tui_task = asyncio.create_task(asyncio.to_thread(server.serve))
-
+    log.info("Starting API server...")
     yield
-
-    log.info("Shutting down TUI server...")
-    tui_task.cancel()
+    log.info("Shutting down API server...")
 
 
 # Initialize FastAPI with the lifespan handler
