@@ -3,8 +3,6 @@
 import asyncio
 import gc
 
-from pathlib import Path
-
 # structured logging
 import structlog
 
@@ -12,10 +10,7 @@ import structlog
 from structlog.contextvars import unbind_contextvars
 
 # telegram core bot api
-from telegram import InputMediaDocument, InputMediaPhoto, InputMediaVideo, Update
-
-# telegram constants
-from telegram.constants import ParseMode as PM
+from telegram import Update
 
 # telegram errors
 from telegram.error import BadRequest
@@ -24,73 +19,36 @@ from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 # bot constants
-from yoiyoi.bot import CACHE_DIR, MAX_VIDEO_SIZE, QUEUE_SIZE
+from yoiyoi.bot import QUEUE_SIZE
 
 # bot filters
 from yoiyoi.bot.filters import clear_context
 
 # bot formatters
-from yoiyoi.bot.formatters import (
-    esc,
-    formatter,
-    get_text,
-    get_video_info,
-    join_file_name,
-    make_file_name,
-    make_thumb_name,
-)
+from yoiyoi.bot.formatters import esc, formatter, get_text
 
 # bot helpers
-from yoiyoi.bot.helpers import get_info, notify
-
-# content processor
-from yoiyoi.bot.processors import (
-    convert_image,
-    create_thumbnail,
-    process_image,
-    process_video,
-)
+from yoiyoi.bot.helpers import notify
 
 # bot senders
-from yoiyoi.bot.senders import reply_media_group, send_error, send_reply
-
-# database table
-from yoiyoi.db.models import Chat
+from yoiyoi.bot.senders import send_reply
 
 # database helpers
 from yoiyoi.db.updaters import update_chat
 
-# get file size
-from yoiyoi.extra.requests import get_content_type, save_file
-
-# media styles
-from yoiyoi.extra.styles import XiaohongshuStyle
-
-# extra utilities
-from yoiyoi.extra.utils import delete_files, move_file
-
-# link types and other info
+# link types
 from yoiyoi.services.constants import LinkType
-
-# instagram api
-from yoiyoi.services.instagram.api import get_instagram_links
-
-# Link, PixivContent, TweetContent namedtuples
-from yoiyoi.services.namedtuples import (
-    Link,
-    XiaohongshuVideo,
-)
 
 # tiktok api
 from yoiyoi.services.registry import (
+    DiscordSender,
+    InstagramSender,
     PixivSender,
     TikTokSender,
     TwitterSender,
+    XiaohongshuSender,
     YouTubeShortSender,
 )
-
-# xiaohongshu api
-from yoiyoi.services.xiaohongshu.api import get_xiaohongshu_links
 
 # setup logger
 log = structlog.get_logger(__name__)
@@ -103,390 +61,6 @@ media_groups = set()
 
 # limit number of simultaneous uploads
 UPLOAD_SEMAPHORE = asyncio.Semaphore(2)
-
-
-async def send_collection(
-    update: Update,
-    chat: Chat,
-    storage: set,
-    file_handlers: list,
-    files: list,
-    doc_handlers: list = None,
-    docs: list = None,
-):
-    try:
-        # message = await get_message(update)
-        message = update.effective_message
-        quoted = not chat.delete_link
-        i, j = 0, 10
-        while i < len(files):
-            # send media group
-            log.info("Sending media group...")
-            if post := await reply_media_group(
-                message,
-                media=files[i:j],
-                do_quote=quoted,
-            ):
-                log.info("Sent media group.")
-            for file_handler in file_handlers[i:j]:
-                file_handler.close()
-            # send document group
-            if docs and doc_handlers and post:
-                log.info("Sending document group...")
-                if await reply_media_group(
-                    post[0],
-                    media=docs[i:j],
-                    do_quote=True,
-                ):
-                    log.info("Sent document group.")
-                for doc_handler in doc_handlers[i:j]:
-                    doc_handler.close()
-            # get next 10 photos/docs
-            i, j = j, j + 10
-        # seems to be successful
-        return True
-    except Exception as exception:
-        log.warning(
-            "Failed to send files because of %s: %r.",
-            exception.__class__.__name__,
-            exception,
-            exc_info=True,
-            # function info
-            chat=chat,
-            storage=storage,
-            file_handlers=file_handlers,
-            files=files,
-            doc_handlers=doc_handlers,
-            docs=docs,
-        )
-        return False
-    finally:
-        # delete all files
-        log.debug("Storage: %s.", storage)
-        delete_files(storage)
-        for file_handler in file_handlers:
-            file_handler.close()
-        if doc_handlers:
-            for doc_handler in doc_handlers:
-                doc_handler.close()
-        Path(CACHE_DIR / str(update.update_id)).rmdir()
-
-
-async def send_instagram(
-    update: Update,
-    link: Link,
-    chat: Chat,
-) -> None:
-    """Sends instagram media
-
-    Args:
-        update (Update): current update
-        link (Link): instagram link
-        chat (Chat): current chat
-    """
-    error_text = f"[*This instagram content*]({link.link}) "
-    log.info("Instagram Link: %s.", link.link)
-    file_handlers, doc_handlers = [], []
-    # get media
-    if media := await get_instagram_links(link.link):
-        files, docs, storage = [], [], set()
-        storage_folder = Path(CACHE_DIR / str(update.update_id))
-        storage_folder.mkdir(parents=True, exist_ok=True)
-        info = media[0].source if chat.include_link else None
-        for idx, item in enumerate(media):
-            filepath = await save_file(
-                item.link,
-                headers={
-                    "Accept": "text/html,application/xhtml+xml,application/xml;"
-                    "q=0.9,image/avif,image/webp,image/apng,*/*;"
-                    "q=0.8,application/signed-exchange;v=b3;"
-                    "q=0.7",
-                    "Accept-Language": "en-GB,en;q=0.9",
-                    "Cache-Control": "max-age=0",
-                    "Dnt": "1",
-                    "Priority": "u=0, i",
-                    "Sec-Ch-Ua": '"Chromium";'
-                    'v="124", "Google Chrome";'
-                    'v="124", "Not-A.Brand";'
-                    'v="99',
-                    "Sec-Ch-Ua-Mobile": "?0",
-                    "Sec-Ch-Ua-Platform": "macOS",
-                    "Sec-Fetch-Dest": "document",
-                    "Sec-Fetch-Mode": "navigate",
-                    "Sec-Fetch-Site": "none",
-                    "Sec-Fetch-User": "?1",
-                    "Upgrade-Insecure-Requests": "1",
-                },
-            )
-            if not (filename := item.name):
-                filename = await make_file_name("instagram", item.link, filepath)
-            else:
-                filename = await join_file_name(filename, filepath)
-            filepath = move_file(filepath, storage_folder / filename)
-            storage.add(filepath)
-            log.debug("Filename: %r.", filename)
-            if item.type == "image":
-                if not (imagepath := await process_image(filepath)):
-                    log.error("Couldn't resize image.")
-                    await send_error(
-                        update,
-                        error_text + "contains images the bot couldn't resize\\!",
-                        do_quote=not chat.delete_link,
-                    )
-                    return
-                if (imagepath := Path(imagepath)) != filepath:
-                    imagepath = move_file(
-                        imagepath, storage_folder / f"RE_{filepath.stem}{filepath.suffix}"
-                    )
-                    storage.add(imagepath)
-                # add to collection
-                image_handler = imagepath.open("rb")
-                file_handlers.append(image_handler)
-                files.append(
-                    InputMediaPhoto(
-                        media=image_handler,
-                        caption=info if not idx else None,
-                        parse_mode=PM.HTML,
-                    )
-                )
-                if chat.in_orig:
-                    doc_handler = filepath.open("rb")
-                    doc_handlers.append(doc_handler)
-                    docs.append(
-                        InputMediaDocument(
-                            media=doc_handler,
-                            parse_mode=PM.HTML,
-                            disable_content_type_detection=True,
-                        )
-                    )
-            if item.type == "video":
-                videoinfo = await get_video_info(filepath)
-                thumbpath = await save_file(item.thumb)
-                thumbname = await make_thumb_name(filename, thumbpath)
-                thumbpath = move_file(thumbpath, storage_folder / thumbname)
-                storage.add(thumbpath)
-                # add to collection
-                video_handler = filepath.open("rb")
-                file_handlers.append(video_handler)
-                files.append(
-                    InputMediaVideo(
-                        media=video_handler,
-                        thumbnail=thumbpath.read_bytes(),
-                        caption=info if not idx else None,
-                        parse_mode=PM.HTML,
-                        width=videoinfo[0],
-                        height=videoinfo[1],
-                        duration=videoinfo[2],
-                    )
-                )
-        log.debug("Finished adding to collection.")
-        log.debug("Caption: %r.", info)
-        if await send_collection(
-            update,
-            chat,
-            storage,
-            file_handlers,
-            files,
-            doc_handlers,
-            docs,
-        ):
-            return
-    # if no links returned
-    log.error("Couldn't get instagram content.")
-    await send_error(
-        update,
-        error_text
-        + (
-            "can't be found or downloaded\\. "
-            "If this seems to be wrong, try again later\\."
-        ),
-        do_quote=not chat.delete_link,
-    )
-
-
-async def send_discord(
-    update: Update,
-    link: Link,
-    chat: Chat,
-) -> None:
-    """Sends discord media
-
-    Args:
-        update (Update): current update
-        link (Link): discord media link
-        chat (Chat): current chat
-    """
-    error_text = f"[*This discord content*]({link.link}) "
-    log.info("Discord Link: %s.", link.link)
-    file_handlers = []
-    # get media
-    files, storage = [], set()
-    storage_folder = Path(CACHE_DIR / str(update.update_id))
-    storage_folder.mkdir(parents=True, exist_ok=True)
-
-    info = link.link
-    content_type = await get_content_type(link.link, method="GET")
-    if content_type != "text/plain":
-        filepath = await save_file(link.link)
-        tempname = await make_file_name("discord", link.link, filepath)
-        filename = f"{tempname.split('.')[0]}.{tempname.split('.')[-1]}"
-        filepath = move_file(filepath, storage_folder / filename)
-        storage.add(filepath)
-        if content_type.split("/")[0] == "video":
-            thumbpath = await create_thumbnail(filepath)
-            storage.add(thumbpath)
-            videoinfo = await get_video_info(filepath)
-            if videopath := await process_video(filepath):
-                # add to collection
-                video_handler = videopath.open("rb")
-                file_handlers.append(video_handler)
-                files.append(
-                    InputMediaVideo(
-                        media=video_handler,
-                        thumbnail=thumbpath.read_bytes(),
-                        caption=info,
-                        parse_mode=PM.DISABLED,
-                        width=videoinfo[0],
-                        height=videoinfo[1],
-                        duration=videoinfo[2],
-                    )
-                )
-        else:
-            if imagepath := await convert_image(filepath):
-                if (imagepath := Path(imagepath)) != filepath:
-                    imagepath = move_file(
-                        imagepath, storage_folder / f"RE_{filepath.stem}{filepath.suffix}"
-                    )
-                    storage.add(imagepath)
-                # add to collection
-                image_handler = imagepath.open("rb")
-                file_handlers.append(image_handler)
-                files.append(
-                    InputMediaPhoto(
-                        media=image_handler,
-                        caption=info,
-                        parse_mode=PM.HTML,
-                    )
-                )
-        log.debug("Finished adding to collection.")
-        log.debug("Caption: %r.", info)
-        if await send_collection(
-            update,
-            chat,
-            storage,
-            file_handlers,
-            files,
-        ):
-            return
-    else:
-        error_text += (
-            "can't be found or downloaded, because it\\'s no longer available\\."
-        )
-
-        # files.append(
-        #     InputMediaVideo(
-        #         media=videopath,
-        #         thumb=thumbpath,
-        #         caption=info,
-        #         parse_mode=PM.HTML,
-        #         width=videoinfo[0],
-        #         height=videoinfo[1],
-        #         duration=videoinfo[2],
-        #     )
-        # )
-
-    # else:
-    #     log.error("Couldn't get pixiv content.")
-
-    # await send_error(
-    #     update,
-    #     error_text,
-    #     do_quote=not chat.delete_link,
-    # )
-
-
-async def send_xiaohongshu(
-    update: Update,
-    link: Link,
-    chat: Chat,
-) -> None:
-    """Sends xiaohongshu video
-
-    Args:
-        update (Update): current update
-        link (Link): xiaohongshu link
-        chat (Chat): current chat
-    """
-    error_text = f"[*This xiaohongshu content*]({link.link}) "
-    log.info("Xiaohongshu Link: %s.", link.link)
-    file_handlers = []
-    # get media
-    if media := await get_xiaohongshu_links(link.link):
-        info = await get_info(link, XiaohongshuStyle, chat, media)
-        files, storage = [], set()
-        storage_folder = Path(CACHE_DIR / str(update.update_id))
-        storage_folder.mkdir(parents=True, exist_ok=True)
-        videos = list(filter(lambda x: isinstance(x, XiaohongshuVideo), media.content))
-        # check size
-        filepath = None
-        if not videos:
-            error_text += "can't be sent, because didn't find any video\\!"
-            log.error("Can's send as video.")
-        else:
-            for vid in videos:
-                if 0 < vid.size < MAX_VIDEO_SIZE:
-                    filepath = await save_file(vid.link, "GET", **vid.extra)
-                    break
-            else:
-                # if file is too big
-                error_text += "can't be sent, because video file is too big\\!"
-                log.error("Video file is too big.")
-        # upload video if any
-        if filepath:
-            filename = await join_file_name(str(media.id), filepath)
-            videopath = move_file(filepath, storage_folder / filename)
-            storage.add(videopath)
-            videoinfo = await get_video_info(videopath)
-            thumbpath = await save_file(media.thumb, "GET", **vid.extra)
-            thumbname = await make_thumb_name(filename, thumbpath)
-            thumbpath = move_file(thumbpath, storage_folder / thumbname)
-            storage.add(thumbpath)
-            # add to collection
-            video_handler = videopath.open("rb")
-            file_handlers.append(video_handler)
-            files.append(
-                InputMediaVideo(
-                    media=video_handler,
-                    thumbnail=thumbpath.read_bytes(),
-                    caption=info,
-                    parse_mode=PM.HTML,
-                    width=videoinfo[0],
-                    height=videoinfo[1],
-                    duration=videoinfo[2],
-                )
-            )
-        log.debug("Finished adding to collection.")
-        log.debug("Caption: %r.", info)
-        if await send_collection(
-            update,
-            chat,
-            storage,
-            file_handlers,
-            files,
-        ):
-            return
-    # if there is no video
-    else:
-        log.error("Couldn't get xiaohongshu content.")
-        error_text += (
-            "can't be found or downloaded\\! If this seems to be wrong, try "
-            "again later\\."
-        )
-    await send_error(
-        update,
-        error_text,
-        do_quote=not chat.delete_link,
-    )
 
 
 @clear_context()
@@ -526,7 +100,7 @@ async def process_link(
                         case LinkType.TWITTER:
                             await TwitterSender(update, link, chat).run()
                         case LinkType.INSTAGRAM:
-                            await send_instagram(update, link, chat)
+                            await InstagramSender(update, link, chat).run()
                         case LinkType.TIKTOK:
                             await TikTokSender(update, link, chat).run()
                         case LinkType.YOUTUBE_SHORT:
@@ -534,9 +108,9 @@ async def process_link(
                         case LinkType.PIXIV:
                             await PixivSender(update, link, chat).run()
                         case LinkType.DISCORD:
-                            await send_discord(update, link, chat)
+                            await DiscordSender(update, link, chat).run()
                         case LinkType.XIAOHONGSHU:
-                            await send_xiaohongshu(update, link, chat)
+                            await XiaohongshuSender(update, link, chat).run()
                         case _:
                             await send_reply(update, esc(link.link))
             # delete source post media group messages
