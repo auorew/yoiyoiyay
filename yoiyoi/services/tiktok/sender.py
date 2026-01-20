@@ -80,49 +80,66 @@ class TikTokSender(BaseSender):
 
         else:
             videos = [x for x in media.content if isinstance(x, TikTokVideo)]
-            target_video = next((v for v in videos if 0 < v.size < MAX_VIDEO_SIZE), None)
-            if target_video:
-                videopath, filepath = await self.download_helper(
-                    target_video.link, headers=target_video.extra
+
+            if not videos:
+                raise SenderError(
+                    message="can't be sent, because didn't find any video!",
+                    telegram_message="can't be sent, because didn't find any video\\!",
                 )
-                if not videopath:
-                    raise SenderError(
-                        message=(
-                            "can't be downloaded! "
-                            "If this seems to be wrong, try again later."
-                        ),
-                        telegram_message=(
-                            "can't be downloaded\\! "
-                            "If this seems to be wrong, try again later\\."
-                        ),
-                    )
 
-                video_info = await get_video_info(filepath)
-                if not all(video_info):
-                    raise SenderError(
-                        message=(
-                            "can't be uploaded! "
-                            "Corrupted video stream. "
-                            "If this seems to be wrong, try again later."
-                        ),
-                        telegram_message=(
-                            "can't be uploaded\\! "
-                            "Corrupted video stream\\. "
-                            "If this seems to be wrong, try again later\\."
-                        ),
-                    )
-
-                thumbfile = await save_file(media.thumb)
-                thumbname = await make_thumb_name(filepath.name, thumbfile)
-                thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
-                self.storage.add(thumbpath)
-
-                yield MediaItem(
-                    path=filepath,
-                    type="video",
-                    caption=info,
-                    thumb_path=thumbpath,
-                    width=video_info[0],
-                    height=video_info[1],
-                    duration=video_info[2],
+            target_video = next(
+                (v for v in videos if 0 < v.size < MAX_VIDEO_SIZE),
+                None,
+            )
+            if not target_video:
+                self.log.error("Video file is too big.")
+                raise SenderError(
+                    message="can't be sent, because video file is too big!",
+                    telegram_message="can't be sent, because video file is too big\\!",
                 )
+
+            videopath, filepath = await self.download_helper(
+                target_video.link,
+                headers=target_video.extra,
+            )
+            if not videopath:
+                raise SenderError(
+                    message=(
+                        "can't be downloaded! "
+                        "If this seems to be wrong, try again later."
+                    ),
+                    telegram_message=(
+                        "can't be downloaded\\! "
+                        "If this seems to be wrong, try again later\\."
+                    ),
+                )
+
+            video_info = await get_video_info(filepath)
+            if not all(video_info):
+                raise SenderError(
+                    message=(
+                        "can't be uploaded! "
+                        "Corrupted video stream. "
+                        "If this seems to be wrong, try again later."
+                    ),
+                    telegram_message=(
+                        "can't be uploaded\\! "
+                        "Corrupted video stream\\. "
+                        "If this seems to be wrong, try again later\\."
+                    ),
+                )
+
+            thumbfile = await save_file(media.thumb)
+            thumbname = await make_thumb_name(filepath.name, thumbfile)
+            thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
+            self.storage.add(thumbpath)
+
+            yield MediaItem(
+                path=videopath,
+                type="video",
+                caption=info,
+                thumb_path=thumbpath,
+                width=video_info[0],
+                height=video_info[1],
+                duration=video_info[2],
+            )
