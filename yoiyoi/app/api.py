@@ -182,7 +182,10 @@ async def proxy_textual_main(request: Request):
             return HTMLResponse(content=resp.text)
         except httpx.ConnectError:
             return HTMLResponse(
-                content="<h1>TUI Server is starting...</h1><p>Please refresh in 5 seconds.</p>",
+                content=(
+                    "<h1>TUI Server is starting...</h1>"
+                    "<p>Please refresh in 5 seconds.</p>"
+                ),
                 status_code=503,
             )
 
