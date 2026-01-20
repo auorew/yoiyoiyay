@@ -2,14 +2,8 @@
 
 # starting bot
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
-poetry run memray3.14 run --live-remote --live-port 1337 --native main.py &
+poetry run python3 main.py &
 POETRY_PID=$!
-sleep 2
-
-# starting memray
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting memray..."
-memray3.14 live 1337 &
-MEMRAY_PID=$!
 sleep 2
 
 # starting pot provider
@@ -22,7 +16,6 @@ echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: All services launched."
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: python PID:  $POETRY_PID"
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: memray PID:  $MEMRAY_PID"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: bgutil PID:  $BGUTIL_PID"
 
 wait $POETRY_PID
