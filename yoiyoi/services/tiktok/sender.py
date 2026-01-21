@@ -11,9 +11,6 @@ from yoiyoi.bot.formatters import get_video_info, make_thumb_name
 # get info
 from yoiyoi.bot.helpers import get_info
 
-# http requests
-from yoiyoi.extra.requests import save_file
-
 # media styles
 from yoiyoi.extra.styles import TikTokStyle
 
@@ -129,7 +126,7 @@ class TikTokSender(BaseSender):
                     ),
                 )
 
-            thumbfile = await save_file(media.thumb)
+            thumbfile = await self.download_helper(media.thumb)
             thumbname = await make_thumb_name(filepath.name, thumbfile)
             thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
             self.storage.add(thumbpath)
