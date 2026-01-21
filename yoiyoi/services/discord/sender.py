@@ -65,6 +65,7 @@ class DiscordSender(BaseSender):
                     ),
                 )
 
+            # create thumbnail
             thumbfile = await create_thumbnail(procpath)
             thumbname = await make_thumb_name(filepath.name, thumbfile)
             thumbpath = move_file(thumbfile, self.storage_dir / thumbname)

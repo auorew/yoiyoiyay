@@ -36,7 +36,7 @@ class YouTubeShortSender(BaseSender):
     async def get_media_generator(self):
         self.log.info("YouTube Short Link: %s.", self.link.link)
 
-        if not (video := await get_youtube_short_links(self.link)):
+        if not (media := await get_youtube_short_links(self.link)):
             raise SenderError(
                 message=(
                     "can't be found or downloaded! "
@@ -48,8 +48,8 @@ class YouTubeShortSender(BaseSender):
                 ),
             )
 
-        info = await get_info(self.link, YouTubeShortStyle, self.chat, video)
-        videos = [x for x in video.content if isinstance(x, YouTubeShortContent)]
+        info = await get_info(self.link, YouTubeShortStyle, self.chat, media)
+        videos = [x for x in media.content if isinstance(x, YouTubeShortContent)]
         target_video: YouTubeShortContent = next(
             (v for v in videos if 0 < v.size < MAX_VIDEO_SIZE), None
         )
@@ -86,7 +86,8 @@ class YouTubeShortSender(BaseSender):
                     ),
                 )
 
-            thumbfile = await self.download_helper(video.thumb)
+            # get YouTubeShortMedia.thumb
+            thumbfile, _ = await self.download_helper(media.thumb)
             thumbname = await make_thumb_name(filepath.name, thumbfile)
             thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
             self.storage.add(thumbpath)

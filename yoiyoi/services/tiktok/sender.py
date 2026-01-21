@@ -126,7 +126,8 @@ class TikTokSender(BaseSender):
                     ),
                 )
 
-            thumbfile = await self.download_helper(media.thumb)
+            # get TikTokMedia.thumb
+            thumbfile, _ = await self.download_helper(media.thumb)
             thumbname = await make_thumb_name(filepath.name, thumbfile)
             thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
             self.storage.add(thumbpath)

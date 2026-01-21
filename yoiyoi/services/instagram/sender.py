@@ -5,9 +5,6 @@ import structlog
 # bot formatters
 from yoiyoi.bot.formatters import get_video_info, make_thumb_name
 
-# http requests
-from yoiyoi.extra.requests import save_file
-
 # file utils
 from yoiyoi.extra.utils import move_file
 
@@ -120,7 +117,8 @@ class InstagramSender(BaseSender):
                         ),
                     )
 
-                thumbfile = await save_file(media.thumb)
+                # get InstaMedia.thumb
+                thumbfile, _ = await self.download_helper(item.thumb)
                 thumbname = await make_thumb_name(filepath.name, thumbfile)
                 thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
                 self.storage.add(thumbpath)

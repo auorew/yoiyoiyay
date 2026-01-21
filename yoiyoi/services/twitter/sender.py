@@ -16,9 +16,6 @@ from yoiyoi.bot.helpers import get_info
 # bot senders
 from yoiyoi.bot.senders import send_error, send_reply
 
-# http requests
-from yoiyoi.extra.requests import save_file
-
 # media styles
 from yoiyoi.extra.styles import TwitterStyle
 
@@ -118,10 +115,10 @@ class TwitterSender(BaseSender):
                     )
 
         for i, idx in enumerate(ids):
-            media: TweetContent = tweet.content[idx - 1]
+            item: TweetContent = tweet.content[idx - 1]
 
-            if media.type == "photo":
-                procpath, filepath = await self.download_helper(media.links[0])
+            if item.type == "photo":
+                procpath, filepath = await self.download_helper(item.links[0])
                 if not procpath:
                     raise SenderError(
                         message=(
@@ -141,7 +138,7 @@ class TwitterSender(BaseSender):
                     orig_path=filepath if self.chat.tw_orig else None,
                 )
             else:
-                if not (videolink := await self._choose_twitter_video(media)):
+                if not (videolink := await self._choose_twitter_video(item)):
                     self.log.info("Skipping downloading video...")
                     raise SenderError(
                         message=("can't be sent, video is too huge!"),
@@ -176,7 +173,7 @@ class TwitterSender(BaseSender):
                         ),
                     )
 
-                thumbfile = await save_file(media.thumb)
+                thumbfile, _ = await self.download_helper(item.thumb)
                 thumbname = await make_thumb_name(filepath.name, thumbfile)
                 thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
                 self.storage.add(thumbpath)

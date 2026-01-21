@@ -14,9 +14,6 @@ from yoiyoi.bot.helpers import get_info
 # request headers
 from yoiyoi.extra.request_helpers import PIXIV_HEADERS, get_fake_headers
 
-# http requests
-from yoiyoi.extra.requests import save_file
-
 # media styles
 from yoiyoi.extra.styles import PixivStyle
 
@@ -57,7 +54,7 @@ class PixivSender(BaseSender):
         info = await get_info(self.link, PixivStyle, self.chat, art)
         count = len(art.content)
         if art.type == "ugoira":
-            media = art.content[0]
+            item = art.content[0]
             # Ugoira requires specific referer headers for the original zip
             headers = {
                 **get_fake_headers(),
@@ -65,7 +62,7 @@ class PixivSender(BaseSender):
                 "Referer": "https://t-hk.ugoira.com/",
             }
 
-            procpath, filepath = await self._save_media(media.original, headers)
+            procpath, filepath = await self.download_helper(item.original, headers)
             if not procpath:
                 raise SenderError(
                     message=(
@@ -91,7 +88,8 @@ class PixivSender(BaseSender):
                     ),
                 )
 
-            thumbfile = await save_file(media.thumb, headers=PIXIV_HEADERS)
+            # get PixivContent.thumb
+            thumbfile, _ = await self.download_helper(item.thumb, headers=PIXIV_HEADERS)
             thumbname = await make_thumb_name(filepath.name, thumbfile)
             thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
             self.storage.add(thumbpath)
@@ -167,10 +165,11 @@ class PixivSender(BaseSender):
                         )
 
             for i, idx in enumerate(ids):
-                media: PixivContent = art.content[idx - 1]
+                item: PixivContent = art.content[idx - 1]
 
                 procpath, filepath = await self.download_helper(
-                    media.original, PIXIV_HEADERS
+                    item.original,
+                    PIXIV_HEADERS,
                 )
                 if not procpath:
                     raise SenderError(
