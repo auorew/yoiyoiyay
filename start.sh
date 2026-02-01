@@ -10,9 +10,6 @@ log "Starting Netdata..."
 NETDATA_PID=$!
 log "Netdata started with PID: $NETDATA_PID"
 
-# get private key
-cat /var/lib/netdata/netdata_random_session_id
-
 # starting POT Provider
 log "Starting POT provider with node..."
 # Note: We bind to 127.0.0.1 because Nginx doesn't need to route to this, only Python does.
@@ -55,6 +52,9 @@ log "   - Netdata PID: $NETDATA_PID"
 log "   - POT PID:     $BGUTIL_PID"
 log "   - Nginx PID:   $NGINX_PID"
 log "   - Python PID:  $POETRY_PID"
+
+# get private key
+cat /var/lib/netdata/netdata_random_session_id
 
 cleanup() {
     log "Shutting down all services..."
