@@ -121,5 +121,9 @@ EXPOSE 8080/tcp
 # Make start script executable
 RUN chmod +x start.sh
 
+# Check versions
+RUN apt list --installed
+RUN deno --version && node --version && poetry --version
+
 # Run app
 CMD ["./start.sh"]
