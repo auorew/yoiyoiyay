@@ -11,7 +11,7 @@ NETDATA_PID=$!
 log "Netdata started with PID: $NETDATA_PID"
 
 # get private key
-sudo cat /var/lib/netdata/netdata_random_session_id
+cat /var/lib/netdata/netdata_random_session_id
 
 # starting POT Provider
 log "Starting POT provider with node..."
