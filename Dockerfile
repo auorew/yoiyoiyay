@@ -93,7 +93,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Install runtimw dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-ffmpeg \
+    ffmpeg \
     nodejs \
     procps \
     libvips42 \
@@ -102,6 +102,7 @@ ffmpeg \
     nginx \
     gettext-base \
     wget \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Netdata

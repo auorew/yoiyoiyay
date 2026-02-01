@@ -28,6 +28,7 @@ while ! nc -z 127.0.0.1 4416; do
         error "POT provider failed to start on port 4416."
         # If dependency fails, we should probably exit
         # exit 1
+        break
     fi
 done
 
