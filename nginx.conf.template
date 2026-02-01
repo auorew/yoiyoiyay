@@ -8,23 +8,6 @@ http {
         # Listen on the public port
         listen 8080;
 
-        # 1. Netdata Monitor (Protected by URL Path)
-        # Matches /YOUR_TOKEN/monitor/
-        location /${TOKEN}/monitor/ {
-            # Trim the path so Netdata sees requests as "/"
-            rewrite ^/${TOKEN}/monitor/(.*)$ /$1 break;
-
-            proxy_pass http://127.0.0.1:19999;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_set_header Host $host;
-
-            # Disable gzip to avoid double-compression issues
-            proxy_set_header Accept-Encoding "";
-        }
-
-        # 2. Python Bot (Default Route)
         location / {
             # Forward to Bot on INTERNAL port 8081
             proxy_pass http://127.0.0.1:8081;

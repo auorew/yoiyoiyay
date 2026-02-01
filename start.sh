@@ -4,12 +4,6 @@ log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: $1"; }
 
 error() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1"; }
 
-# starting Netdata
-log "Starting Netdata..."
-/usr/sbin/netdata -D >/dev/null 2>&1 &
-NETDATA_PID=$!
-log "Netdata started with PID: $NETDATA_PID"
-
 # starting POT Provider
 log "Starting POT provider with node..."
 # Note: We bind to 127.0.0.1 because Nginx doesn't need to route to this, only Python does.
@@ -48,17 +42,13 @@ POETRY_PID=$!
 log "Python Bot started with PID: $POETRY_PID"
 
 log "All services launched."
-log "   - Netdata PID: $NETDATA_PID"
 log "   - POT PID:     $BGUTIL_PID"
 log "   - Nginx PID:   $NGINX_PID"
 log "   - Python PID:  $POETRY_PID"
 
-# get private key
-cat /var/lib/netdata/netdata_random_session_id
-
 cleanup() {
     log "Shutting down all services..."
-    kill $POETRY_PID $NGINX_PID $BGUTIL_PID $NETDATA_PID 2>/dev/null
+    kill $POETRY_PID $NGINX_PID $BGUTIL_PID 2>/dev/null
 }
 trap cleanup SIGTERM SIGINT
 

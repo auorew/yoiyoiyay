@@ -105,10 +105,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Netdata
-RUN wget -O /tmp/netdata-kickstart.sh https://get.netdata.cloud/kickstart.sh \
-    && sh /tmp/netdata-kickstart.sh --non-interactive --stable-channel --disable-telemetry
-
 # Copy code
 COPY . .
 
