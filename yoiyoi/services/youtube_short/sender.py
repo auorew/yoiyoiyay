@@ -36,6 +36,18 @@ class YouTubeShortSender(BaseSender):
     async def get_media_generator(self):
         self.log.info("YouTube Short Link: %s.", self.link.link)
 
+        self.log.info("Downloading YouTube Shorts is disabled")
+        raise SenderError(
+            message=(
+                "can't be downloaded! YouTube Shorts are temporarily disabled. "
+                "Sorry about that!"
+            ),
+            telegram_message=(
+                "can't be downloaded\\! YouTube Shorts are temporarily disabled\\. "
+                "Sorry about that\\!"
+            ),
+        )
+
         if not (media := await get_youtube_short_links(self.link)):
             raise SenderError(
                 message=(
