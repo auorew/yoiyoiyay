@@ -68,8 +68,11 @@ class BotSettings(BaseSettings):
     # host name
     hook_url: Optional[str] = Field("")
 
-    # port
+    # public port
     port: int = Field(8443)
+
+    # private port
+    private_port: int = Field(8081)
 
     ##### bot files #####
 

@@ -1,12 +1,7 @@
 """Web Application"""
 
-import asyncio
-
 from contextlib import asynccontextmanager
 from datetime import datetime
-
-# http requests
-import httpx
 
 # file extension check
 import magic
@@ -14,14 +9,11 @@ import magic
 # structured logging
 import structlog
 
-# websockets
-import websockets
-
 # web application
-from fastapi import FastAPI, Request, Response, UploadFile, WebSocket
+from fastapi import FastAPI, Request, Response, UploadFile
 
 # web responses
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 
 # contextvars
 from structlog.contextvars import bind_contextvars, unbind_contextvars
@@ -158,45 +150,3 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
             content=media_out.read_bytes(),
             media_type=send_type,
         )
-
-
-@api_application.get(f"/{bot_settings.token}/memory")
-async def proxy_textual_main(request: Request):
-    """Proxies the main HTML page of the TUI"""
-    async with httpx.AsyncClient() as client:
-        try:
-            resp = await client.get(f"http://127.0.0.1:{INTERNAL_PORT}/", timeout=2.0)
-            return HTMLResponse(content=resp.text)
-        except httpx.ConnectError:
-            return HTMLResponse(
-                content=(
-                    "<h1>TUI Server is starting...</h1>"
-                    "<p>Please refresh in 5 seconds.</p>"
-                ),
-                status_code=503,
-            )
-
-
-@api_application.get(f"/{bot_settings.token}/memory/static/{{path:path}}")
-async def proxy_static(path: str):
-    """Proxies CSS/JS/Fonts"""
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"http://127.0.0.1:{INTERNAL_PORT}/static/{path}")
-        return Response(content=resp.content, media_type=resp.headers.get("content-type"))
-
-
-@api_application.websocket(f"/{bot_settings.token}/memory/ws")
-async def websocket_proxy(websocket: WebSocket):
-    """Proxies the terminal data stream"""
-    await websocket.accept()
-    async with websockets.connect(f"ws://127.0.0.1:{INTERNAL_PORT}/ws") as target_ws:
-
-        async def forward_to_client():
-            async for message in target_ws:
-                await websocket.send_text(message)
-
-        async def forward_to_server():
-            async for message in websocket.iter_text():
-                await target_ws.send(message)
-
-        await asyncio.gather(forward_to_client(), forward_to_server())

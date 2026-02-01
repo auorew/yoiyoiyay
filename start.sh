@@ -1,35 +1,66 @@
 #!/bin/bash
 
-# starting bot
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting bot with memray..."
-poetry run python3 main.py &
-POETRY_PID=$!
-sleep 2
+log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: $1"; }
 
-# starting pot provider
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting POT provider with node..."
-node /app/bgutil/build/main.js --host 0.0.0.0 --port 4416 >/app/node_provider.log 2>&1 &
+error() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1"; }
+
+# starting Netdata
+log "Starting Netdata..."
+/usr/sbin/netdata -D >/dev/null 2>&1 &
+NETDATA_PID=$!
+log "Netdata started with PID: $NETDATA_PID"
+
+# starting POT Provider
+log "Starting POT provider with node..."
+# Note: We bind to 127.0.0.1 because Nginx doesn't need to route to this, only Python does.
+node /app/bgutil/build/main.js --host 127.0.0.1 --port 4416 >/app/node_provider.log 2>&1 &
 BGUTIL_PID=$!
-sleep 2
+log "POT Provider started with PID: $BGUTIL_PID"
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Checking POT provider health on port 4416..."
-MAX_RETRIES=5
+# health check for POT Provider
+log "Checking POT provider health on port 4416..."
+MAX_RETRIES=10
 COUNT=0
-
-while ! nc -z localhost 4416; do
+while ! nc -z 127.0.0.1 4416; do
     sleep 1
     COUNT=$((COUNT + 1))
     if [ $COUNT -ge $MAX_RETRIES ]; then
-        echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: POT provider failed to start on port 4416"
+        error "POT provider failed to start on port 4416."
+        # If dependency fails, we should probably exit
+        # exit 1
     fi
 done
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: POT provider is UP and listening."
+# starting Nginx
+log "Generating Nginx config from template..."
+envsubst '${TOKEN}' </etc/nginx/nginx.conf.template >/etc/nginx/nginx.conf
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: All services launched."
+log "Starting Nginx Reverse Proxy on port 8080..."
+nginx -g "daemon off;" &
+NGINX_PID=$!
+log "Nginx started with PID: $NGINX_PID"
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Services running"
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: python PID:  $POETRY_PID"
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: bgutil PID:  $BGUTIL_PID"
+# starting Python Bot
+log "Starting bot with poetry..."
+poetry run python3 main.py &
+POETRY_PID=$!
+log "Python Bot started with PID: $POETRY_PID"
+
+log "All services launched."
+log "   - Netdata PID: $NETDATA_PID"
+log "   - POT PID:     $BGUTIL_PID"
+log "   - Nginx PID:   $NGINX_PID"
+log "   - Python PID:  $POETRY_PID"
+
+cleanup() {
+    log "Shutting down all services..."
+    kill $POETRY_PID $NGINX_PID $BGUTIL_PID $NETDATA_PID 2>/dev/null
+}
+trap cleanup SIGTERM SIGINT
 
 wait $POETRY_PID
+EXIT_CODE=$?
+
+log "Python process exited with code $EXIT_CODE. Shutting down."
+cleanup
+exit $EXIT_CODE

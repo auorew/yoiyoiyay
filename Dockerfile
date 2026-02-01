@@ -93,16 +93,26 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Install runtimw dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
+ffmpeg \
     nodejs \
     procps \
     libvips42 \
     libmagic-dev \
     file \
+    nginx \
+    gettext-base \
+    wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Netdata
+RUN wget -O /tmp/netdata-kickstart.sh https://get.netdata.cloud/kickstart.sh \
+    && sh /tmp/netdata-kickstart.sh --non-interactive --stable-channel --disable-telemetry
 
 # Copy code
 COPY . .
+
+# Copy NGINX
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
 
 # Expose 8080/TCP port
 EXPOSE 8080/tcp
