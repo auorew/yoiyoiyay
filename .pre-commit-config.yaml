@@ -23,11 +23,11 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/ambv/black
-    rev: 25.12.0
+    rev: 26.1.0
     hooks:
       - id: black
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.11
+    rev: v0.14.14
     hooks:
       - id: ruff
         args: [ --fix ]
@@ -36,8 +36,7 @@ repos:
     hooks:
       - id: hadolint
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.10.0-1  # Use the latest version
+    rev: v3.12.0-2
     hooks:
       - id: shfmt
-        # Optional: -i 2 (2 space indent), -ci (switch cases indent), -s (simplify code)
-        args: ["-w", "-s", "-i", "4"]
+        args: ["-w", "-s", "-i", "4", "-ci"]
