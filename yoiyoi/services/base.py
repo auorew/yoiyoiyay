@@ -68,7 +68,11 @@ ydl_opts_base = {
         "youtube": {
             "player_client": ["mweb"],
             "skip": ["web"],
-            "youtubepot-bgutilhttp:base_url": "http://127.0.0.1:4416",
+            "youtubepot-bgutilhttp:base_url": (
+                f"http://{bot_settings.pot_provider}:4416"
+                if bot_settings.pot_provider
+                else None
+            ),
         }
     },
     "format": (

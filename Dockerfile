@@ -22,6 +22,21 @@ ENV LANG=C.UTF-8 \
 # Create workdir
 WORKDIR /app
 
+# Set shell to bash and enable pipefail
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Install dependencies needed to download and unzip Deno
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Deno
+RUN curl -fsSL https://deno.land/x/install/install.sh | sh
+# Add Deno to the PATH so yt-dlp can call it
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="$DENO_INSTALL/bin:$PATH"
+
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \

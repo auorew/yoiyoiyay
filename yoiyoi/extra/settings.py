@@ -113,6 +113,9 @@ class BotSettings(BaseSettings):
     # your proxy URL
     proxy_url: Optional[AnyUrl] = None
 
+    # pot provider
+    pot_provider: Optional[str] = None
+
     class Config:
         env_file = ".env"
         extra = "ignore"
