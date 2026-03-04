@@ -49,6 +49,9 @@ from yoiyoi.services.constants import LINKS
 # YouTubeShortMedia namedtuple
 from yoiyoi.services.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
 
+# base opts
+from yoiyoi.services.youtube_short import ytdlp_opts_base
+
 # setup logger
 log = structlog.get_logger(__name__)
 
@@ -60,6 +63,7 @@ duration_regex = re.compile(r"PT(?:(?P<H>\d+)H)?(?:(?P<M>\d+)M)?(?:(?P<S>\d+)S)?
 
 # yt-dlp options
 ytdlp_ops = {
+    **ytdlp_opts_base,
     "quiet": True,
     "simulate": True,
     "forcejson": True,

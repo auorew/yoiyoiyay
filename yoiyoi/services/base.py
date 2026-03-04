@@ -62,14 +62,16 @@ from yoiyoi.services.namedtuples import Link
 # setup logger
 log = structlog.get_logger(__name__)
 
-ydl_opts_base = {
+ytdlp_opts_base = {
     # extractor settings
     "extractor_args": {
         "youtube": {
             "player_client": ["mweb", "ios"],
             "skip": ["web"],
-            "youtubepot-bgutilhttp:base_url": bot_settings.pot_provider,
-        }
+        },
+        "youtubepot-bgutilhttp": {
+            "base_url": bot_settings.pot_provider,
+        },
     },
     "format": (
         f"bestvideo[ext=mp4][vcodec^=avc1][filesize_approx<{MAX_VIDEO_SIZE}]+"
@@ -366,7 +368,7 @@ class BaseSender(ABC):
             dest = str(self.storage_dir / f"{self.update_id}_yt_direct.mp4")
             with YoutubeDL(
                 {
-                    **ydl_opts_base,
+                    **ytdlp_opts_base,
                     "outtmpl": str(dest),
                     "headers": headers or {},
                     "cookiefile": StringIO(
@@ -390,7 +392,7 @@ class BaseSender(ABC):
             dest_tmpl = str(self.storage_dir / f"{self.update_id}_{self.link.id}.%(ext)s")
             with YoutubeDL(
                 {
-                    **ydl_opts_base,
+                    **ytdlp_opts_base,
                     "outtmpl": str(dest_tmpl),
                     "headers": headers or {},
                     "cookiefile": StringIO(
