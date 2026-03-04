@@ -43,14 +43,14 @@ from yoiyoi.extra.requests import get_content_size, make_request
 # settings
 from yoiyoi.extra.settings import bot_settings
 
+# base opts
+from yoiyoi.services.base import ytdlp_opts_base
+
 # link types and other info
 from yoiyoi.services.constants import LINKS
 
 # YouTubeShortMedia namedtuple
 from yoiyoi.services.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
-
-# base opts
-from yoiyoi.services.youtube_short import ytdlp_opts_base
 
 # setup logger
 log = structlog.get_logger(__name__)
