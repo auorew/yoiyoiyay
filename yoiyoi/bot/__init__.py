@@ -78,6 +78,7 @@ class PixivParse:
 async def on_bot_init(application: Application) -> None:
     bot: ExtBot = application.bot
     await bot.delete_webhook(drop_pending_updates=False)
+    print("Bot deleted old webhook!")
     print("Bot is starting on local API server...")
 
 

@@ -48,13 +48,17 @@ async def start_app(mode: int = BotMode.WEBHOOK):
     async with bot_application:
         if bot_settings.local_server:
             await bot_application.bot.log_out()
+            log.info("Logged out!")
         await bot_application.initialize()
         await on_bot_init(bot_application)
         await bot_application.start()
         if (hook_url := bot_settings.hook_url) and mode == BotMode.WEBHOOK:
             log.info("Running in webhook mode!")
             hook = f"https://{hook_url}/{bot_settings.token}"
-            log.info("Webhook URL | PORT: %s | %s.", hook, bot_settings.port)
+            log.info(
+                "Webhook: %s.",
+                f"https://{hook_url}:{bot_settings.port}/{bot_settings.token}",
+            )
             await bot_application.bot.set_webhook(hook, allowed_updates=Update.ALL_TYPES)
         else:
             log.info("Running in polling mode!")
