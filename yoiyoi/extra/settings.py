@@ -71,10 +71,10 @@ class BotSettings(BaseSettings):
     hook_url: Optional[str] = Field("")
 
     # public port
-    port: int = Field(8443)
+    port: int = Field(88)
 
     # private port
-    private_port: int = Field(8081)
+    private_port: int = Field(8888)
 
     ##### bot files #####
 
