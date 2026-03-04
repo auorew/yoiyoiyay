@@ -19,6 +19,9 @@ services:
     build: .
     env_file:
       - ~/secrets/yoiyoi.env
+    ports:
+      - "${PORT:-88}:88"
+      - "${PRIVATE_PORT:-8888}:8888"
     depends_on:
       telegram-api:
         condition: service_started
