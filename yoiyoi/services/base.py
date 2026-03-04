@@ -70,7 +70,7 @@ ytdlp_opts_base = {
             "skip": ["web"],
         },
         "youtubepot-bgutilhttp": {
-            "base_url": bot_settings.pot_provider,
+            "base_url": [bot_settings.pot_provider],
         },
     },
     "format": (
@@ -365,7 +365,7 @@ class BaseSender(ABC):
 
         # Attempt 1: Direct
         try:
-            dest = str(self.storage_dir / f"{self.update_id}_yt_direct.mp4")
+            dest = self.storage_dir / f"{self.update_id}_yt_direct.mp4"
             with YoutubeDL(
                 {
                     **ytdlp_opts_base,
@@ -389,7 +389,7 @@ class BaseSender(ABC):
 
         # Attempt 2: Fallback
         try:
-            dest_tmpl = str(self.storage_dir / f"{self.update_id}_{self.link.id}.%(ext)s")
+            dest_tmpl = self.storage_dir / f"{self.update_id}_{self.link.id}.%(ext)s"
             with YoutubeDL(
                 {
                     **ytdlp_opts_base,
