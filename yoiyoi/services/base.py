@@ -66,13 +66,9 @@ ydl_opts_base = {
     # extractor settings
     "extractor_args": {
         "youtube": {
-            "player_client": ["mweb"],
+            "player_client": ["mweb", "ios"],
             "skip": ["web"],
-            "youtubepot-bgutilhttp:base_url": (
-                f"http://{bot_settings.pot_provider}:4416"
-                if bot_settings.pot_provider
-                else None
-            ),
+            "youtubepot-bgutilhttp:base_url": bot_settings.pot_provider,
         }
     },
     "format": (
