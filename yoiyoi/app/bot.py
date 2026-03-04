@@ -61,13 +61,19 @@ log = structlog.get_logger(__name__)
 def create_bot_app() -> Application:
     """Set up bot"""
     # create updater & dispatcher
-    application = (
+    application_builder = (
         ApplicationBuilder()
         .token(bot_settings.token)
         .read_timeout(READ_TIMEOUT)
         .write_timeout(WRITE_TIMEOUT)
-        .build()
     )
+    if bot_settings.local_server:
+        application_builder = (
+            application_builder.base_url(f"{bot_settings.local_server}/bot")
+            .base_file_url(f"{bot_settings.local_server}/file/bot")
+            .local_mode(True)
+        )
+    application = application_builder.build()
 
     # filter out unwanted users & channels
     application.add_handler(
