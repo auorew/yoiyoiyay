@@ -83,13 +83,17 @@ log = structlog.get_logger(__name__)
 
 async def on_bot_init(application: Application) -> None:
     bot: ExtBot = application.bot
-    await bot.delete_webhook(drop_pending_updates=False)
-    log.info("Bot deleted old webhook!")
+    if await bot.delete_webhook(drop_pending_updates=False):
+        log.info("Bot deleted old webhook!")
+    else:
+        log.info("Bot could NOT delete old webhook!")
     log.info("Bot is starting on local API server...")
 
 
 async def on_bot_shutdown(application: Application) -> None:
     bot: ExtBot = application.bot
-    await bot.log_out()
-    log.info("Bot logged out!")
+    if await bot.log_out():
+        log.info("Bot logged out!")
+    else:
+        log.info("Bot could NOT log out!")
     await upload_log(application)

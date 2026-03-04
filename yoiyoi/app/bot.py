@@ -18,14 +18,7 @@ from telegram.ext import (
 )
 
 # get bot constants
-from yoiyoi.bot import (
-    JOB_GET_PROXY,
-    JOB_HEALTH_CHECKER,
-    READ_TIMEOUT,
-    WRITE_TIMEOUT,
-    on_bot_init,
-    on_bot_shutdown,
-)
+from yoiyoi.bot import JOB_GET_PROXY, JOB_HEALTH_CHECKER, READ_TIMEOUT, WRITE_TIMEOUT
 
 # bot commands
 from yoiyoi.bot.commands import (
@@ -73,8 +66,6 @@ def create_bot_app() -> Application:
         .token(bot_settings.token)
         .read_timeout(READ_TIMEOUT)
         .write_timeout(WRITE_TIMEOUT)
-        .post_init(on_bot_init)
-        .post_shutdown(on_bot_shutdown)
     )
     if bot_settings.local_server:
         application_builder = (
