@@ -18,7 +18,7 @@ from yoiyoi.app.api import api_application
 from yoiyoi.app.bot import bot_application
 
 # get bot modes and constants
-from yoiyoi.bot import BotMode, on_bot_init, on_bot_stop
+from yoiyoi.bot import BotMode, on_bot_init, on_bot_shutdown
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -59,4 +59,4 @@ async def start_app(mode: int = BotMode.WEBHOOK):
             await bot_application.updater.start_polling()
         await web_server.serve()
         await bot_application.stop()
-        await on_bot_stop(bot_application)
+        await on_bot_shutdown(bot_application)

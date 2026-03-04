@@ -1,0 +1,29 @@
+services:
+  telegram-api:
+    image: aiogram/telegram-bot-api:latest
+    env_file:
+      - ~/secrets/tgapi.env
+    volumes:
+      - telegram-data:/var/lib/telegram-bot-api
+    ports:
+      - "8081:8081"
+    restart: always
+
+  pot-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:latest
+    ports:
+      - "4416:4416"
+    restart: always
+
+  yoiyoi-bot:
+    build: .
+    env_file:
+      - ~/secrets/yoiyoi.env
+    depends_on:
+      telegram-api:
+        condition: service_started
+      pot-provider:
+        condition: service_started
+
+volumes:
+  telegram-data:

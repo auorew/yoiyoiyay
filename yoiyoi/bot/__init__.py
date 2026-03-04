@@ -1,7 +1,7 @@
 """Bot module"""
 
 # telegram core bot api extension
-from telegram.ext import Application
+from telegram.ext import Application, ExtBot
 
 # settings
 from yoiyoi.extra.settings import bot_settings
@@ -75,8 +75,14 @@ class PixivParse:
     ) = range(4)
 
 
-async def on_bot_init(_: Application) -> None: ...
+async def on_bot_init(application: Application) -> None:
+    bot: ExtBot = application.bot
+    await bot.delete_webhook(drop_pending_updates=False)
+    print("Bot is starting on local API server...")
 
 
-async def on_bot_stop(_: Application) -> None:
-    await upload_log(_)
+async def on_bot_shutdown(application: Application) -> None:
+    bot: ExtBot = application.bot
+    await bot.close()
+    print("Bot connection closed.")
+    await upload_log(application)
