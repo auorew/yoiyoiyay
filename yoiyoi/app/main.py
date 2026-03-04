@@ -46,9 +46,6 @@ async def start_app(mode: int = BotMode.WEBHOOK):
     (Path(os.getcwd()) / bot_settings.cache_dir).mkdir(parents=True, exist_ok=True)
     # run bot and web server together
     async with bot_application:
-        if bot_settings.local_server:
-            await bot_application.bot.log_out()
-            log.info("Logged out!")
         await bot_application.initialize()
         await on_bot_init(bot_application)
         await bot_application.start()

@@ -1,5 +1,8 @@
 """Bot module"""
 
+# structured logging
+import structlog
+
 # telegram core bot api extension
 from telegram.ext import Application, ExtBot
 
@@ -75,15 +78,18 @@ class PixivParse:
     ) = range(4)
 
 
+log = structlog.get_logger(__name__)
+
+
 async def on_bot_init(application: Application) -> None:
     bot: ExtBot = application.bot
     await bot.delete_webhook(drop_pending_updates=False)
-    print("Bot deleted old webhook!")
-    print("Bot is starting on local API server...")
+    log.info("Bot deleted old webhook!")
+    log.info("Bot is starting on local API server...")
 
 
 async def on_bot_shutdown(application: Application) -> None:
     bot: ExtBot = application.bot
-    await bot.close()
-    print("Bot connection closed.")
+    await bot.log_out()
+    log.info("Bot logged out!")
     await upload_log(application)
