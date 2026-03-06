@@ -7,7 +7,7 @@ import sys
 
 from functools import partial
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 # file extension check
 import magic
@@ -141,7 +141,12 @@ async def get_text(update: Update) -> str:
     )
 
 
-async def get_video_info(filepath: str | Path) -> tuple[int, int, int]:
+async def get_video_info(
+    filepath: str | Path,
+) -> tuple[int, int, int, bool, bool, dict[str, Any]]:
+    width, height, duration = 0, 0, 0
+    has_video, has_audio = False, False
+    extra_info = {}
     # try ffprobe
     try:
         log.debug("Get video info: trying ffprobe...")
@@ -149,10 +154,10 @@ async def get_video_info(filepath: str | Path) -> tuple[int, int, int]:
         ffprobe_command = [
             "ffprobe",
             "-v", "quiet",
-            "-show_entries", "stream=width,height,duration",
+            "-show_entries", "stream=width,height,duration,codec_type,codec_tag_string",
             "-show_entries", "format=duration",
             "-of", "json",
-            "-select_streams", "v:0",
+            # "-select_streams", "v:0",
             str(filepath),
         ]
         # fmt: on
@@ -162,23 +167,54 @@ async def get_video_info(filepath: str | Path) -> tuple[int, int, int]:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        if await process.wait() != 0:
+        stdout, stderr = await process.communicate()
+
+        if not stdout:
             raise Exception("process exited with non-zero value")
-        if stderr := await process.stderr.read():
+
+        if stderr:
             raise Exception(stderr.decode("utf-8"))
-        if not (json_info := orjson.loads(await process.stdout.read())):
+
+        if not (json_info := orjson.loads(stdout)):
             raise Exception("No parseable output")
-        size_info = json_info.get("streams", [])
+
+        streams = json_info.get("streams", [])
         format_info = json_info.get("format", {})
-        if len(size_info) > 0:
-            video_info = size_info[0]
-            width = video_info.get("width", 0)
-            height = video_info.get("height", 0)
-            duration = int(float(video_info.get("duration", 0)))
+
+        for index, stream in enumerate(streams):
+            ctype = stream.get("codec_type")
+
+            if ctype == "video":
+                if video_codec_tag := stream.get("codec_tag_string"):
+                    extra_info[f"{index}|codec_tag_string"] = video_codec_tag
+                has_video = True
+                width = int(stream.get("width") or width)
+                height = int(stream.get("height") or height)
+
+                s_duration = stream.get("duration") or duration
+                if s_duration and not duration:
+                    duration = int(float(s_duration))
+
+            elif ctype == "audio":
+                if audio_codec_tag := stream.get("codec_tag_string"):
+                    extra_info[f"{index}|codec_tag_string"] = audio_codec_tag
+                has_audio = True
+
         if not duration:
-            duration = int(float(format_info.get("duration", 0)))
-        log.info("Get video info: %d x %d, %ds...", width, height, duration)
-        return width, height, duration
+            f_duration = format_info.get("duration") or duration
+            if f_duration:
+                duration = int(float(f_duration))
+
+        log.info(
+            "Get video info: %d x %d, %ds, video:%s, audio:%s, extra:%s.",
+            width,
+            height,
+            duration,
+            has_video,
+            has_audio,
+            extra_info,
+        )
+
     except Exception as exception:
         log.warning(
             "Get video info: failed to run ffprobe command because of %s: %r.",
@@ -188,8 +224,7 @@ async def get_video_info(filepath: str | Path) -> tuple[int, int, int]:
             # function info
             filepath=filepath,
         )
-    # else
-    return 0, 0, 0
+    return width, height, duration, has_video, has_audio, extra_info
 
 
 def extract_file_name(link_type: str, link: str) -> str:
@@ -268,7 +303,7 @@ def extract_file_ext(file: Path | str | bytes) -> str:
     # try magic
     try:
         log.debug("Extract ext: trying libmagic...")
-        if magic_output := magic.from_file(file, mime=True):
+        if magic_output := magic.from_file(str(file), mime=True):
             mime_type = magic_output.split("/")[-1]
             if mime_type != NO_EXT:
                 log.info("Extract ext: extension: %s...", mime_type)
@@ -315,7 +350,7 @@ def extract_file_ext(file: Path | str | bytes) -> str:
             "-v", "quiet",
             "-print_format", "json",
             "-show_format",
-            file
+            str(file)
         ]
         # fmt: on
         log.debug("Extract ext: ffprobe command: %s.", " ".join(ffprobe_command))

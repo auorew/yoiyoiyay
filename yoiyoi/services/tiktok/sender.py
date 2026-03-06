@@ -84,35 +84,62 @@ class TikTokSender(BaseSender):
                     telegram_message="can't be sent, because didn't find any video\\!",
                 )
 
-            target_video = next(
-                (v for v in videos if 0 < v.size < MAX_VIDEO_SIZE),
-                None,
-            )
-            if not target_video:
+            if not (
+                target_videos := sorted(
+                    (v for v in videos if 0 < v.size < MAX_VIDEO_SIZE),
+                    key=lambda x: x.size,
+                    reverse=True,
+                )
+            ):
                 self.log.error("Video file is too big.")
                 raise SenderError(
                     message="can't be sent, because video file is too big!",
                     telegram_message="can't be sent, because video file is too big\\!",
                 )
 
-            videopath, filepath = await self.download_helper(
-                target_video.link,
-                headers=target_video.extra,
-            )
-            if not videopath:
-                raise SenderError(
-                    message=(
-                        "can't be downloaded! "
-                        "If this seems to be wrong, try again later."
-                    ),
-                    telegram_message=(
-                        "can't be downloaded\\! "
-                        "If this seems to be wrong, try again later\\."
-                    ),
+            for target_video in target_videos:
+                videopath, filepath = await self.download_helper(
+                    target_video.link,
+                    headers=target_video.extra,
+                )
+                if not videopath:
+                    raise SenderError(
+                        message=(
+                            "can't be downloaded! "
+                            "If this seems to be wrong, try again later."
+                        ),
+                        telegram_message=(
+                            "can't be downloaded\\! "
+                            "If this seems to be wrong, try again later\\."
+                        ),
+                    )
+
+                video_info = await get_video_info(filepath)
+                if (
+                    not all(video_info[:3])
+                    or video_info[-1].get("0|codec_tag_string") == "bvc2"
+                    or video_info[-1].get("1|codec_tag_string") == "bvc2"
+                ):
+                    continue
+
+                # get TikTokMedia.thumb
+                thumbfile, _ = await self.download_helper(media.thumb)
+                thumbname = await make_thumb_name(filepath.name, thumbfile)
+                thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
+                self.storage.add(thumbpath)
+
+                yield MediaItem(
+                    path=videopath,
+                    type="video",
+                    caption=info,
+                    thumb_path=thumbpath,
+                    width=video_info[0],
+                    height=video_info[1],
+                    duration=video_info[2],
                 )
 
-            video_info = await get_video_info(filepath)
-            if not all(video_info):
+                break
+            else:
                 raise SenderError(
                     message=(
                         "can't be uploaded! "
@@ -125,19 +152,3 @@ class TikTokSender(BaseSender):
                         "If this seems to be wrong, try again later\\."
                     ),
                 )
-
-            # get TikTokMedia.thumb
-            thumbfile, _ = await self.download_helper(media.thumb)
-            thumbname = await make_thumb_name(filepath.name, thumbfile)
-            thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
-            self.storage.add(thumbpath)
-
-            yield MediaItem(
-                path=videopath,
-                type="video",
-                caption=info,
-                thumb_path=thumbpath,
-                width=video_info[0],
-                height=video_info[1],
-                duration=video_info[2],
-            )

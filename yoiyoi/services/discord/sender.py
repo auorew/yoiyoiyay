@@ -51,7 +51,7 @@ class DiscordSender(BaseSender):
 
         if content_type.split("/")[0] == "video":
             video_info = await get_video_info(procpath)
-            if not all(video_info):
+            if not all(video_info[:3]):
                 raise SenderError(
                     message=(
                         "can't be uploaded! "

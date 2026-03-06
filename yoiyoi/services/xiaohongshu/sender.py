@@ -83,7 +83,7 @@ class XiaohongshuSender(BaseSender):
             )
 
         video_info = await get_video_info(videopath)
-        if not all(video_info):
+        if not all(video_info[:3]):
             raise SenderError(
                 message=(
                     "can't be uploaded! "
