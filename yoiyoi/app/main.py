@@ -51,10 +51,10 @@ async def start_app(mode: int = BotMode.WEBHOOK):
         await bot_application.start()
         if (hook_url := bot_settings.hook_url) and mode == BotMode.WEBHOOK:
             log.info("Running in webhook mode!")
-            hook = f"https://{hook_url}:{bot_settings.port}/{bot_settings.token}"
+            hook = f"{hook_url}:{bot_settings.port}/{bot_settings.token}"
             log.info(
                 "Webhook: %s.",
-                f"https://{hook_url}:{bot_settings.port}/{bot_settings.token}",
+                f"{hook_url}:{bot_settings.port}/{bot_settings.token}",
             )
             await bot_application.bot.set_webhook(hook, allowed_updates=Update.ALL_TYPES)
         else:
