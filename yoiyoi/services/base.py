@@ -66,8 +66,8 @@ ytdlp_opts_base = {
     # extractor settings
     "extractor_args": {
         "youtube": {
-            "player_client": ["mweb", "ios"],
-            "skip": ["web"],
+            "player_client": ["android_vr", "web", "web_safari", "mweb", "ios"],
+            # "skip": ["web"],
         },
         "youtubepot-bgutilhttp": {
             "base_url": [bot_settings.pot_provider],
