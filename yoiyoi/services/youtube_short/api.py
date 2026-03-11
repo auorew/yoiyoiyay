@@ -19,9 +19,6 @@ import yt_dlp
 # async caching
 from aiocache import cached
 
-# beautiful soup
-from bs4 import BeautifulSoup
-
 # decrypting
 from cryptography.fernet import Fernet
 
@@ -101,6 +98,7 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
     Returns:
         Optional[YouTubeShortMedia]: youtube info.
     """
+    api_log = log.bind(api="ytapi.apps.mattw.io")
     base = "https://mattw.io"
     api = "https://ytapi.apps.mattw.io/v3/videos"
     if response := await make_request(
@@ -118,13 +116,13 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
         # check response
         if response.is_error:
             return
-        log.debug("Request to API succeeded.")
+        api_log.debug("Request to YouTube API succeeded.")
         try:
             info = orjson.loads(response.content)
         except orjson.JSONDecodeError:
-            log.warning("Couldn't decode json response: %r.", response.content)
+            api_log.warning("Couldn't decode json response: %r.", response.content)
             return
-        log.debug("JSON: %r.", info)
+        api_log.debug("JSON: %r.", info)
         if not info["items"]:
             return
         info = info["items"][0]
@@ -194,10 +192,11 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
     Returns:
         list[Optional[YouTubeShortContent]]: youtube short content namedtuple.
     """
+    api_log = log.bind(api="yt-dlp")
     content = []
     try:
         if not (info := await get_ytdlp_with_proxy(link.link)):
-            log.warning("Got no data from yt-dlp!")
+            api_log.warning("Got no data from yt-dlp!")
             return content
         videos = []
         for video_format in info["formats"]:
@@ -223,7 +222,7 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
                 )
             )
     except Exception as exception:
-        log.warning(
+        api_log.warning(
             "yt-dlp: Failed because of %s: %r.",
             exception.__class__.__name__,
             exception,
@@ -231,45 +230,6 @@ async def get_ytdlp_links(link: Link) -> list[Optional[YouTubeShortContent]]:
             # function info
             link=link,
         )
-    return content
-
-
-async def get_10downloader_links(link: Link) -> list[Optional[YouTubeShortContent]]:
-    """Gets links from 10downloader.
-
-    Args:
-        link (Link): youtube short link.
-
-    Returns:
-        list[Optional[YouTubeShortContent]]: youtube short content namedtuple.
-    """
-    log.info("API: 10downloader.")
-    content = []
-    # api info
-    base = "https://10downloader.com/en/73"
-    api = "https://10downloader.com/download"
-    # send request
-    if response := await make_request(
-        api,
-        method="GET",
-        xsrf="XSRF-TOKEN",
-        referer=base,
-        params={
-            "v": link.link,
-            "lang": "en",
-            "type": "video",
-        },
-    ):
-        # check response
-        if response.is_error:
-            return
-        log.debug("Request to API succeeded.")
-        # process response
-        soup = BeautifulSoup(response.content, "html.parser")
-        for download_link in soup.find_all("a", class_="downloadBtn")[:2]:
-            if download_link["download"].endswith("mp4"):
-                if (_size := await get_content_size(_link := download_link["href"])) > 0:
-                    content.append(YouTubeShortContent(_link, _size, {}, {}))
     return content
 
 
@@ -287,10 +247,7 @@ async def get_youtube_short_links(link: Link) -> Optional[YouTubeShortMedia]:
 
     log.info("YouTube Short info: %s.", info)
 
-    for get_links in (
-        get_ytdlp_links,  # best
-        get_10downloader_links,  # good
-    ):
+    for get_links in (get_ytdlp_links,):  # best
         if ytsc := await get_links(link):
             return YouTubeShortMedia(**info, content=ytsc)
         log.info("Trying another API...")
