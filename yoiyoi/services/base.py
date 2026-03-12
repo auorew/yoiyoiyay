@@ -8,7 +8,7 @@ from contextlib import ExitStack
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 # structured logging
 import structlog
@@ -66,41 +66,49 @@ ytdlp_opts_base = {
     # extractor settings
     "extractor_args": {
         "youtube": {
-            "player_client": ["android_vr", "web", "web_safari", "mweb", "ios"],
-            # "skip": ["web"],
+            "player_client": [
+                "web",
+                "web_safari",
+                "web_embedded",
+                "web_music",
+                "web_creator",
+                "mweb",
+                "tv",
+                "tv_downgraded",
+            ],
+            "skip": ["android_vr", "ios"],
         },
         "youtubepot-bgutilhttp": {
             "base_url": [bot_settings.pot_provider],
         },
     },
     "format": (
-        f"bestvideo[ext=mp4][vcodec^=avc1][filesize_approx<{MAX_VIDEO_SIZE}]+"
-        f"bestaudio[ext=m4a]/best[ext=mp4][filesize_approx<{MAX_VIDEO_SIZE}]"
+        f"(bestvideo+bestaudio/best)"
+        f"[filesize<{MAX_VIDEO_SIZE}]"
+        f"[filesize_approx<{MAX_VIDEO_SIZE}]"
     ),
     "max_filesize": MAX_VIDEO_SIZE,
+    # memory unlimited
+    "postprocessors": [
+        {
+            "key": "FFmpegVideoConvertor",
+            "preferedformat": "mp4",  # Note the spelling: 'preferedformat'
+        }
+    ],
+    "merge_output_format": "mp4",
     # memory limiting
     "buffersize": 1024 * 16,
     "noresizebuffer": True,
     "http_chunk_size": 1024 * 1024,
-    "concurrent_fragment_downloads": 1,
-    "cachedir": False,
+    "concurrent_fragment_downloads": 4,
     # metadata limiting
-    "writethumbnail": False,
-    "write_all_thumbnails": False,
-    "addmetadata": False,
-    "writeinfojson": False,
     "noplaylist": True,
     "noprogress": True,
     # additional
-    "extract_flat": "in_playlist",
-    "hls_use_mpegts": True,
-    "youtube_include_dash_manifest": False,
-    "youtube_include_hls_manifest": False,
-    "no_color": True,
     "ignore_no_formats_error": True,
     "nocheckcertificate": True,
     # other settings
-    "quiet": True,
+    # "quiet": True,
     "js_runtimes": {"deno": {}},
     "remote_components": ["ejs:github"],
 }
@@ -154,7 +162,7 @@ class BaseSender(ABC):
         self.log: structlog.BoundLogger = log.bind(service=self.SERVICE)
 
     @abstractmethod
-    async def get_media_generator(self):
+    async def get_media_generator(self) -> AsyncGenerator[MediaItem, None]:
         """Yields MediaItem objects one by one."""
         pass
 
@@ -219,13 +227,19 @@ class BaseSender(ABC):
 
     # helpers
 
-    async def _send_batched(self, generator):
+    async def _send_batched(self, generator: AsyncGenerator[MediaItem, None]):
         """Processes items in chunks with automatic memory flushing."""
         batch_items = []
         current_media_size = 0
         current_doc_size = 0
 
         async for item in generator:
+            if not item.path.exists():
+                self.log.info("Item doesn't exist!", item=item)
+                for file in item.path.parent.iterdir():
+                    if file.is_file():
+                        self.log.debug(file.name)
+                continue
             # get sizes
             item_media_size = item.path.stat().st_size
             item_doc_size = item.orig_path.stat().st_size if item.orig_path else 0
