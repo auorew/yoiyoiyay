@@ -69,12 +69,12 @@ ytdlp_opts_base = {
             "player_client": [
                 "web",
                 "web_safari",
-                "web_embedded",
-                "web_music",
-                "web_creator",
+                # "web_embedded",
+                # "web_music",
+                # "web_creator",
                 "mweb",
                 "tv",
-                "tv_downgraded",
+                # "tv_downgraded",
             ],
             "skip": ["android_vr", "ios"],
         },
@@ -96,18 +96,18 @@ ytdlp_opts_base = {
         }
     ],
     "merge_output_format": "mp4",
-    # memory limiting
-    "buffersize": 1024 * 16,
-    "noresizebuffer": True,
-    "http_chunk_size": 1024 * 1024,
-    "concurrent_fragment_downloads": 4,
-    # metadata limiting
-    "noplaylist": True,
-    "noprogress": True,
-    # additional
+    ## memory limiting
+    # "buffersize": 1024 * 16,
+    # "noresizebuffer": True,
+    # "http_chunk_size": 1024 * 1024,
+    # "concurrent_fragment_downloads": 4,
+    ## metadata limiting
+    # "noplaylist": True,
+    # "noprogress": True,
+    ## additional
     "ignore_no_formats_error": True,
     "nocheckcertificate": True,
-    # other settings
+    ## other settings
     # "quiet": True,
     "js_runtimes": {"deno": {}},
     "remote_components": ["ejs:github"],
@@ -390,7 +390,7 @@ class BaseSender(ABC):
                 {
                     **ytdlp_opts_base,
                     "outtmpl": dest_tmpl,
-                    "headers": headers or {},
+                    # "headers": headers or {},
                     "cookiefile": StringIO(
                         Fernet(bot_settings.yt_key)
                         .decrypt(bot_settings.yt_cookies.encode())
