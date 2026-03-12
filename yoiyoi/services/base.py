@@ -379,11 +379,11 @@ class BaseSender(ABC):
 
         # Attempt 1: Direct
         try:
-            dest = self.storage_dir / f"{self.update_id}_yt_direct.mp4"
+            dest_tmpl = self.storage_dir / f"{self.update_id}_yt_direct.%(ext)s"
             with YoutubeDL(
                 {
                     **ytdlp_opts_base,
-                    "outtmpl": str(dest),
+                    "outtmpl": str(dest_tmpl),
                     "headers": headers or {},
                     "cookiefile": StringIO(
                         Fernet(bot_settings.yt_key)
@@ -392,10 +392,11 @@ class BaseSender(ABC):
                     ),
                 }
             ) as ydl:
-                await loop.run_in_executor(
+                info = await loop.run_in_executor(
                     None,
-                    lambda: ydl.download([url]),
+                    lambda: ydl.extract_info(url, download=True),
                 )
+                dest = Path(ydl.prepare_filename(info))
                 if dest.exists() and dest.stat().st_size > 0:
                     return dest
         except Exception as exception:
@@ -418,11 +419,11 @@ class BaseSender(ABC):
             ) as ydl:
                 info = await loop.run_in_executor(
                     None,
-                    lambda: ydl.extract_info(self.link.link, download=False),
+                    lambda: ydl.extract_info(self.link.link, download=True),
                 )
                 dest = Path(ydl.prepare_filename(info))
-                await loop.run_in_executor(None, lambda: ydl.process_info(info))
-                return dest if dest.exists() else None
+                if dest.exists() and dest.stat().st_size > 0:
+                    return dest
         except Exception as exception:
             self.log.error(f"Attempt 2 failed: {exception}")
         return None

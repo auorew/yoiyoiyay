@@ -71,7 +71,7 @@ class YouTubeShortSender(BaseSender):
                 headers=target_video.headers,
                 **target_video.kwargs,
             )
-            if not videopath:
+            if not (videopath and videopath.exists()):
                 raise SenderError(
                     message=(
                         "can't be downloaded! "
@@ -83,7 +83,7 @@ class YouTubeShortSender(BaseSender):
                     ),
                 )
 
-            video_info = await get_video_info(filepath)
+            video_info = await get_video_info(videopath)
             if not all(video_info[:3]):
                 raise SenderError(
                     message=(
@@ -105,7 +105,7 @@ class YouTubeShortSender(BaseSender):
             self.storage.add(thumbpath)
 
             yield MediaItem(
-                path=filepath,
+                path=videopath,
                 type="video",
                 caption=info,
                 thumb_path=thumbpath,
