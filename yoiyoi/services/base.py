@@ -366,24 +366,30 @@ class BaseSender(ABC):
         gc.collect()
 
     def _is_youtube_or_hls(self, url: str) -> bool:
-        return (
-            any(x in url for x in [".m3u8", "googlevideo.com"])
-            or "youtube.com" in self.link.link
+        if any(url.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp"]):
+            return False
+
+        return any(x in url for x in [".m3u8", "googlevideo.com"]) or (
+            "youtube.com" in url or "youtu.be" in url
         )
 
     async def _download_youtube(
-        self, url: str, headers: Optional[dict]
+        self,
+        url: str,
+        headers: Optional[dict],
     ) -> Optional[Path]:
         """Handles the two-attempt logic for YouTube/HLS."""
+        self.log.debug("Entered yt-dlp download", url=url)
         loop = asyncio.get_event_loop()
 
         # Attempt 1: Direct
         try:
-            dest_tmpl = self.storage_dir / f"{self.update_id}_yt_direct.%(ext)s"
+            dest_tmpl = str(self.storage_dir / f"{self.update_id}_yt_direct.%(ext)s")
+            self.log.debug("Attempt 1: Direct download", url=url, template=dest_tmpl)
             with YoutubeDL(
                 {
                     **ytdlp_opts_base,
-                    "outtmpl": str(dest_tmpl),
+                    "outtmpl": dest_tmpl,
                     "headers": headers or {},
                     "cookiefile": StringIO(
                         Fernet(bot_settings.yt_key)
@@ -397,19 +403,25 @@ class BaseSender(ABC):
                     lambda: ydl.extract_info(url, download=True),
                 )
                 dest = Path(ydl.prepare_filename(info))
+                self.log.debug("Attempt 1 returned path: %s", dest, path=dest)
                 if dest.exists() and dest.stat().st_size > 0:
+                    self.log.info("Attempt 1 successful", path=dest.name)
                     return dest
         except Exception as exception:
             self.log.warning(f"Attempt 1 failed: {exception}")
 
         # Attempt 2: Fallback
         try:
+            target_url = url if "googlevideo.com" not in url else self.link.link
             dest_tmpl = self.storage_dir / f"{self.update_id}_{self.link.id}.%(ext)s"
+            self.log.debug(
+                "Attempt 2: Fallback to source", target=target_url, template=dest_tmpl
+            )
             with YoutubeDL(
                 {
                     **ytdlp_opts_base,
                     "outtmpl": str(dest_tmpl),
-                    "headers": headers or {},
+                    # "headers": headers or {},
                     "cookiefile": StringIO(
                         Fernet(bot_settings.yt_key)
                         .decrypt(bot_settings.yt_cookies.encode())
@@ -419,10 +431,12 @@ class BaseSender(ABC):
             ) as ydl:
                 info = await loop.run_in_executor(
                     None,
-                    lambda: ydl.extract_info(self.link.link, download=True),
+                    lambda: ydl.extract_info(target_url, download=True),
                 )
                 dest = Path(ydl.prepare_filename(info))
+                self.log.debug("Attempt 2 returned path: %s", dest, path=dest)
                 if dest.exists() and dest.stat().st_size > 0:
+                    self.log.info("Attempt 2 successful", path=dest.name)
                     return dest
         except Exception as exception:
             self.log.error(f"Attempt 2 failed: {exception}")
