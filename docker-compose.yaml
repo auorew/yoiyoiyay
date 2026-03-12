@@ -28,7 +28,7 @@ services:
         condition: service_started
 
   watchtower:
-    image: nicholas-fedor/watchtower
+    image: nickfedor/watchtower
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
