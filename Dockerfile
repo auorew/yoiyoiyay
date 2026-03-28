@@ -50,6 +50,14 @@ RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 # Copy dependencies first
 COPY pyproject.toml poetry.lock* ./
 
+# add memray
+USER root
+RUN apt-get update && apt-get install -y build-essential python3-dev
+USER nano
+
+# install memray via poetry or pip
+RUN poetry add memray
+
 # Install dependencies
 RUN poetry config virtualenvs.create false && \
     poetry install --without dev --no-root --no-interaction --no-ansi
