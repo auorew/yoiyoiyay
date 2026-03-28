@@ -38,7 +38,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Deno
-RUN curl -fsSL https://deno.land/x/install/install.sh | sh -s -- -d /usr/local/deno
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh && \
+    chmod -R 755 /usr/local/deno && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install poetry
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
