@@ -7,7 +7,7 @@ error() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1"; }
 # starting Python Bot
 log "Starting bot with poetry and memray..."
 #poetry run python3 main.py &
-poetry run memray3.14 run main.py &
+poetry run memray3.14 run --native --aggregate -o native_report.bin main.py &
 
 POETRY_PID=$!
 log "Python Bot started with PID: $POETRY_PID"
