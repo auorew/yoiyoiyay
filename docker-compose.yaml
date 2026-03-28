@@ -28,13 +28,5 @@ services:
       pot-provider:
         condition: service_started
 
-  watchtower:
-    image: nickfedor/watchtower
-    container_name: watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 60 --cleanup
-    restart: always
-
 volumes:
   telegram-data:
