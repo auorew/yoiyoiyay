@@ -17,7 +17,9 @@ ENV LANG=C.UTF-8 \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     POETRY_VERSION=2.2.1 \
     POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_CACHE_DIR='/tmp/poetry_cache'
+    POETRY_CACHE_DIR='/tmp/poetry_cache' \
+    DENO_INSTALL="/usr/local/deno" \
+    PATH="/usr/local/deno/bin:$PATH"
 
 # Create workdir
 WORKDIR /app
@@ -25,24 +27,18 @@ WORKDIR /app
 # Set shell to bash and enable pipefail
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# Create user bot
+RUN useradd -m bot
+
 # Install dependencies needed to download and unzip Deno
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    unzip \
+    curl unzip build-essential python3-dev libvips-dev \
+    ffmpeg nodejs procps libvips42 libmagic-dev \
+    file nginx gettext-base wget netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Deno
-RUN curl -fsSL https://deno.land/x/install/install.sh | sh
-# Add Deno to the PATH so yt-dlp can call it
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="$DENO_INSTALL/bin:$PATH"
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libvips-dev \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://deno.land/x/install/install.sh | sh -s -- -d /usr/local/deno
 
 # Install poetry
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
@@ -50,37 +46,18 @@ RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 # Copy dependencies first
 COPY pyproject.toml poetry.lock* ./
 
-# add memray
-USER root
-RUN apt-get update && apt-get install -y build-essential python3-dev
-USER nano
-
-# install memray via poetry or pip
-RUN poetry add memray
-
 # Install dependencies
 RUN poetry config virtualenvs.create false && \
     poetry install --without dev --no-root --no-interaction --no-ansi
 
-# Install runtimw dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    nodejs \
-    procps \
-    libvips42 \
-    libmagic-dev \
-    file \
-    nginx \
-    gettext-base \
-    wget \
-    netcat-openbsd \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy code
-COPY . .
+COPY --chown=bot:bot . .
 
 # Make start script executable
 RUN chmod +x start.sh
+
+# Change user
+USER bot
 
 # Run app
 CMD ["./start.sh"]
