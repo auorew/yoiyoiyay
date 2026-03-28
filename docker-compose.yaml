@@ -21,6 +21,7 @@ services:
       - ~/secrets/yoiyoi.env
     ports:
       - "${PRIVATE_PORT:-8888}:${PRIVATE_PORT:-8888}"
+      - "1234:1234"  # memray
     depends_on:
       telegram-api:
         condition: service_started
