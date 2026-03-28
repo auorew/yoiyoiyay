@@ -58,6 +58,9 @@ COPY --chown=bot:bot . .
 # Make start script executable
 RUN chmod +x start.sh
 
+# Own /app folder as a whole
+RUN chown -R bot:bot /app
+
 # Change user
 USER bot
 
