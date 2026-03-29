@@ -180,6 +180,37 @@ async def resize_image(filepath: Path):
         return resized_filepath
 
 
+async def crop_shorts_thumbnail(thumbpath: Path) -> bool:
+    log.info("Cropping Shorts thumbnail to 9:16...")
+    newthumbpath = thumbpath.parent / thumbpath.name.replace(".thumb.", ".shortsthumb.")
+    try:
+        with Image.open(thumbpath) as image:
+            img_width, img_height = image.size
+            if not (
+                img_width > img_height and abs(img_width / img_height - 16 / 9) < 0.5
+            ):
+                return False
+            # Target aspect ratio is 9:16
+            # We keep the full height and calculate the narrow width
+            target_width = (9 / 16) * img_height
+
+            # Calculate cropping boundaries for the center
+            left = (img_width - target_width) / 2
+            right = left + target_width
+            top = 0
+            bottom = img_height
+
+            # Crop and save
+            cropped_img = image.crop((left, top, right, bottom))
+            cropped_img.save(newthumbpath, quality=95)
+
+        replace_file(newthumbpath, thumbpath)
+        return True
+    except Exception as exception:
+        log.error("Failed to crop Shorts thumbnail: %r", exception, exc_info=True)
+        return False
+
+
 async def convert_image(filepath: Path):
     if bot_settings.converter_local:
         converted_filepath, _, error_text = await convert_media_file(

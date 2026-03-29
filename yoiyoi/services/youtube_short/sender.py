@@ -11,6 +11,9 @@ from yoiyoi.bot.formatters import get_video_info, make_thumb_name
 # get info
 from yoiyoi.bot.helpers import get_info
 
+# bot processors
+from yoiyoi.bot.processors import crop_shorts_thumbnail
+
 # media styles
 from yoiyoi.extra.styles import YouTubeShortStyle
 
@@ -90,6 +93,7 @@ class YouTubeShortSender(BaseSender):
             thumbfile, _ = await self.download_helper(media.thumb)
             thumbname = await make_thumb_name(filepath.name, thumbfile)
             thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
+            await crop_shorts_thumbnail(thumbpath)
             self.storage.add(thumbpath)
 
             yield MediaItem(
