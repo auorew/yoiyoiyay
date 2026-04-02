@@ -102,7 +102,7 @@ async def telegram(request: Request):
     return JSONResponse(telegram_response)
 
 
-@api_application.post("/resize_for_telegram/")
+@api_application.post("/resize_for_telegram")
 async def resize_for_telegram(upload_file: UploadFile | None = None):
     async with request_space() as (folder, unique_id):
         payload = {"id": unique_id}
@@ -127,7 +127,7 @@ async def resize_for_telegram(upload_file: UploadFile | None = None):
         )
 
 
-@api_application.post("/convert_for_telegram/")
+@api_application.post("/convert_for_telegram")
 async def convert_for_telegram(upload_file: UploadFile | None = None):
     async with request_space() as (folder, unique_id):
         payload = {"id": unique_id}
@@ -150,3 +150,4 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
             content=media_out.read_bytes(),
             media_type=send_type,
         )
+    
