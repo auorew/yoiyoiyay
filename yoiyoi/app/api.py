@@ -150,4 +150,3 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
             content=media_out.read_bytes(),
             media_type=send_type,
         )
-    
