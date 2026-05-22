@@ -66,6 +66,7 @@ class InstagramSender(BaseSender):
                 procpath, filepath = await self.download_helper(
                     item.link,
                     headers=headers,
+                    filename=item.name,
                 )
                 if not procpath:
                     raise SenderError(
