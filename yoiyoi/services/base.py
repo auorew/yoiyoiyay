@@ -205,7 +205,13 @@ class BaseSender(ABC):
         finally:
             self._cleanup()
 
-    async def download_helper(self, url: str, headers: Optional[dict] = None, **kwargs):
+    async def download_helper(
+        self,
+        url: str,
+        headers: Optional[dict] = None,
+        filename="",
+        **kwargs,
+    ):
         """Orchestrates the download and processing flow."""
         # downloading
         if self._is_youtube_or_hls(url):
@@ -215,6 +221,15 @@ class BaseSender(ABC):
 
         if not filepath or not filepath.exists():
             return None, None
+
+        # renaming
+        if filename:
+            target_path = Path(filename)
+            if not target_path.suffix:
+                filename = f"{filename}{filepath.suffix}"
+            new_filepath = filepath.with_name(filename)
+            filepath.rename(new_filepath)
+            filepath = new_filepath
 
         # saving
         self.storage.add(filepath)

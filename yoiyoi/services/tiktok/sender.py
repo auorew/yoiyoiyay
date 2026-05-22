@@ -52,10 +52,13 @@ class TikTokSender(BaseSender):
             )
 
         info = await get_info(self.link, TikTokStyle, self.chat, media)
-        if media.kind == TikTokMediaKind.SLIDESHOW and self.chat.tt_slide_mode == 1:
+        if media.kind == TikTokMediaKind.SLIDESHOW:  # and self.chat.tt_slide_mode == 1:
             photos = [x for x in media.content if isinstance(x, TikTokPhoto)]
             for media_photo in photos:
-                imagepath, filepath = await self.download_helper(media_photo.link)
+                imagepath, filepath = await self.download_helper(
+                    media_photo.link,
+                    filename=media_photo.name,
+                )
                 if not imagepath:
                     raise SenderError(
                         message=(
