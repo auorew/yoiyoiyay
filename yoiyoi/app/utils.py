@@ -51,13 +51,9 @@ async def resize_image_file(
         if scale < 1.0:
             image = image.resize(scale, kernel="lanczos3")
 
-        out_file = file.with_suffix(f".{TO_FMT}")
-        image.write_to_file(str(out_file), Q=95)
-        send_type = f"image/{TO_FMT}"
-    else:
-        out_file = file
-        send_type = ext
-
+    out_file = file.with_suffix(f".{TO_FMT}")
+    image.write_to_file(str(out_file), Q=95)
+    send_type = f"image/{TO_FMT}"
     return out_file, send_type, None
 
 

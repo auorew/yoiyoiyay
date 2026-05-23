@@ -174,7 +174,7 @@ async def resize_image(filepath: Path):
             resizer_api,
             "POST",
             timeout=120,
-            files={"upload_file": filepath.open("rb")},
+            files={"upload_file": filepath.read_bytes()},
         )
     ):
         return resized_filepath
@@ -221,22 +221,17 @@ async def convert_image(filepath: Path):
         log.error(error_text)
 
     elif converter_api := bot_settings.converter_api:
-        with filepath.open(mode="rb") as filehandle:
-            if converted_filepath := await save_file(
-                converter_api,
-                "POST",
-                timeout=120,
-                files={"upload_file": filehandle},
-            ):
-                return converted_filepath
+        if converted_filepath := await save_file(
+            converter_api,
+            "POST",
+            timeout=120,
+            files={"upload_file": filepath.read_bytes()},
+        ):
+            return converted_filepath
 
 
 async def process_image(filepath: Path) -> Optional[Path]:
     log.info("Processing an image...")
-    # telegram is allergic to webp recently
-    if filepath.suffix == ".webp":
-        log.debug("WebP image: %r.", filepath)
-        return await convert_image(filepath)
     # check if file size > 10 MB
     if (filesize := os.stat(filepath).st_size) > MAX_PHOTO_FILE_SIZE:
         log.debug("File size: %d.", filesize)
@@ -247,7 +242,7 @@ async def process_image(filepath: Path) -> Optional[Path]:
         log.debug("Size sum: %d.", sum(image.size))
         if sum(image.size) > MAX_PHOTO_SIZE_SUM:
             return await resize_image(filepath)
-    return filepath
+    return await convert_image(filepath)
 
 
 async def choose_twitter_video(

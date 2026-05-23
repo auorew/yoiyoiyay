@@ -474,7 +474,7 @@ class BaseSender(ABC):
         if ext in {".jpg", ".jpeg", ".png", ".webp"}:
             procpath = await process_image(filepath)
             if procpath and Path(procpath) != filepath:
-                final_path = move_file(procpath, self.storage_dir / f"RE_{filepath.name}")
+                final_path = move_file(procpath, self.storage_dir / f"RE_{procpath.name}")
                 self.storage.add(final_path)
                 return Path(final_path)
 
