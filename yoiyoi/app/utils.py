@@ -22,6 +22,9 @@ from yoiyoi.bot import CACHE_DIR
 # get logger
 log = structlog.get_logger(__name__)
 
+# cache 0 operations
+pyvips.cache_set_max(0)
+
 
 @asynccontextmanager
 async def request_space() -> AsyncGenerator[tuple[Path, str], None]:
@@ -106,3 +109,13 @@ async def convert_media_file(
             return output_file, send_type, None
     elif ext.split("/")[1] in IM_FMT:
         return await resize_image_file(media_file, ext)
+
+
+def convert_webp_to_png(filepath: Path) -> Path:
+    """Converts webp image to png using PIL."""
+    from PIL import Image
+
+    png_filepath = filepath.with_suffix(".png")
+    with Image.open(filepath) as img:
+        img.save(png_filepath, "PNG")
+    return png_filepath

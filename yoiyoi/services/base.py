@@ -365,6 +365,9 @@ class BaseSender(ABC):
                     do_quote=True,
                 ):
                     self.log.info("Sent document group.")
+        # Force garbage collector first to release any pyvips or image file locks/handles
+        gc.collect()
+
         for item in items:
             try:
                 item.path.unlink(missing_ok=True)
@@ -374,10 +377,12 @@ class BaseSender(ABC):
                     item.orig_path.unlink(missing_ok=True)
                 # Remove from the global set so _cleanup doesn't try again
                 self.storage.discard(item.path)
+                if item.orig_path:
+                    self.storage.discard(item.orig_path)
             except Exception as exception:
                 self.log.warning("Incremental cleanup failed: %r.", exception)
 
-        # Force garbage collector
+        # Force garbage collector again
         gc.collect()
 
     def _is_youtube_or_hls(self, url: str) -> bool:
@@ -490,12 +495,18 @@ class BaseSender(ABC):
 
     def _cleanup(self):
         """Deletes all tracked files and the directory."""
+        # Force garbage collector first to release any file locks/handles
+        gc.collect()
+
         self.log.debug(
             "Cleaning up storage for update %s: %s.",
             self.update_id,
             self.storage,
         )
-        delete_files(self.storage)
+        try:
+            delete_files(self.storage)
+        except Exception as exception:
+            self.log.warning("Cleanup: failed to delete files: %r.", exception)
 
         try:
             if self.storage_dir.exists():
@@ -503,5 +514,5 @@ class BaseSender(ABC):
         except Exception as exception:
             self.log.warning("Could not remove storage directory: %r.", exception)
 
-        # Force garbage collector
+        # Force garbage collector again
         gc.collect()

@@ -2,6 +2,9 @@
 
 import structlog
 
+# app utils
+from yoiyoi.app.utils import convert_webp_to_png
+
 # bot formatters
 from yoiyoi.bot.formatters import get_video_info, make_thumb_name
 
@@ -79,6 +82,14 @@ class InstagramSender(BaseSender):
                             "The bot failed to download the content\\."
                         ),
                     )
+
+                if self.chat.in_orig and filepath.suffix.lower() == ".webp":
+                    try:
+                        png_filepath = convert_webp_to_png(filepath)
+                        self.storage.add(png_filepath)
+                        filepath = png_filepath
+                    except Exception as e:
+                        self.log.error("Failed to convert webp to png: %r", e)
 
                 yield MediaItem(
                     path=procpath,
