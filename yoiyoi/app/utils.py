@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import uuid
@@ -22,8 +23,11 @@ from yoiyoi.bot import CACHE_DIR
 # get logger
 log = structlog.get_logger(__name__)
 
-# cache 0 operations
+# limit pyvips cache for minimal memory usage
+os.environ["VIPS_CONCURRENCY"] = "1"
 pyvips.cache_set_max(0)
+pyvips.cache_set_max_mem(0)
+pyvips.cache_set_max_files(0)
 
 
 @asynccontextmanager
@@ -41,23 +45,31 @@ async def request_space() -> AsyncGenerator[tuple[Path, str], None]:
 async def resize_image_file(
     file: Path, ext: str = "image/jpeg"
 ) -> tuple[Path, str, Optional[str]]:
-    image = pyvips.Image.new_from_file(
-        str(file),
-        access="sequential",
-    )
+    image = None
+    try:
+        image = pyvips.Image.new_from_file(
+            str(file),
+            access="sequential",
+        )
 
-    width, height = image.width, image.height
-    file_size = file.stat().st_size
+        width, height = image.width, image.height
+        file_size = file.stat().st_size
 
-    if (width + height) > 10000 or file_size > (1 << 20):  # >1MB
-        scale = min(IM_MAX[0] / width, IM_MAX[1] / height, 1.0)
-        if scale < 1.0:
-            image = image.resize(scale, kernel="lanczos3")
+        if (width + height) > 10000 or file_size > (1 << 20):  # >1MB
+            scale = min(IM_MAX[0] / width, IM_MAX[1] / height, 1.0)
+            if scale < 1.0:
+                image = image.resize(scale, kernel="lanczos3")
 
-    out_file = file.with_suffix(f".{TO_FMT}")
-    image.write_to_file(str(out_file), Q=95)
-    send_type = f"image/{TO_FMT}"
-    return out_file, send_type, None
+        out_file = file.with_suffix(f".{TO_FMT}")
+        image.write_to_file(str(out_file), Q=95)
+        send_type = f"image/{TO_FMT}"
+        return out_file, send_type, None
+    finally:
+        if image is not None:
+            del image
+        import gc
+
+        gc.collect()
 
 
 async def convert_video_file(input_file: Path, output_file: _TemporaryFileWrapper):
