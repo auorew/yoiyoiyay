@@ -56,25 +56,34 @@ log = structlog.get_logger(__name__)
 register_heif_opener()
 
 
-async def crop_thumbnail(thumbpath: Path, video_width: int, video_height: int):
-    newthumbpath = thumbpath.parent / thumbpath.name.replace(".thumb.", ".rethumb.")
+def _crop_thumbnail_sync(thumbpath: Path, video_width: int, video_height: int) -> bool:
+    """Synchronous worker that performs the actual cropping."""
+    # Safe temporary path using stem/suffix manipulation
+    newthumbpath = thumbpath.with_name(f"{thumbpath.stem}_rethumb{thumbpath.suffix}")
+
     try:
         with Image.open(thumbpath) as image:
             image_width, image_height = image.size
-            # calculate thumbnail image
+
+            # Calculate target crop width preserving original video aspect ratio
             thumbnail_width = video_width * image_height / video_height
-            thumbnail_height = image_height
-            # cropping box
-            top, bottom = 0, thumbnail_height
+
+            # Center-crop horizontal bounding box
+            top, bottom = 0, image_height
             left = (image_width - thumbnail_width) / 2
             right = left + thumbnail_width
-            # crop and save
+
+            # Crop and save as JPEG
             cropped_img = image.crop((left, top, right, bottom))
             cropped_img.save(newthumbpath, quality=95)
+
         replace_file(newthumbpath, thumbpath)
+        return True
+
     except Exception as exception:
         log.warning(
-            "Get video info: failed to run ffprobe command because of %s: %r.",
+            "Failed to crop thumbnail for %s because of %s: %r.",
+            thumbpath,
             exception.__class__.__name__,
             exception,
             exc_info=True,
@@ -83,8 +92,16 @@ async def crop_thumbnail(thumbpath: Path, video_width: int, video_height: int):
             video_width=video_width,
             video_height=video_height,
         )
+        if newthumbpath.exists():
+            newthumbpath.unlink(missing_ok=True)
         return False
-    return True
+
+
+async def crop_thumbnail(thumbpath: Path, video_width: int, video_height: int) -> bool:
+    """Async entry point — offloads blocking image operations to a thread."""
+    return await asyncio.to_thread(
+        _crop_thumbnail_sync, thumbpath, video_width, video_height
+    )
 
 
 async def count_audio_stream(filepath: Path) -> bool:
@@ -178,37 +195,6 @@ async def resize_image(filepath: Path):
         )
     ):
         return resized_filepath
-
-
-async def crop_shorts_thumbnail(thumbpath: Path) -> bool:
-    log.info("Cropping Shorts thumbnail to 9:16...")
-    newthumbpath = thumbpath.parent / thumbpath.name.replace(".thumb.", ".shortsthumb.")
-    try:
-        with Image.open(thumbpath) as image:
-            img_width, img_height = image.size
-            if not (
-                img_width > img_height and abs(img_width / img_height - 16 / 9) < 0.5
-            ):
-                return False
-            # Target aspect ratio is 9:16
-            # We keep the full height and calculate the narrow width
-            target_width = (9 / 16) * img_height
-
-            # Calculate cropping boundaries for the center
-            left = (img_width - target_width) / 2
-            right = left + target_width
-            top = 0
-            bottom = img_height
-
-            # Crop and save
-            cropped_img = image.crop((left, top, right, bottom))
-            cropped_img.save(newthumbpath, quality=95)
-
-        replace_file(newthumbpath, thumbpath)
-        return True
-    except Exception as exception:
-        log.error("Failed to crop Shorts thumbnail: %r", exception, exc_info=True)
-        return False
 
 
 async def convert_image(filepath: Path):
