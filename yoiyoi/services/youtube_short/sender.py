@@ -94,7 +94,7 @@ class YouTubeShortSender(BaseSender):
             thumbname = await make_thumb_name(filepath.name, thumbfile)
             thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
 
-            video_w, video_h, _ = video_info
+            video_w, video_h, *_ = video_info
 
             await crop_thumbnail(
                 thumbpath=thumbpath, video_width=video_w, video_height=video_h
