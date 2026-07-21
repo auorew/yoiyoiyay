@@ -2358,6 +2358,92 @@ tests = ["defusedxml", "numpy", "packaging", "pympler", "pytest"]
 tests-min = ["defusedxml", "packaging", "pytest"]
 
 [[package]]
+name = "pillow-jxl-plugin"
+version = "1.3.8"
+description = "Pillow plugin for JPEG-XL, using Rust for bindings."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:8e5917812ab609951211c771726cfc99f161238b09a9175ea1fb122c94227b22"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b1f80e18334215195eb7f5a19e20b8448778740aab6ffb058da551c1c1d95b70"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4b4c60dadc9656e2d3093310c64fc8b521dfcea299913838bef9ff496e777f65"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:06a0d4d530c8e36f098301f426611dac4c3a7693cfb3121663f1ca8f71ba4517"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5bd82982ff69470b6dfdfdca7f4308cb32c1c6910f95511db58dc59fc0411e59"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:be5ea80860966bcea91a6e91aaaa3dd510d537cdf5245c811d41cd3a5538f8f1"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-musllinux_1_2_armv7l.whl", hash = "sha256:537a6f702b066bd8c69ba8202f1350a3d1e05e23bbe28f0d5f1567588a5bb16e"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:85d8496e35035e1a228daf52578bde6f94fcd908202324f32dfe3b7b0430efd0"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:0a04950cff6e0550574117512b2cf5dc3d084d2abd95c752bd7ab219f5511e79"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-win32.whl", hash = "sha256:812a8f0a24d1bc751bbe4119ead7d458726558b2c1af72f99e6c381cb6d48025"},
+    {file = "pillow_jxl_plugin-1.3.8-cp310-cp310-win_amd64.whl", hash = "sha256:ec20f55bfad78d96376b7274671870311f53ef724e07d9d5af8bba36c363f77f"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:42bfc37327ca71e9b9c4a3d569d338db6789e0966eb89dd1fffef5fcf3c2462d"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:ceaca73f77fa0dc6409e85ca77da24560270d0929bdbee579714da05614c67ec"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4c3109317d54918fe10d25d9978c2e445edefee04546f08ef47e077dc3dbe7e6"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f9fd3a2c5d48faca23200176015e00b4004862f4fb9016fd17a0fa374019574e"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:97a627c02fc660e6d36010c2bf57f1c346ce2a58cd7e83e43241f5ad174c3f18"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:17fd143e6fe5c2cbb8eac1862046d63ada83ed48b6cea4753b9615a6df6f4d08"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-musllinux_1_2_armv7l.whl", hash = "sha256:a86df5b196225d230c51e391f1005e86e136142d0fce98267df285651f3b0621"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:bcd116d028fe87379c934238cd3a984325bb4fde80c86526873a513a4d3c3b81"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:2f11b1d5d20013a8bdab06d9d3244488db0e00a5d57e5daaefa78f67eb70f474"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-win32.whl", hash = "sha256:d8ff168cbc04a5978f0a9320958e1ac2111e53ba4f7f7ae14a09f49c04b4e936"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-win_amd64.whl", hash = "sha256:85649ffbb6a21b2830022ce723de8625fc4d33621ed09ec4687eaf57b5044f4c"},
+    {file = "pillow_jxl_plugin-1.3.8-cp311-cp311-win_arm64.whl", hash = "sha256:d72cbe293981677e989cf4314cb18e743e42ac84269508c0693e06c8f7e66604"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:7f6fd0fa12dd0d98bb55df6bbfff7ad913e4ea27306fbdf5e8543fe1fa40772c"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:01b632dbca07b59f7d6e106dad3ac8391e9ffdab1f94f2068a3e8edff1bbd180"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6459d131af2cbccab20742f6fe43a3022b021dcd1ee20b05f99b1fb54d0ec525"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:a9b9a546ac71757f53f0ca2b14ea8f99c33b70e298a7873477f4548e2d83f817"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dd2afd5153e2a7ef230a3e48a679a9e1cb3e59032f79c78bb2f78010a4e9bfc1"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:9b987fb202dd1c71d7f6e103363afd1128d347ffcf540d8416c257c8f1041ff3"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-musllinux_1_2_armv7l.whl", hash = "sha256:c05cf62a992f48434a6b876fe010e5cae12bd54039854ce9ae0f05c13a58c7ad"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:0392e5349b67522130ecff9d8dca4713e4c84662a310d2170291b229965e8fd1"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:88b06a4e5fc0d882b188824990b6571e201ad775d22a09487c8d5ab8aed9c3b7"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-win32.whl", hash = "sha256:3345a45a09ba3149001c3e9a1b6991be8aab72c33097c0633e414a254cd283fa"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-win_amd64.whl", hash = "sha256:5b1c0d7a0c7e451014b288f0504545bff0f543f2ee1581af628e01e885b75f50"},
+    {file = "pillow_jxl_plugin-1.3.8-cp312-cp312-win_arm64.whl", hash = "sha256:230a1d086ef5b66055e0dbc9837914becf1d1ca58d45d1404660de0a11fb63c3"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:fe24e957016dcb0c2ec35f72ff3bb8ae78a9468b282f0d423485556de492975c"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:d648ef965002bee0c98dbf144b9b3c994146856fa4d3c54008b75dda10f69915"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:34685b27d01e55aabb09d9436d4ddb1f446e8805da82ffd6448c07bbf563354c"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:288eb07090c91891ee0dc782786d937af8e53a117835606d7982c29e31072b90"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9b39ac44cbe5a98b8a364ed98a16c8c1e197ee997e32731be4be727c55e629e4"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:0e1550f30768a0aa3f756da10b7807f6fac7fd2e5a18991eb8e00ec5908089d8"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-musllinux_1_2_armv7l.whl", hash = "sha256:b13f860c280d9d5770f49a1909926f15c6e26e50935da52ecb78700f7c377857"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:273908ffb85f68a2374b0934700939c572f32b355c9d128d4e3b6924e72ef274"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:2be721646718af722f2ca5c1d6b06bf056a61a0db355cf944df53c3723119d4b"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-win32.whl", hash = "sha256:a2716f1367ed9647da36ce15882a12b4d424892cb5a03ab4b0783039d701c7c2"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-win_amd64.whl", hash = "sha256:2388374b3493df9add4ef3d97cc70d6a5f51ed188dfe10d2b83ebc55e82e48d4"},
+    {file = "pillow_jxl_plugin-1.3.8-cp313-cp313-win_arm64.whl", hash = "sha256:48d13d81d1c4933e5d42dd09366a9827583808be0a2fe842abd7358653c7d92f"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-macosx_10_12_x86_64.whl", hash = "sha256:30b72accb8505a46b05f709871da40f09975aea3a6b6f3cb1d646ff0a9aaba5e"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:b5bbc933487207e634802f21990c365b6e61473cea34f6621420f4eda8ffd1df"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c1d06fd4eb038f431db27f1ab2e483fd6967bafb21a7757e1bd5f76b6fd93649"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f65361ce18db59e8949c60599bfa46b7de187e28917fc39b5d816ab4b81cb16d"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:70b881a40737c647a24270b73cd3f506dd16d634202e5214cb492f9270bd1b02"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:d4049e48f09947a38047fc5d70817c6dffa90ffb5f14585c8c00e8b534d17c9b"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-musllinux_1_2_armv7l.whl", hash = "sha256:6ce20ef0887efb6dace5245f714f94b4f070ef39a1ec45161b35879c48faf30a"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-musllinux_1_2_i686.whl", hash = "sha256:845e61add39272ca8545f4a0e6ead977ebb7e89fa017014bb8e17273a7a09c6c"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:915b8fee6a97aaf5486d0d625f26faae2e9f0d9b5892f1076f5a29b8103125a4"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-win32.whl", hash = "sha256:d63d1c3566a8c9ebdd1ec6b75da816b9475d95c4f69656827d6d3957d2594ecb"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-win_amd64.whl", hash = "sha256:6b23c83aabf4615b92ae609293d8597ca1a8d14d01ab16c703bb3a3df359796b"},
+    {file = "pillow_jxl_plugin-1.3.8-cp314-cp314-win_arm64.whl", hash = "sha256:60c36bec3d8d4ef23cf2aed0f792213f999312dd3d8cd5225ae1494c430e16f6"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-macosx_10_12_x86_64.whl", hash = "sha256:e33d2b965d4306271ca811dfbb14f8dc313e7bc6408617760fae7ae275686218"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-macosx_11_0_arm64.whl", hash = "sha256:323ba7ab8fe6aceddbf571853b47c8900a293c6430649be31c3a743b12d0bcfc"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:66a1bbe948021af26a5550b9bccad011e1131f6e10a90821690e3c19a417f59b"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9adee3403a29b42b203b6903923ef84cff70bb33aa6ed069775b6b8f721fe7c7"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ab40c82ead318b058804211a7f6d6e2715f65015f73792dee63813731105f74c"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-musllinux_1_2_aarch64.whl", hash = "sha256:81864c18c03084754c4a9d673a0ec9d6161af5f7695ab1d4bb112059af2e968b"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-musllinux_1_2_armv7l.whl", hash = "sha256:42f39d55dfb7ba29509cea3f0270bd0e8a2fb924d979f2caa43f445e30d709e5"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-musllinux_1_2_i686.whl", hash = "sha256:027f091b8ff8ecb26712d709847d25359994eb6a6543736d7fbc07b7b6b86fd7"},
+    {file = "pillow_jxl_plugin-1.3.8-pp311-pypy311_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:75351073d967c85c24a330f9e375b17b809bff9779cd08c8d0e90d659b39be5a"},
+    {file = "pillow_jxl_plugin-1.3.8.tar.gz", hash = "sha256:4430fd7757899742079c548a7d2537d6d63cf0f1d323180095bc0f6f03d9d4fa"},
+]
+
+[package.dependencies]
+packaging = "*"
+pillow = "*"
+
+[package.extras]
+dev = ["cmake", "numpy", "openexr", "pre-commit", "pyexiv2", "pytest", "ruff"]
+
+[[package]]
 name = "pixivpy-async"
 version = "1.2.14"
 description = "Pure Python 3 Async Pixiv API"
@@ -3901,4 +3987,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "5b07782efcff9c828d8a84711ca83955d6c3af02bf33cc313e8b5272793d1ed7"
+content-hash = "19e1825a05fe7ac65646e9e1b6bc0f6b4eecc87cd90bb2c33d94c7e6ccc5b2b3"

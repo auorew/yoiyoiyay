@@ -97,7 +97,9 @@ class YouTubeShortSender(BaseSender):
             video_w, video_h, *_ = video_info
 
             await crop_thumbnail(
-                thumbpath=thumbpath, video_width=video_w, video_height=video_h
+                thumbpath=thumbpath,
+                video_width=video_w,
+                video_height=video_h,
             )
 
             self.storage.add(thumbpath)

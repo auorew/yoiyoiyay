@@ -8,6 +8,9 @@ from typing import Optional
 # parse json
 import orjson
 
+# register jxl
+import pillow_jxl  # noqa: F401
+
 # structured logging
 import structlog
 
