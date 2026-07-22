@@ -79,7 +79,6 @@ class DiscordSender(BaseSender):
                 width=video_info[0],
                 height=video_info[1],
                 duration=video_info[2],
-                orig_path=filepath,
             )
 
         else:
