@@ -4,7 +4,7 @@
 import structlog
 
 # working with database
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 # database models
 from yoiyoi.db.models import Chat
@@ -29,3 +29,15 @@ async def check_if_banned(chat_id: int) -> bool:
         if chat := session.scalar(select(Chat.is_banned).filter_by(id=chat_id)):
             return chat.is_banned
         return False
+
+
+async def get_info_by_identifier(identifier: str):
+    query = text("""
+        SELECT a.type, a.aid
+        FROM "artwork" AS a
+        WHERE :identifier = ANY(a.files);
+    """)
+    with Session() as session:
+        if result := session.execute(query, {"identifier": identifier}):
+            return [dict(row) for row in result.mappings()]
+        return []

@@ -1,7 +1,10 @@
 """Web Application"""
 
+import re
+
 from contextlib import asynccontextmanager
 from datetime import datetime
+from typing import Optional
 
 # file extension check
 import magic
@@ -29,6 +32,9 @@ from yoiyoi.app.bot import bot_application
 
 # app utils
 from yoiyoi.app.utils import convert_media_file, request_space, resize_image_file
+
+# get image info
+from yoiyoi.db.getters import get_info_by_identifier
 
 # bot settings
 from yoiyoi.extra.settings import bot_settings
@@ -150,3 +156,118 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
             content=media_out.read_bytes(),
             media_type=send_type,
         )
+
+
+ARTWORK_TYPES = {
+    0: {
+        "name": "twitter",
+        "url_template": "https://twitter.com/i/status/{aid}",
+    },
+    1: {
+        "name": "pixiv",
+        "url_template": "https://www.pixiv.net/artworks/{aid}",
+    },
+}
+
+IDENTIFIER_PATTERNS = [
+    ("pixiv", re.compile(r"(?P<id>\d+)_p\d+(?:\.[a-z]{3,4})?", re.IGNORECASE)),
+    ("twitter", re.compile(r"(?P<id>[\w\-]{15})(?:\.[a-z]{3,4})?", re.IGNORECASE)),
+]
+
+
+def extract_identifier(filename: str) -> tuple[Optional[str], Optional[str]]:
+    """Extracts identifier and source platform from a filename.
+
+    Returns:
+        tuple[identifier, platform_name] or (None, None) if unmatched.
+    """
+    clean_filename = filename
+    log.debug("Analyzing filename for patterns", filename=clean_filename)
+
+    for platform, pattern in IDENTIFIER_PATTERNS:
+        if match := pattern.search(clean_filename):
+            extracted_id = match.group("id")
+            log.info(
+                "Successfully extracted identifier",
+                platform=platform,
+                extracted_id=extracted_id,
+            )
+            return extracted_id, platform
+
+    log.debug("Filename did not match any known pattern", filename=clean_filename)
+    return None, None
+
+
+def format_artwork_data(row: dict) -> dict:
+    """Formats raw database row into an artwork dictionary with platform metadata."""
+    artwork_type = row.get("type")
+    aid = row.get("aid")
+
+    meta = ARTWORK_TYPES.get(artwork_type, {"name": "unknown", "url_template": None})
+    template = meta["url_template"]
+
+    return {
+        "type": artwork_type,
+        "type_name": meta["name"],
+        "aid": aid,
+        "link": template.format(aid=aid) if template and aid else None,
+    }
+
+
+@api_application.get("/get_image_info")
+async def get_image_info(filename: str):
+    bind_contextvars(update_id=f"api-{int(datetime.now().timestamp()) % 10000}")
+    log.info("Received image info request", filename=filename)
+
+    try:
+        # 1. Parse Identifier
+        identifier, platform = extract_identifier(filename)
+
+        if not identifier:
+            log.warning("Identifier extraction failed", filename=filename)
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "failed",
+                    "info": (
+                        f"Filename '{filename}' does not match recognized "
+                        "pixiv or twitter patterns."
+                    ),
+                },
+            )
+
+        # 2. Query Database
+        log.info(
+            "Executing database query", identifier=identifier, detected_platform=platform
+        )
+        rows = await get_info_by_identifier(identifier=identifier)
+        log.info("Database query returned results", row_count=len(rows))
+
+        # 3. Format Response
+        formatted_artworks = [format_artwork_data(row) for row in rows]
+        log.debug(
+            "Formatted response data successfully", artwork_count=len(formatted_artworks)
+        )
+
+        return JSONResponse(
+            {
+                "status": "ok",
+                "extracted_id": identifier,
+                "artworks": formatted_artworks,
+            }
+        )
+
+    except Exception as exc:
+        log.error(
+            "Unhandled error processing request",
+            filename=filename,
+            error=str(exc),
+            exc_info=True,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"status": "failed", "info": f"Database error: {exc}"},
+        )
+
+    finally:
+        unbind_contextvars("update_id")
