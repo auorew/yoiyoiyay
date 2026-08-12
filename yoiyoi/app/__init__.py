@@ -23,7 +23,7 @@ VI_FMT = {
     "octet-stream",
 }
 
-TO_FMT = "jxl"
+TO_FMT = "webp"
 
 # success
 SUCCESS = "Success."

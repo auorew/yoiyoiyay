@@ -61,7 +61,10 @@ async def resize_image_file(
                 image = image.resize(scale, kernel="lanczos3")
 
         out_file = file.with_suffix(f".{TO_FMT}")
-        image.write_to_file(str(out_file), Q=95)
+        if TO_FMT == "jxl":
+            image.write_to_file(str(out_file), distance=1.0, effort=8)
+        else:
+            image.write_to_file(str(out_file), Q=95)
         send_type = f"image/{TO_FMT}"
         return out_file, send_type, None
     finally:
