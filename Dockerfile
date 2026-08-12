@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.14.7-slim-bookworm AS builder
+FROM 3.15-rc-trixie AS builder
 
 # Set system, python, pip & poetry env
 ENV LANG=C.UTF-8 \
