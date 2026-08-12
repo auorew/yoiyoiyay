@@ -264,7 +264,12 @@ async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
         # check links
         tweet_links = []
         for facet in tweet_info["raw_text"]["facets"]:
-            if facet["type"] in {"mention", "hashtag", "inline_media"}:
+            if facet["type"] in {
+                "mention",
+                "hashtag",
+                "inline_media",
+                "italic",
+            }:
                 continue
             elif facet["type"] in {"media", "url"}:
                 tweet_links.append(
