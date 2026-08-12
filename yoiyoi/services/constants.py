@@ -220,8 +220,8 @@ LINKS = {
         "re": r"""(?x)
         (?:
             (?:http(?:s)?\:\/\/)?
-            (?:xhslink.com\/o\/)
-            (?P<id>\w+)
+            (?:xhslink\.(?:com|cn)\/o\/)
+            (?P<id>\w{11})
         )
         """,
         "link": "http://xhslink.com/o/{id}",
