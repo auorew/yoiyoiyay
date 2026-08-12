@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM 3.15-rc-trixie AS builder
+FROM python:3.14-trixie AS builder
 
 # Set system, python, pip & poetry env
 ENV LANG=C.UTF-8 \
