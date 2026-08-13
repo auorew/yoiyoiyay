@@ -1,3 +1,4 @@
+import asyncio
 import os
 import shutil
 import subprocess
@@ -43,19 +44,25 @@ async def request_space() -> AsyncGenerator[tuple[Path, str], None]:
 
 
 async def resize_image_file(
-    file: Path, ext: str = "image/jpeg"
+    file: Path,
+    ext: str = "image/jpeg",
+) -> tuple[Path, str, Optional[str]]:
+    return await asyncio.to_thread(_sync_resize_image_file, file, ext)
+
+
+def _sync_resize_image_file(
+    file: Path,
+    ext: str = "image/jpeg",
 ) -> tuple[Path, str, Optional[str]]:
     image = None
     try:
-        image = pyvips.Image.new_from_file(
-            str(file),
-            access="sequential",
-        )
+        buffer = file.read_bytes()
+        image = pyvips.Image.new_from_buffer(buffer, "")
 
         width, height = image.width, image.height
-        file_size = file.stat().st_size
+        file_size = len(buffer)
 
-        if (width + height) > 10000 or file_size > (1 << 20):  # >1MB
+        if (width + height) > 10000 or file_size > (1 << 20):  # > 1MB
             scale = min(IM_MAX[0] / width, IM_MAX[1] / height, 1.0)
             if scale < 1.0:
                 image = image.resize(scale, kernel="lanczos3")
@@ -65,14 +72,14 @@ async def resize_image_file(
             image.write_to_file(str(out_file), distance=1.0, effort=8)
         else:
             image.write_to_file(str(out_file), Q=95)
+
         send_type = f"image/{TO_FMT}"
         return out_file, send_type, None
+
     finally:
         if image is not None:
             del image
-        import gc
-
-        gc.collect()
+        pyvips.vips_lib.vips_thread_shutdown()
 
 
 async def convert_video_file(input_file: Path, output_file: _TemporaryFileWrapper):
