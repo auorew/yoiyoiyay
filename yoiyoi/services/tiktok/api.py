@@ -6,6 +6,7 @@ import secrets
 
 from http.cookies import SimpleCookie
 from typing import Optional, TypedDict
+from urllib.parse import quote
 
 # parse json
 import orjson
@@ -542,7 +543,7 @@ async def get_info_ytdlp(basic_info: dict) -> Optional[AdvancedInfo]:
     """
     api_log = log.bind(api="yt-dlp", type="advinfo")
     # fallback source, since /photo/ URLs are not currently supported
-    if info := await get_ytdlp_info(basic_info["original_link"]):
+    if info := await get_ytdlp_info(basic_info["fallback"]):
         api_log.debug("Loaded JSON.", json=info)
         # process response
         return AdvancedInfo(
@@ -554,6 +555,52 @@ async def get_info_ytdlp(basic_info: dict) -> Optional[AdvancedInfo]:
             author_name=info["uploader"],
             desc=info["description"],
             advinfo_source="yt-dlp",
+        )
+
+
+async def get_info_premierely(basic_info: dict) -> Optional[AdvancedInfo]:
+    """Gets advanced tiktok info from Premierely.
+
+    Args:
+        basic_info (dict): basic tiktok info.
+
+    Returns:
+        Optional[AdvancedInfo]: advanced tiktok info.
+    """
+    api_log = log.bind(api="premierely", type="advinfo")
+    base = "premierely.io"
+
+    # Target URL from basic_info (or fallback if preferred)
+    target_url = basic_info["fallback"]
+    encoded_url = quote(target_url, safe="")
+
+    api = (
+        f"https://{base}/tools/tiktok-to-mp3/tiktok-api.php"
+        f"?action=info&url={encoded_url}"
+    )
+
+    if info := await fetch_api_json(
+        url=api,
+        headers={
+            **get_fake_headers(),
+            "Accept": "*/*",
+            "Referer": f"https://{base}/tools/tiktok-video-downloader/",
+        },
+        retry_with=dict(stop=stop_after_attempt(2)),
+        with_proxy=True,
+    ):
+        api_log.debug("Loaded JSON.", json=info)
+
+        # process response
+        if not info.get("ok"):
+            api_log.warning("Couldn't find TikTok media from Premierely.")
+            return None
+
+        return AdvancedInfo(
+            thumb=info.get("thumbnail"),
+            author_name=info.get("authorName"),
+            desc=info.get("title"),
+            advinfo_source="premierely",
         )
 
 
@@ -1119,6 +1166,7 @@ ADVANCED_INFO_PROVIDERS = (
     get_info_ytdlp,  # best
     get_info_tokcounter,  # good
     get_info_lovetik,  # okay
+    get_info_premierely,  # okay
     get_tiktok_thumbnail,  # thumbnail
 )
 
