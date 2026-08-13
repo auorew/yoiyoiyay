@@ -79,7 +79,6 @@ def _sync_resize_image_file(
     finally:
         if image is not None:
             del image
-        pyvips.vips_lib.vips_thread_shutdown()
 
 
 async def convert_video_file(input_file: Path, output_file: _TemporaryFileWrapper):
