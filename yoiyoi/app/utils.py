@@ -16,7 +16,7 @@ import pyvips
 import structlog
 
 # app strings
-from yoiyoi.app import IM_FMT, IM_MAX, SUCCESS, TO_FMT, VI_FMT
+from yoiyoi.app import IM_MAX, SUCCESS, TO_FMT, VI_FMT
 
 # cache dir
 from yoiyoi.bot import CACHE_DIR
@@ -46,13 +46,15 @@ async def request_space() -> AsyncGenerator[tuple[Path, str], None]:
 async def resize_image_file(
     file: Path,
     ext: str = "image/jpeg",
+    to_ext: str = "webp",
 ) -> tuple[Path, str, Optional[str]]:
-    return await asyncio.to_thread(_sync_resize_image_file, file, ext)
+    return await asyncio.to_thread(_sync_resize_image_file, file, ext, to_ext)
 
 
 def _sync_resize_image_file(
     file: Path,
     ext: str = "image/jpeg",
+    to_ext: str = "webp",
 ) -> tuple[Path, str, Optional[str]]:
     image = None
     try:
@@ -67,9 +69,11 @@ def _sync_resize_image_file(
             if scale < 1.0:
                 image = image.resize(scale, kernel="lanczos3")
 
-        out_file = file.with_suffix(f".{TO_FMT}")
-        if TO_FMT == "jxl":
+        out_file = file.with_suffix(f".{to_ext}")
+        if to_ext == "jxl":
             image.write_to_file(str(out_file), distance=1.0, effort=8)
+        elif to_ext == "webp":
+            image.write_to_file(str(out_file), Q=95)
         else:
             image.write_to_file(str(out_file), Q=95)
 
@@ -128,8 +132,6 @@ async def convert_media_file(
             output_file.write_bytes(temp_output_file.read())
             send_type = "video/mp4"
             return output_file, send_type, None
-    elif ext.split("/")[1] in IM_FMT:
-        return await resize_image_file(media_file, ext)
 
 
 def convert_webp_to_png(filepath: Path) -> Path:

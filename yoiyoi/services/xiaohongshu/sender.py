@@ -98,7 +98,7 @@ class XiaohongshuSender(BaseSender):
             )
 
         # get XiaohongshuMedia.thumb
-        thumbfile, _ = await self.download_helper(media.thumb)
+        thumbfile, _ = await self.download_helper(media.thumb, to_ext="jpeg")
         thumbname = await make_thumb_name(filepath.name, thumbfile)
         thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
         self.storage.add(thumbpath)

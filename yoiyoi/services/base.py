@@ -210,6 +210,7 @@ class BaseSender(ABC):
         url: str,
         headers: Optional[dict] = None,
         filename="",
+        to_ext="",
         **kwargs,
     ):
         """Orchestrates the download and processing flow."""
@@ -235,7 +236,7 @@ class BaseSender(ABC):
         self.storage.add(filepath)
 
         # processing
-        procpath = await self._process_media(filepath)
+        procpath = await self._process_media(filepath, to_ext)
 
         # returning
         return procpath, filepath
@@ -472,12 +473,12 @@ class BaseSender(ABC):
 
         return move_file(temppath, self.storage_dir / filename)
 
-    async def _process_media(self, filepath: Path) -> Path:
+    async def _process_media(self, filepath: Path, to_ext: str = "") -> Path:
         """Decides whether to process as image or video."""
         ext = filepath.suffix.lower()
 
         if ext in {".jpg", ".jpeg", ".png", ".webp"}:
-            procpath = await process_image(filepath)
+            procpath = await process_image(filepath, to_ext)
             if procpath and Path(procpath) != filepath:
                 final_path = move_file(procpath, self.storage_dir / f"RE_{procpath.name}")
                 self.storage.add(final_path)

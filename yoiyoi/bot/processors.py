@@ -24,7 +24,7 @@ from pillow_heif import register_heif_opener
 from telegram import Update
 
 # app utils
-from yoiyoi.app.utils import convert_media_file, resize_image_file
+from yoiyoi.app.utils import resize_image_file
 
 # get constants
 from yoiyoi.bot import (
@@ -200,10 +200,10 @@ async def resize_image(filepath: Path):
         return resized_filepath
 
 
-async def convert_image(filepath: Path):
+async def convert_image(filepath: Path, to_ext: str = "webp"):
     if bot_settings.converter_local:
-        converted_filepath, _, error_text = await convert_media_file(
-            filepath, f"image/{filepath.suffix[1:]}"
+        converted_filepath, _, error_text = await resize_image_file(
+            filepath, {filepath.suffix[1:]}, to_ext
         )
         if not error_text:
             return converted_filepath
@@ -219,7 +219,7 @@ async def convert_image(filepath: Path):
             return converted_filepath
 
 
-async def process_image(filepath: Path) -> Optional[Path]:
+async def process_image(filepath: Path, to_ext: str = "") -> Optional[Path]:
     log.info("Processing an image...")
     # check if file size > 10 MB
     if (filesize := os.stat(filepath).st_size) > MAX_PHOTO_FILE_SIZE:
@@ -231,7 +231,9 @@ async def process_image(filepath: Path) -> Optional[Path]:
         log.debug("Size sum: %d.", sum(image.size))
         if sum(image.size) > MAX_PHOTO_SIZE_SUM:
             return await resize_image(filepath)
-    return await convert_image(filepath)
+    if to_ext:
+        return await convert_image(filepath, to_ext)
+    return filepath
 
 
 async def choose_twitter_video(

@@ -46,7 +46,7 @@ from yoiyoi.services.twitter.api import get_twitter_links
 log = structlog.get_logger(__name__)
 
 INTERNAL_PORT = 5001
-PUBLIC_BASE_URL = f"https://{bot_settings.hook_url}/{bot_settings.token}/memory"
+PUBLIC_BASE_URL = f"{bot_settings.hook_url}/{bot_settings.token}/memory"
 
 
 @asynccontextmanager

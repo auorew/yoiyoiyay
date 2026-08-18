@@ -3,7 +3,6 @@
 import asyncio
 import dataclasses
 import datetime
-import os
 import re
 
 from typing import Optional
@@ -24,9 +23,6 @@ from dataclasses_json import dataclass_json
 # parse datetime
 from dateutil.parser import parse
 
-# twitter api class
-from gallery_dl.extractor.twitter import TwitterAPI
-
 # escape markdown and get file name
 from yoiyoi.bot.formatters import unescape_html
 
@@ -44,6 +40,9 @@ from yoiyoi.services.constants import LINKS
 
 # TweetMedia & TweetContent namedtuples
 from yoiyoi.services.namedtuples import TweetContent, TweetMedia
+
+# twitter api class
+
 
 # get logger
 log = structlog.get_logger(__name__, service="twitter")
@@ -467,7 +466,7 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
                     tcourl=url["url"],
                     indices=url["indices"],
                 )
-                for url in tweet_info["entities"]["urls"]
+                for url in tweet_info["entities"]["media"]
             ]
             or None,
             quotedTweet=quote_info,
@@ -584,22 +583,57 @@ async def get_info_from_web_services(tweet_id: int) -> Optional[dict]:
 
 
 async def get_info_from_twitter_graphql(tweet_id: int) -> Optional[dict]:
-    api_log = log.bind(api="graphql")
+    url = f"https://x.com/i/status/{tweet_id}"
+    api_log = log.bind(api="graphql", tweet_id=tweet_id, url=url)
+
+    api_log.info("Starting Twitter GraphQL extraction...")
+
     try:
-        data_job = gallery_dl.job.DataJob(
-            f"https://twitter.com/web/status/{tweet_id}",
-            file=os.devnull,
+        # Initialize DataJob without file output
+        data_job = gallery_dl.job.DataJob(url, file=None)
+        api_log.debug(
+            "DataJob initialized using extractor: %s",
+            data_job.extractor.__class__.__name__,
         )
-        data_job.extractor.initialize()
-        data_job.extractor.api = TwitterAPI(data_job.extractor)
-        if data := data_job.extractor.tweets():
-            return data
-        api_log.error("Twitter GraphQL: No data.")
-    except gallery_dl.exception.StopExtraction:
-        api_log.error("Twitter GraphQL: Invalid data.")
+
+        # Execute extraction in a separate thread to prevent blocking asyncio
+        status = await asyncio.to_thread(data_job.run)
+
+        # 1. Log internal exception caught inside DataJob.run()
+        if data_job.exception:
+            api_log.error(
+                "DataJob caught an internal exception during run: %s: %s",
+                type(data_job.exception).__name__,
+                data_job.exception,
+            )
+
+        # 2. Log summary of collected message counts
+        api_log.debug(
+            "Extraction finished (Status: %s) | "
+            "Posts: %d | Items/Meta: %d | Messages: %d",
+            status,
+            len(data_job.data_post),
+            len(data_job.data_meta),
+            len(data_job.data),
+        )
+
+        # 3. Check for successful extractions
+        if data_job.data:
+            api_log.info("Successfully extracted metadata.")
+            return data_job.data
+
+        # 4. If empty, log all raw internal data emitted by gallery-dl
+        api_log.warning(
+            "No data extracted. Raw message dump from gallery-dl: %s",
+            data_job.data,
+        )
+
+    except gallery_dl.exception.StopExtraction as ex:
+        api_log.error("Twitter extraction stopped prematurely: %s", ex)
     except Exception as ex:
-        api_log.error("Twitter GraphQL: Excection occured: %s.", ex.args)
-    return
+        api_log.exception("Unexpected error in get_info_from_twitter_graphql: %s", ex)
+
+    return None
 
 
 async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
@@ -612,140 +646,163 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
         Optional[Tweet]: tweet dictionary
     """
     api_log = log.bind(api="graphql")
-    if api_data := await get_info_from_twitter_graphql(tweet_id):
-        for data in api_data:
-            api_log.debug("Loaded JSON.", json=data)
-            if not (tweet_info := data.get("legacy", None)):
-                api_log.error("Scraping failed.")
-                return
-            # check user
-            tweet_user = None
-            if not (
-                (user := data["core"]["user_results"]["result"]["legacy"])
-                and (username := user.get("screen_name"))
-            ):
-                api_log.error("No user found.")
-                return
-            tweet_user = User(
-                username=username,
-                id=tweet_info.get("user_id_str"),
-                displayname=user.get("name"),
-            )
-            # check text
-            tweet_text = ""
-            if note_tweet := data.get("note_tweet"):
-                if note_tweet_results := note_tweet.get("note_tweet_results"):
-                    if result := note_tweet_results.get("result"):
-                        tweet_text = result.get("text", "")
-            else:
-                tweet_text = tweet_info.get("full_text", "")
-            # check media
-            tweet_media = []
-            if not (tweet_info["entities"].get("media", None)):
-                api_log.error("No media.")
-                return
-            for medium in tweet_info["extended_entities"]["media"]:
-                if medium["type"] == "photo":
-                    tweet_media.append(
-                        Photo(
-                            previewUrl=medium["media_url_https"],
-                            fullUrl=medium["media_url_https"],
-                        )
-                    )
+    api_data = await get_info_from_twitter_graphql(tweet_id)
 
-                else:
-                    tweet_media.append(
-                        Video(
-                            thumbnailUrl=medium["media_url_https"],
-                            variants=[
-                                VideoVariant(
-                                    url=variant["url"],
-                                    contentType=variant["content_type"],
-                                    bitrate=int(variant.get("bitrate", 0)),
-                                )
-                                for variant in medium["video_info"]["variants"]
-                            ],
-                            duration=(medium["video_info"].get("duration_millis") or 0)
-                            / 1000,
-                        )
-                    )
-            # check quote
-            quote_info = None
-            quote = data.get("quoted_status_result", None)
-            if quote and "tombstone" not in quote["result"]:
-                if "tweet" in quote["result"]:
-                    if "legacy" in quote["result"]["tweet"]:
-                        qinfo = quote["result"]["tweet"]["legacy"]
-                        qid = quote["result"]["tweet"].get("rest_id")
-                        qcore = quote["result"]["tweet"]["core"]
-                else:
-                    qinfo = quote["result"].get("legacy")
-                    qid = quote["result"].get("rest_id")
-                    qcore = None
-                if not qinfo:
-                    api_log.debug("No quote was found: %s.", quote["result"])
-                    return
-                if len(api_data) > 1 and qid == api_data[1]["rest_id"]:
-                    quoted_user_info = api_data[1]["core"]["user_results"]["result"][
-                        "legacy"
-                    ]
-                    quoted_user = User(
-                        username=quoted_user_info["screen_name"],
-                        id=int(api_data[1]["legacy"]["user_id_str"]),
-                        displayname=quoted_user_info["name"],
-                    )
-                elif qcore:
-                    quser = qcore["user_results"]["result"]
-                    quoted_user = User(
-                        username=quser["legacy"].get("screen_name", "i"),
-                        id=int(quser.get("rest_id"), 0),
-                        displayname=quser["legacy"].get("name", ""),
-                    )
-                else:
-                    quoted_user = None
-                quote_info = Tweet(
-                    url=tweet_info["quoted_status_permalink"]["expanded"],
-                    date=parse(qinfo["created_at"]),
-                    rawContent=qinfo["full_text"],
-                    renderedContent=qinfo["full_text"],
-                    id=qinfo["id_str"],
-                    user=quoted_user,
-                    replyCount=qinfo["reply_count"],
-                    retweetCount=qinfo["retweet_count"],
-                    likeCount=qinfo["favorite_count"],
-                    quoteCount=qinfo["quote_count"],
-                    conversationId=qinfo["conversation_id_str"],
-                    lang=qinfo["lang"],
+    if not api_data:
+        api_log.error("No data received from gallery-dl extraction.")
+        return None
+
+    post_data = None
+    media_items = []
+
+    # Unpack gallery-dl message tuples:
+    # [2, post_dict] -> Message.Directory (Tweet metadata)
+    # [3, url, media_dict] -> Message.Url (Media metadata)
+    if isinstance(api_data, list):
+        for item in api_data:
+            if isinstance(item, (list, tuple)):
+                msg_type = item[0]
+                if msg_type == 2 and len(item) >= 2 and isinstance(item[1], dict):
+                    post_data = item[1]
+                elif msg_type == 3 and len(item) >= 3 and isinstance(item[2], dict):
+                    media_items.append((item[1], item[2]))
+            elif isinstance(item, dict):
+                if not post_data:
+                    post_data = item
+                if "type" in item or "filename" in item:
+                    media_items.append((item.get("url"), item))
+    elif isinstance(api_data, dict):
+        post_data = api_data
+
+    if not post_data:
+        api_log.error("Failed to extract tweet metadata.")
+        return None
+
+    api_log.debug("Loaded gallery-dl tweet metadata.", json=post_data)
+
+    # 1. Parse User
+    user_info = post_data.get("user") or post_data.get("author") or {}
+    username = user_info.get("name")
+    if not username:
+        api_log.error("No user found in tweet metadata.")
+        return None
+
+    tweet_user = User(
+        username=username,
+        id=int(user_info.get("id", 0)),
+        displayname=user_info.get("nick") or username,
+    )
+
+    # 2. Parse Text Content
+    tweet_text = post_data.get("content", "")
+
+    # 3. Parse Media Items
+    tweet_media = []
+    for media_url, media_meta in media_items:
+        media_type = media_meta.get("type", "photo")
+
+        if media_type == "photo":
+            tweet_media.append(
+                Photo(
+                    previewUrl=media_url,
+                    fullUrl=media_url,
                 )
-            return Tweet(
-                url=TWI["link"].format(
-                    id=tweet_id,
-                    author=tweet_user.username,
-                ),
-                date=parse(tweet_info["created_at"]),
-                rawContent=tweet_text,
-                renderedContent=tweet_text,
-                id=tweet_id,
-                user=tweet_user,
-                replyCount=tweet_info["reply_count"],
-                retweetCount=tweet_info["retweet_count"],
-                likeCount=tweet_info["favorite_count"],
-                quoteCount=tweet_info["quote_count"],
-                conversationId=tweet_id,
-                lang=tweet_info["lang"],
-                links=[
-                    TextLink(
-                        text=url["display_url"],
-                        url=url["expanded_url"],
-                        tcourl=url["url"],
-                        indices=url["indices"],
-                    )
-                    for url in tweet_info["entities"]["urls"]
-                ]
-                or None,
-                quotedTweet=quote_info,
-                media=tweet_media,
             )
+        else:
+            # Video or GIF
+            variants = []
+            if "variants" in media_meta:
+                variants = [
+                    VideoVariant(
+                        url=v.get("url"),
+                        contentType=v.get("content_type", "video/mp4"),
+                        bitrate=int(v.get("bitrate", 0)),
+                    )
+                    for v in media_meta["variants"]
+                ]
+            elif media_url:
+                variants = [
+                    VideoVariant(
+                        url=media_url,
+                        contentType="video/mp4",
+                        bitrate=0,
+                    )
+                ]
+
+            tweet_media.append(
+                Video(
+                    thumbnailUrl=media_meta.get("thumbnail"),
+                    variants=variants,
+                    duration=float(media_meta.get("duration", 0)),
+                )
+            )
+
+    # 4. Parse Quoted Tweet (if present)
+    quote_info = None
+    if quote_data := (post_data.get("quoted_status") or post_data.get("quote")):
+        q_user_info = quote_data.get("user") or quote_data.get("author") or {}
+        q_user = (
+            User(
+                username=q_user_info.get("name", ""),
+                id=int(q_user_info.get("id", 0)),
+                displayname=q_user_info.get("nick", ""),
+            )
+            if q_user_info
+            else None
+        )
+
+        quote_info = Tweet(
+            url=TWI["link"].format(
+                id=quote_data.get("tweet_id"),
+                author=q_user.username if q_user else "i",
+            ),
+            date=parse(quote_data["date"]),
+            rawContent=quote_data.get("content", ""),
+            renderedContent=quote_data.get("content", ""),
+            id=quote_data.get("tweet_id"),
+            user=q_user,
+            replyCount=quote_data.get("reply_count", 0),
+            retweetCount=quote_data.get("retweet_count", 0),
+            likeCount=quote_data.get("favorite_count", 0),
+            quoteCount=quote_data.get("quote_count", 0),
+            conversationId=quote_data.get("conversation_id"),
+            lang=quote_data.get("lang"),
+        )
+
+    # 5. Parse Text Links (if present)
+    links = None
+    if urls := post_data.get("urls"):
+        links = [
+            TextLink(
+                text=u.get("display_url", u.get("url")),
+                url=u.get("expanded_url", u.get("url")),
+                tcourl=u.get("url"),
+                indices=u.get("indices", [0, 0]),
+            )
+            for u in urls
+        ]
+
+    # Return final Tweet object
+    return Tweet(
+        url=TWI["link"].format(
+            id=tweet_id,
+            author=tweet_user.username,
+        ),
+        date=post_data["date"],
+        rawContent=tweet_text,
+        renderedContent=tweet_text,
+        id=tweet_id,
+        user=tweet_user,
+        replyCount=post_data.get("reply_count", 0),
+        retweetCount=post_data.get("retweet_count", 0),
+        likeCount=post_data.get("favorite_count", 0),
+        quoteCount=post_data.get("quote_count", 0),
+        conversationId=post_data.get("conversation_id", tweet_id),
+        lang=post_data.get("lang"),
+        links=links,
+        quotedTweet=quote_info,
+        media=tweet_media,
+    )
 
 
 async def process_twitter_medium(medium: Medium) -> Optional[TweetContent]:
@@ -861,7 +918,7 @@ async def get_twitter_links(
         return
 
     for get_tweet in (
-        # get_from_twimg_api,  # from twitter
+        get_from_twimg_api,  # from twitter
         # get_from_twitter_api,  # great
         get_from_fixtweet_api,  # great
     ):
