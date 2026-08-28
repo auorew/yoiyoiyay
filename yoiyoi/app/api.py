@@ -43,7 +43,7 @@ from yoiyoi.extra.settings import bot_settings
 from yoiyoi.services.twitter.api import get_twitter_links
 
 # get logger
-log = structlog.get_logger(__name__)
+log: structlog.BoundLogger = structlog.get_logger(__name__)
 
 INTERNAL_PORT = 5001
 PUBLIC_BASE_URL = f"{bot_settings.hook_url}/{bot_settings.token}/memory"
@@ -148,7 +148,7 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
         media_file = folder / f'media.{ext.split("/")[1]}'
         media_file.write_bytes(file.read())
 
-        media_out, send_type, error_text = convert_media_file(media_file, ext)
+        media_out, send_type, error_text = await convert_media_file(media_file, ext)
 
         if error_text:
             return {**payload, "message": f"Error: {error_text}"}
@@ -159,6 +159,10 @@ async def convert_for_telegram(upload_file: UploadFile | None = None):
 
 
 ARTWORK_TYPES = {
+    -1: {
+        "name": "unknown",
+        "url_template": None,
+    },
     0: {
         "name": "twitter",
         "url_template": "https://twitter.com/i/status/{aid}",
@@ -170,8 +174,8 @@ ARTWORK_TYPES = {
 }
 
 IDENTIFIER_PATTERNS = [
-    ("pixiv", re.compile(r"(?P<id>\d+)_p\d+(?:\.[a-z]{3,4})?", re.IGNORECASE)),
-    ("twitter", re.compile(r"(?P<id>[\w\-]{15})(?:\.[a-z]{3,4})?", re.IGNORECASE)),
+    ("pixiv", re.compile(r"^(?P<id>\d{3,})_p\d+(?:\.[a-z]{3,4})?$", re.IGNORECASE)),
+    ("twitter", re.compile(r"^(?P<id>[\w\-]{15})(?:\.[a-z]{3,4})?$", re.IGNORECASE)),
 ]
 
 
@@ -179,13 +183,13 @@ def extract_identifier(filename: str) -> tuple[Optional[str], Optional[str]]:
     """Extracts identifier and source platform from a filename.
 
     Returns:
-        tuple[identifier, platform_name] or (None, None) if unmatched.
+        tuple[identifier, platform] or (None, None) if unmatched.
     """
     clean_filename = filename
     log.debug("Analyzing filename for patterns", filename=clean_filename)
 
     for platform, pattern in IDENTIFIER_PATTERNS:
-        if match := pattern.search(clean_filename):
+        if match := pattern.match(clean_filename):
             extracted_id = match.group("id")
             log.info(
                 "Successfully extracted identifier",
@@ -200,7 +204,7 @@ def extract_identifier(filename: str) -> tuple[Optional[str], Optional[str]]:
 
 def format_artwork_data(row: dict) -> dict:
     """Formats raw database row into an artwork dictionary with platform metadata."""
-    artwork_type = row.get("type")
+    artwork_type = row.get("type", -1)
     aid = row.get("aid")
 
     meta = ARTWORK_TYPES.get(artwork_type, {"name": "unknown", "url_template": None})
@@ -217,14 +221,15 @@ def format_artwork_data(row: dict) -> dict:
 @api_application.get("/get_image_info")
 async def get_image_info(filename: str):
     bind_contextvars(update_id=f"api-{int(datetime.now().timestamp()) % 10000}")
-    log.info("Received image info request", filename=filename)
+    api_log = log.bind(filename=filename)
+    api_log.info("Received image info request: %s", filename)
 
     try:
         # 1. Parse Identifier
         identifier, platform = extract_identifier(filename)
 
         if not identifier:
-            log.warning("Identifier extraction failed", filename=filename)
+            log.warning("Identifier extraction failed")
             return JSONResponse(
                 status_code=400,
                 content={
@@ -237,16 +242,29 @@ async def get_image_info(filename: str):
             )
 
         # 2. Query Database
-        log.info(
-            "Executing database query", identifier=identifier, detected_platform=platform
-        )
-        rows = await get_info_by_identifier(identifier=identifier)
-        log.info("Database query returned results", row_count=len(rows))
+        api_log = api_log.bind(identifier=identifier, detected_platform=platform)
+        api_log.info("Executing database query")
+        if platform == "pixiv":
+            rows = [
+                {
+                    "type": 1,
+                    "aid": identifier,
+                }
+            ]
+            api_log.info("No database query needed, pixiv data")
+        else:
+            rows = await get_info_by_identifier(identifier=identifier)
+            api_log.info(
+                "Database query returned %s results", len(rows), row_count=len(rows)
+            )
 
         # 3. Format Response
         formatted_artworks = [format_artwork_data(row) for row in rows]
-        log.debug(
-            "Formatted response data successfully", artwork_count=len(formatted_artworks)
+        api_log = api_log.bind(artworks=formatted_artworks)
+        api_log.debug(
+            "Formatted response data successfully",
+            artwork_count=len(formatted_artworks),
+            artworks=formatted_artworks,
         )
 
         return JSONResponse(
@@ -258,7 +276,7 @@ async def get_image_info(filename: str):
         )
 
     except Exception as exc:
-        log.error(
+        api_log.error(
             "Unhandled error processing request",
             filename=filename,
             error=str(exc),

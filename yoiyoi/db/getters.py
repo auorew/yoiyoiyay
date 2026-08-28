@@ -26,7 +26,7 @@ async def check_if_banned(chat_id: int) -> bool:
         bool: chat is already in database.
     """
     with Session() as session:
-        if chat := session.scalar(select(Chat.is_banned).filter_by(id=chat_id)):
+        if chat := session.scalar(select(Chat).filter_by(id=chat_id)):
             return chat.is_banned
         return False
 

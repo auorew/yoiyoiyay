@@ -59,9 +59,13 @@ def _sync_resize_image_file(
     image = None
     try:
         buffer = file.read_bytes()
-        image = pyvips.Image.new_from_buffer(buffer, "")
+        image: pyvips.Image = pyvips.Image.new_from_buffer(buffer, "")
 
-        width, height = image.width, image.height
+        if not image:
+            return Path(), "", "empty image"
+
+        width: int = image.width
+        height: int = image.height
         file_size = len(buffer)
 
         if (width + height) > 10000 or file_size > (1 << 20):  # > 1MB
@@ -132,6 +136,7 @@ async def convert_media_file(
             output_file.write_bytes(temp_output_file.read())
             send_type = "video/mp4"
             return output_file, send_type, None
+    return Path(), "", "conversion crashed unexpectedly"
 
 
 def convert_webp_to_png(filepath: Path) -> Path:
