@@ -9,7 +9,7 @@ from typing import Optional, TypedDict
 from urllib.parse import quote
 
 # parse json
-import orjson
+import msgspec
 
 # structured logging
 import structlog
@@ -172,10 +172,10 @@ async def fetch_api_json(
         )
         return {}
     try:
-        info = orjson.loads(response.content)
+        info = msgspec.json.decode(response.content)
         api_log.debug("Loaded JSON.", json=info, request=request_info)
         return info
-    except orjson.JSONDecodeError:
+    except msgspec.DecodeError:
         api_log.warning(
             "Couldn't decode json response.",
             response=response.content,

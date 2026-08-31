@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 
 # parse json
-import orjson
+import msgspec
 
 # structured logging
 import structlog
@@ -45,7 +45,7 @@ async def upload_to_cloud(file: Path, link: str) -> None:
             content=base64.urlsafe_b64encode(file.read_bytes()),
             follow_redirects=True,
         )
-        if orjson.loads(response.content)["ok"]:
+        if msgspec.json.decode(response.content)["ok"]:
             log.info("Done uploading log file %r.", file.name)
         else:
             log.info("Log file %r already exists.", file.name)
@@ -64,5 +64,5 @@ async def upload_log(_: Application) -> None:
             await upload_to_cloud(file, link)
         except httpx.ConnectTimeout:
             log.error("Error: No connection.")
-        except orjson.JSONDecodeError:
+        except msgspec.DecodeError:
             log.error("Couldn't upload log file %r.", file.name)

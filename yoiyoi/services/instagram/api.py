@@ -9,7 +9,7 @@ import time
 from urllib.parse import unquote
 
 # parse json
-import orjson
+import msgspec
 
 # structured logging
 import structlog
@@ -106,8 +106,8 @@ async def get_links_igramworld(link: str) -> list[InstaMedia]:
             return results
         log.debug("Request to API succeeded.")
         try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
+            info = msgspec.json.decode(response.content)
+        except msgspec.DecodeError:
             log.warning("Couldn't decode json response: %r.", response.content)
             return results
         if not info:
@@ -175,8 +175,8 @@ async def get_links_downr(link: str) -> list[InstaMedia]:
             return results
         log.debug("Request to API succeeded.")
         try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
+            info = msgspec.json.decode(response.content)
+        except msgspec.DecodeError:
             log.warning("Couldn't decode json response: %r.", response.content)
             return results
         if info["error"]:
@@ -271,8 +271,8 @@ async def get_links_snapinstato(link: str) -> list[InstaMedia]:
             return results
         log.debug("Got token.")
         try:
-            info = orjson.loads(token_response.content)
-        except orjson.JSONDecodeError:
+            info = msgspec.json.decode(token_response.content)
+        except msgspec.DecodeError:
             log.warning("Couldn't decode json token: %r.", token_response.content)
             return results
         log.debug("JSON: %r.", info)
@@ -301,8 +301,8 @@ async def get_links_snapinstato(link: str) -> list[InstaMedia]:
             return results
         log.debug("Request to API succeeded.")
         try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
+            info = msgspec.json.decode(response.content)
+        except msgspec.DecodeError:
             log.warning("Couldn't decode json response: %r.", response.content)
             return results
         log.debug("JSON: %r.", info)
@@ -382,8 +382,8 @@ async def get_links_clipdownapp(link: str) -> list[InstaMedia]:
             return results
         log.debug("Got token.")
         try:
-            info = orjson.loads(token_response.content)
-        except orjson.JSONDecodeError:
+            info = msgspec.json.decode(token_response.content)
+        except msgspec.DecodeError:
             log.warning("Couldn't decode json token: %r.", token_response.content)
             return results
         log.debug("JSON: %r.", info)
@@ -412,8 +412,8 @@ async def get_links_clipdownapp(link: str) -> list[InstaMedia]:
             return results
         log.debug("Request to API succeeded.")
         try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
+            info = msgspec.json.decode(response.content)
+        except msgspec.DecodeError:
             log.warning("Couldn't decode json response: %r.", response.content)
             return results
         log.debug("JSON: %r.", info)

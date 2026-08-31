@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 # parse json
-import orjson
+import msgspec
 
 # register jxl
 import pillow_jxl  # noqa: F401
@@ -129,8 +129,8 @@ async def count_audio_stream(filepath: Path) -> bool:
         log.warning("ffprobe command failed.")
     try:
         output = await process.stdout.read()
-        result = orjson.loads(output)
-    except orjson.JSONDecodeError:
+        result = msgspec.json.decode(output)
+    except msgspec.DecodeError:
         log.warning("Couldn't parse output: %s.", output)
         log.warning("Assuming 0 audio streams...")
         return 0

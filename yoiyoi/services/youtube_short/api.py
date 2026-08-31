@@ -8,7 +8,7 @@ from io import StringIO
 from typing import Optional
 
 # parse json
-import orjson
+import msgspec
 
 # structured logging
 import structlog
@@ -117,8 +117,8 @@ async def get_youtube_info(link: Link) -> Optional[YouTubeShortMedia]:
             return
         api_log.debug("Request to YouTube API succeeded.")
         try:
-            info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
+            info = msgspec.json.decode(response.content)
+        except msgspec.DecodeError:
             api_log.warning("Couldn't decode json response: %r.", response.content)
             return
         api_log.debug("JSON: %r.", info)

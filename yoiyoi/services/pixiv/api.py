@@ -3,7 +3,7 @@
 from typing import Optional
 
 # parse json
-import orjson
+import msgspec
 
 # structured logging
 import structlog
@@ -49,14 +49,14 @@ async def get_pixiv_media(illust: dict, get_sizes: bool = False) -> PixivMedia:
                 "https://ugoira.com/api/illusts/queue",
                 headers={**get_fake_headers(), "Content-Type": "application/json"},
                 referer="https://ugoira.com/",
-                data=orjson.dumps({"text": str(illust.id)}),
+                data=msgspec.json.encode({"text": str(illust.id)}),
             )
         ):
             return
         try:
-            if not (ugoira := orjson.loads(response.content))["ok"]:
+            if not (ugoira := msgspec.json.decode(response.content))["ok"]:
                 return
-        except orjson.JSONDecodeError:
+        except msgspec.DecodeError:
             log.warning("Couldn't decode json response: %r.", response.content)
             return
         else:

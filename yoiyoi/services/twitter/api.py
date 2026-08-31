@@ -12,7 +12,7 @@ import gallery_dl
 
 # parse json
 import httpx
-import orjson
+import msgspec
 
 # structured logging
 import structlog
@@ -205,8 +205,8 @@ async def get_from_fixtweet_api(tweet_id: int) -> Optional[Tweet]:
     if response := await fetch_tweet_info(tweet_id):
         api_log.debug("Request to API succeeded.")
         try:
-            response_info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
+            response_info = msgspec.json.decode(response.content)
+        except msgspec.DecodeError:
             api_log.warning("Couldn't decode json response: %r.", response.content)
             return
         api_log.debug("Loaded JSON.", json=response_info)
@@ -363,8 +363,8 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
             return
         api_log.debug("Request to API succeeded.")
         try:
-            tweet_info = orjson.loads(response.content)
-        except orjson.JSONDecodeError:
+            tweet_info = msgspec.json.decode(response.content)
+        except msgspec.DecodeError:
             api_log.warning("Couldn't decode json response: %r.", response.content)
             return
         api_log.debug("Loaded JSON.", json=tweet_info)
@@ -486,9 +486,9 @@ async def get_info_from_web_services(tweet_id: int) -> Optional[dict]:
         )
     ):
         try:
-            media_info = orjson.loads(media_info.content)
-            tweet_info = orjson.loads(tweet_info.content)
-        except orjson.JSONDecodeError as ex:
+            media_info = msgspec.json.decode(media_info.content)
+            tweet_info = msgspec.json.decode(tweet_info.content)
+        except msgspec.DecodeError as ex:
             api_log.warning("Couldn't decode json response: %r.", ex.doc)
             return
         media, user, quote = (
@@ -931,5 +931,5 @@ async def get_twitter_links(
         log.error("No media.")
         return
     if json:
-        return orjson.loads(tweet.to_json())
+        return msgspec.json.decode(tweet.to_json())
     return await process_tweet(tweet)

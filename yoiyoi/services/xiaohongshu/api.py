@@ -6,7 +6,7 @@ from http.cookies import SimpleCookie
 from typing import Optional
 
 # json parsing
-import orjson
+import msgspec
 
 # structured logging
 import structlog
@@ -203,8 +203,8 @@ async def get_links_seekin(link):
         log.info("No response.")
         return
     try:
-        info = orjson.loads(response.content)
-    except orjson.JSONDecodeError:
+        info = msgspec.json.decode(response.content)
+    except msgspec.DecodeError:
         log.warning("Couldn't decode json response: %r.", response.content)
         return
 

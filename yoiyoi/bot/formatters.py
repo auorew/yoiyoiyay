@@ -13,7 +13,7 @@ from typing import Any, AsyncGenerator
 import magic
 
 # parse json
-import orjson
+import msgspec
 
 # structured logging
 import structlog
@@ -175,7 +175,7 @@ async def get_video_info(
         if stderr:
             raise Exception(stderr.decode("utf-8"))
 
-        if not (json_info := orjson.loads(stdout)):
+        if not (json_info := msgspec.json.decode(stdout)):
             raise Exception("No parseable output")
 
         streams = json_info.get("streams", [])
@@ -358,7 +358,7 @@ def extract_file_ext(file: Path | str | bytes) -> str:
         if output.stderr:
             log.warning(f"Error: {output.stderr.decode('utf-8')}")
         else:
-            if format_info := orjson.loads(output.stdout):
+            if format_info := msgspec.json.decode(output.stdout):
                 mime_type = format_info["format"]["format_name"].split(",")[0]
                 if mime_type != NO_EXT:
                     log.info("Extract ext: extension: %s...", mime_type)
