@@ -32,10 +32,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         unzip \
         build-essential \
-        python3 \
-        python3-pip \
-        python3-venv \
-        python3-dev \
         libvips-dev \
         libmagic-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -50,8 +46,8 @@ RUN uv venv /opt/venv --python 3.14t
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh && \
     chmod -R 755 /usr/local/deno
 
-# Install Poetry and compile project dependencies
-RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+# Install Poetry using uv pip into /opt/venv and compile project dependencies
+RUN uv pip install "poetry==$POETRY_VERSION"
 COPY pyproject.toml poetry.lock* ./
 RUN poetry install --without dev --no-root --no-interaction --no-ansi
 
