@@ -32,6 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         unzip \
         build-essential \
+        python3 \
+        python3-pip \
+        python3-venv \
         python3-dev \
         libvips-dev \
         libmagic-dev \
@@ -73,7 +76,8 @@ WORKDIR /app
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install only shared runtime libraries and tools (no compilers or -dev packages)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
         ca-certificates \
         ffmpeg \
         nodejs \
