@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
-# --- Stage 1: Build tools & C-extension compilation ---
-FROM debian:trixie-slim AS builder
+FROM debian:trixie-slim
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
+    PYTHON_GIL=0 \
     PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -22,11 +22,12 @@ ENV LANG=C.UTF-8 \
     VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:/usr/local/deno/bin:$PATH"
 
-WORKDIR /build
+WORKDIR /app
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install build tools, compilers, header files, and extraction tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install build tools, native compilation libraries, and runtime utilities in a single layer
+RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         unzip \
@@ -35,6 +36,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libvips-dev \
         libmagic-dev \
         libpq-dev \
+        ffmpeg \
+        nodejs \
+        procps \
+        file \
+        nginx \
+        gettext-base \
+        wget \
+        netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy uv executable
@@ -47,54 +56,14 @@ RUN uv venv /opt/venv --python 3.14t
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh && \
     chmod -R 755 /usr/local/deno
 
-# Install Poetry using uv pip into /opt/venv and compile project dependencies
+# Install Poetry and project dependencies, then purge build caches to minimize image size
 RUN uv pip install "poetry==$POETRY_VERSION"
 COPY pyproject.toml poetry.lock* ./
-RUN poetry install --without dev --no-root --no-interaction --no-ansi
+RUN poetry install --without dev --no-root --no-interaction --no-ansi \
+    && rm -rf /tmp/poetry_cache /root/.cache
 
-
-# --- Stage 2: Production Runtime ---
-FROM debian:trixie-slim AS runner
-
-ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONFAULTHANDLER=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONHASHSEED=random \
-    PYTHONNODEBUG=1 \
-    PYTHONOPTIMIZE=1 \
-    DENO_INSTALL="/usr/local/deno" \
-    VIRTUAL_ENV=/opt/venv \
-    PATH="/opt/venv/bin:/usr/local/deno/bin:$PATH"
-
-WORKDIR /app
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-# Install only shared runtime libraries and tools
-RUN apt-get update && apt-get upgrade -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        ffmpeg \
-        nodejs \
-        procps \
-        libvips42 \
-        libmagic1 \
-        libpq5 \
-        file \
-        nginx \
-        gettext-base \
-        wget \
-        netcat-openbsd \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
+# Create non-root user and setup application source
 RUN useradd -m bot
-
-# Copy pre-built CPython binaries, compiled virtualenv, and Deno
-COPY --from=builder /opt/python /opt/python
-COPY --from=builder --chown=bot:bot /opt/venv /opt/venv
-COPY --from=builder /usr/local/deno /usr/local/deno
 
 # Copy application source code and prepare executable
 COPY --chown=bot:bot . .
