@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM debian:trixie-slim
+FROM python:3.14-trixie AS builder
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -8,6 +8,7 @@ ENV LANG=C.UTF-8 \
     PYTHONFAULTHANDLER=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONHASHSEED=random \
+    PYTHONMALLOC=malloc \
     PYTHONNODEBUG=1 \
     PYTHONOPTIMIZE=1 \
     PIP_NO_CACHE_DIR=off \
@@ -21,19 +22,20 @@ ENV LANG=C.UTF-8 \
     VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:/usr/local/deno/bin:$PATH"
 
+# Create workdir
 WORKDIR /app
+
+# Set shell to bash and enable pipefail
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install system dependencies first without PYTHON_GIL=0 set
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         unzip \
         build-essential \
-        cmake \
         libvips-dev \
         libmagic-dev \
-        libpq-dev \
         ffmpeg \
         nodejs \
         procps \
@@ -44,22 +46,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Set PYTHON_GIL=0 for your custom Python 3.14t venv
-ENV PYTHON_GIL=0
-
-# Copy uv executable
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
-# Provision free-threaded Python into /opt/venv
-RUN uv venv /opt/venv --python 3.14t
-
 # Install Deno
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh && \
-    chmod -R 755 /usr/local/deno
+    chmod -R 755 /usr/local/deno && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Poetry and project dependencies
-RUN uv pip install "poetry==$POETRY_VERSION"
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+
+# Copy dependencies first
 COPY pyproject.toml poetry.lock* ./
+
+# Install dependencies
 RUN poetry install --without dev --no-root --no-interaction --no-ansi \
     && rm -rf /tmp/poetry_cache /root/.cache
 
@@ -68,6 +66,8 @@ RUN useradd -m bot
 
 # Copy application source code and prepare executable
 COPY --chown=bot:bot . .
+
+# Make start script executable, own /app folder as a whole
 RUN chmod +x start.sh && chown -R bot:bot /app
 
 # Change user
