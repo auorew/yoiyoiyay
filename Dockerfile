@@ -34,12 +34,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         libvips-dev \
         libmagic-dev \
+        libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy uv executable
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Provision free-threaded Python (3.14t) into /opt/venv
+# Provision free-threaded Python into /opt/venv
 RUN uv venv /opt/venv --python 3.14t
 
 # Install Deno
@@ -71,7 +72,7 @@ ENV LANG=C.UTF-8 \
 WORKDIR /app
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install only shared runtime libraries and tools (no compilers or -dev packages)
+# Install only shared runtime libraries and tools
 RUN apt-get update && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -80,6 +81,7 @@ RUN apt-get update && apt-get upgrade -y --no-install-recommends \
         procps \
         libvips42 \
         libmagic1 \
+        libpq5 \
         file \
         nginx \
         gettext-base \
