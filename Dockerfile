@@ -4,7 +4,6 @@ FROM debian:trixie-slim
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    PYTHON_GIL=0 \
     PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -25,9 +24,8 @@ ENV LANG=C.UTF-8 \
 WORKDIR /app
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install build tools, native compilation libraries, and runtime utilities in a single layer
-RUN apt-get update && apt-get upgrade -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends \
+# Install system dependencies first without PYTHON_GIL=0 set
+RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         unzip \
@@ -46,6 +44,9 @@ RUN apt-get update && apt-get upgrade -y --no-install-recommends \
         netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
+# Set PYTHON_GIL=0 for your custom Python 3.14t venv
+ENV PYTHON_GIL=0
+
 # Copy uv executable
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -56,7 +57,7 @@ RUN uv venv /opt/venv --python 3.14t
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh && \
     chmod -R 755 /usr/local/deno
 
-# Install Poetry and project dependencies, then purge build caches to minimize image size
+# Install Poetry and project dependencies
 RUN uv pip install "poetry==$POETRY_VERSION"
 COPY pyproject.toml poetry.lock* ./
 RUN poetry install --without dev --no-root --no-interaction --no-ansi \
