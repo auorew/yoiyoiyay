@@ -902,7 +902,6 @@ description = "libcurl ffi bindings for Python, with impersonation support."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "implementation_name == \"cpython\""
 files = [
     {file = "curl_cffi-0.16.3-cp310-abi3-macosx_10_9_x86_64.whl", hash = "sha256:0f1f6878863fba393801e4d59b2f2766d1983b5c9d9dfa11d4becfd6a74cc937"},
     {file = "curl_cffi-0.16.3-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:f3b63da797912bc82911e34dfe449725514e4281527fb516931fc457087cfb44"},
@@ -4168,4 +4167,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.14"
-content-hash = "1035da9a4d076f9c7329dd74a8c101ca7ae7b193e71085f80ac9f91ae250337a"
+content-hash = "a4f3baab55cce9730f33e86a0f268e94d7bc871a9ed64b67b10944b9a0e67299"
