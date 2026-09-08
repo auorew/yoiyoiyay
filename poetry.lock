@@ -897,44 +897,44 @@ ssh = ["bcrypt (>=3.1.5)"]
 
 [[package]]
 name = "curl-cffi"
-version = "0.16.3"
+version = "0.15.0"
 description = "libcurl ffi bindings for Python, with impersonation support."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "implementation_name == \"cpython\""
 files = [
-    {file = "curl_cffi-0.16.3-cp310-abi3-macosx_10_9_x86_64.whl", hash = "sha256:0f1f6878863fba393801e4d59b2f2766d1983b5c9d9dfa11d4becfd6a74cc937"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:f3b63da797912bc82911e34dfe449725514e4281527fb516931fc457087cfb44"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:d5a4103f2baa1fcf619ec3101b419827d367044ba106b206228137cc71a5a9c5"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:f2795f0ef2e8cc0e6d702e52367af6600f5bcf10e44d683e256254adc7e3589f"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:a875a661e2f9a949be29454880bbb9553307a487c4c08819738298cf5c1622e2"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-manylinux_2_28_armv7l.manylinux_2_31_armv7l.whl", hash = "sha256:0851e710608122a2716bdee35788bbd7e9d4a0fd42899b2bca9181277095af8e"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-manylinux_2_34_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:1d7e553442cefec100dfd1fca4ae7035ab6c094457244bf60a38670b8ac8185d"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:60621b3f561346046dd62be33abfb50c8b88a8007699d6b11d39ad4755312c4a"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:20a7b1b473371cfaf2118958034977e457c6fa279fbd11543c9e0ab58be9eedd"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-win_amd64.whl", hash = "sha256:fe87b66e324ed7318166698e02169f3208dbda32b872a27d2bc61a9c19b335eb"},
-    {file = "curl_cffi-0.16.3-cp310-abi3-win_arm64.whl", hash = "sha256:5a2ba880019f9e5a9e8f38ae22de6e4ea4c8d34a51ae4f1a2fce962c7b632006"},
-    {file = "curl_cffi-0.16.3-cp313-cp313-android_24_arm64_v8a.whl", hash = "sha256:01c31369b1c8063c7e459152c508c90de7a4218aa66ee3a1f575ae37ce44bc5a"},
-    {file = "curl_cffi-0.16.3-cp314-cp314-android_24_arm64_v8a.whl", hash = "sha256:0c8b70191dc88ea770a5c39d7e213bff1606e248c13566777e6527f0d8cf96ec"},
-    {file = "curl_cffi-0.16.3-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:8055ec9d7c15237747be254739c40057e3684f56854e95c12aaf3c95838ba2d6"},
-    {file = "curl_cffi-0.16.3-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:391096e903ec98b909bb355e008ec7c211d710b6a23663a7f1f10aa54a027538"},
-    {file = "curl_cffi-0.16.3-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:6cef43f248b3635de9b82337e0ed2c7403aa1506e51587144d552702eb9d0775"},
-    {file = "curl_cffi-0.16.3-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:e1fffac4b5a02c5ec74d184d668c5b882f80fa1d961e7adba6e1755877af41e1"},
-    {file = "curl_cffi-0.16.3-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:849026be5b36cf7b95d5fce63a84aa7b17248e83b4374e67715e7387ca2be50c"},
-    {file = "curl_cffi-0.16.3-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:82cc688349c8e8955d346cc5cc7759b68742edc587ae47ba5783a096502a7a92"},
-    {file = "curl_cffi-0.16.3-cp314-cp314t-win_amd64.whl", hash = "sha256:72376595490c4822ad1a5360adb568660ca66dff4ba2c2de2912778c15f43edb"},
-    {file = "curl_cffi-0.16.3-cp314-cp314t-win_arm64.whl", hash = "sha256:b450fad876aa9f9ed3edfb6e3a48a8c28eafa66aae634eff17800a8b5006568d"},
-    {file = "curl_cffi-0.16.3.tar.gz", hash = "sha256:d15d0c2a35f2d75bec430c28946c2a833f421c85773bdb0795182cc5c515665b"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-macosx_10_9_x86_64.whl", hash = "sha256:bda66404010e9ed743b1b83c20c86f24fe21a9a6873e17479d6e67e29d8ded28"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:a25620d9bf989c9c029a7d1642999c4c265abb0bad811deb2f77b0b5b2b12e5b"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:582e570aa2586b96ed47cf4a17586b9a3c462cbe43f780487c3dc245c6ef1527"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:838e48212447d9c81364b04707a5c861daf08f8320f9ecb3406a8919d1d5c3b3"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:2b6c847d86283b07ae69bb72c82eb8a59242277142aa35b89850f89e792a02fc"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-manylinux_2_28_armv7l.manylinux_2_31_armv7l.whl", hash = "sha256:9e5e69eee735f659287e2c84444319d68a1fa68dd37abf228943a4074864283a"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-manylinux_2_34_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:aa1323950224db24f4c510d010b3affa02196ca853fb424191fa917a513d3f4b"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:41f80170ba844009273b2660da1964ec31e99e5719d16b3422ada87177e32e13"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:1977e1e12cfb5c11352cbb74acef1bed24eb7d226dab61ca57c168c21acd4d61"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-win_amd64.whl", hash = "sha256:5a0c1896a0d5a5ac1eb89cd24b008d2b718dd1df6fd2f75451b59ca66e49e572"},
+    {file = "curl_cffi-0.15.0-cp310-abi3-win_arm64.whl", hash = "sha256:a6d57f8389273a3a1f94370473c74897467bcc36af0a17336989780c507fa43d"},
+    {file = "curl_cffi-0.15.0-cp313-abi3-android_24_arm64_v8a.whl", hash = "sha256:4682dc38d4336e0eb0b185374db90a760efde63cbea994b4e63f3521d44c4c92"},
+    {file = "curl_cffi-0.15.0-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:967ad7355bd8e9586f8c2d02eaa99953747549e7ea4a9b25cd53353e6b67fe6d"},
+    {file = "curl_cffi-0.15.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:7e63539d0d839d0a8c5eacf86229bc68c57803547f35e0db7ee0986328b478c3"},
+    {file = "curl_cffi-0.15.0-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:08c799b89740b9bc49c09fbc3d5907f13ac1f845ca52620507ef9466d4639dd5"},
+    {file = "curl_cffi-0.15.0-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:7b7a92767a888ee90147e18964b396d8435ff42737030d6fb00824ffd6094805"},
+    {file = "curl_cffi-0.15.0-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:829cc357061ecb99cc2d406301f609a039e05665322f5c025ec67c38b0dc49ce"},
+    {file = "curl_cffi-0.15.0-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:408d6f14e346841cd889c2e0962832bb235ba3b6749ebf609f347f747da5e60f"},
+    {file = "curl_cffi-0.15.0-cp314-cp314t-win_amd64.whl", hash = "sha256:b624c7ce087bfda967a013ed0a64702a525444e5b6e97d23534d567ccc6525aa"},
+    {file = "curl_cffi-0.15.0-cp314-cp314t-win_arm64.whl", hash = "sha256:0b6c0543b993996670e9e4b78e305a2d60809d5681903ffb5568e21a387434d3"},
+    {file = "curl_cffi-0.15.0.tar.gz", hash = "sha256:ea0c67652bf6893d34ee0f82c944f37e488f6147e9421bef1771cc6545b02ded"},
 ]
 
 [package.dependencies]
 certifi = ">=2024.2.2"
 cffi = ">=2.0.0"
+rich = "*"
 
 [package.extras]
 build = ["cibuildwheel", "wheel"]
-cli = ["rich"]
-dev = ["charset_normalizer (>=3.3.2,<4.0)", "coverage (>=6.4.1,<7.0)", "cryptography (>=46.0.4,<47.0)", "httpx (==0.23.1)", "pytest (>=8.1.1,<9.0)", "pytest-asyncio (>=0.23.6,<1.0)", "pytest-trio (>=0.8.0,<1.0)", "ruff (>=0.3.5,<1.0)", "trio (>=0.25.0,<1.0)", "trustme (>=1.1.0,<2.0)", "typing_extensions", "uvicorn (>=0.29.0,<1.0)", "websockets (>=14.0)"]
+dev = ["charset_normalizer (>=3.3.2,<4.0)", "coverage (>=6.4.1,<7.0)", "cryptography (>=46.0.4,<47.0)", "httpx (==0.23.1)", "mypy (>=1.9.0,<2.0)", "pytest (>=8.1.1,<9.0)", "pytest-asyncio (>=0.23.6,<1.0)", "pytest-trio (>=0.8.0,<1.0)", "ruff (>=0.3.5,<1.0)", "trio (>=0.25.0,<1.0)", "trustme (>=1.1.0,<2.0)", "typing_extensions", "uvicorn (>=0.29.0,<1.0)", "websockets (>=14.0)"]
 extra = ["lxml_html_clean", "markdownify (>=1.1.0)", "readability-lxml (>=0.8.1)"]
 test = ["charset_normalizer (>=3.3.2,<4.0)", "cryptography (>=46.0.4,<47.0)", "httpx (==0.23.1)", "litestar (>=2.19.0,<3.0)", "proxy.py (>=2.4.3,<3.0)", "pytest (>=8.1.1,<9.0)", "pytest-asyncio (>=0.23.6,<1.0)", "pytest-trio (>=0.8.0,<1.0)", "python-multipart (>=0.0.9,<1.0)", "trio (>=0.25.0,<1.0)", "trustme (>=1.1.0,<2.0)", "typing_extensions", "uvicorn (>=0.29.0,<1.0)", "websockets (>=14.0)"]
 
@@ -4120,21 +4120,21 @@ propcache = ">=0.2.1"
 
 [[package]]
 name = "yt-dlp"
-version = "2026.8.19"
+version = "2026.7.4"
 description = "A feature-rich command-line audio/video downloader"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "yt_dlp-2026.8.19-py3-none-any.whl", hash = "sha256:1d57897e94c6665a0a6f9bc54b34e584284e32c034ffab3a7df25d8f7b24eedf"},
-    {file = "yt_dlp-2026.8.19.tar.gz", hash = "sha256:9e213e48cea35c66b378e4447903f118f6392a5fa380a2b6d7070ec86f4e0af1"},
+    {file = "yt_dlp-2026.7.4-py3-none-any.whl", hash = "sha256:f11f2b11d5a8ac4059f9bdf29fa4407dc7c6bb00c5097e95ca22a7a9db518266"},
+    {file = "yt_dlp-2026.7.4.tar.gz", hash = "sha256:b094813404f87a9dd2186f00815231df32e5fd8a5403be0f807b3bb2d21a4432"},
 ]
 
 [package.dependencies]
 brotli = {version = "*", optional = true, markers = "implementation_name == \"cpython\" and sys_platform != \"ios\" and extra == \"default\""}
 brotlicffi = {version = "*", optional = true, markers = "implementation_name != \"cpython\" and extra == \"default\""}
 certifi = {version = "*", optional = true, markers = "extra == \"default\""}
-curl-cffi = {version = ">=0.5.10,<0.6.dev0 || >=0.10.dev0,<0.17", optional = true, markers = "implementation_name == \"cpython\" and extra == \"curl-cffi\""}
+curl-cffi = {version = ">=0.5.10,<0.6.dev0 || >=0.10.dev0,<0.16", optional = true, markers = "implementation_name == \"cpython\" and extra == \"curl-cffi\""}
 mutagen = {version = "*", optional = true, markers = "extra == \"default\""}
 pycryptodomex = {version = "*", optional = true, markers = "extra == \"default\""}
 requests = {version = ">=2.32.2,<3", optional = true, markers = "extra == \"default\""}
@@ -4143,13 +4143,13 @@ websockets = {version = ">=13.0", optional = true, markers = "extra == \"default
 yt-dlp-ejs = {version = "0.8.0", optional = true, markers = "extra == \"default\""}
 
 [package.extras]
-curl-cffi = ["curl-cffi (>=0.5.10,<0.6.dev0 || >=0.10.dev0,<0.17) ; implementation_name == \"cpython\"", "typing-extensions ; python_full_version < \"3.11.0\""]
+curl-cffi = ["curl-cffi (>=0.5.10,<0.6.dev0 || >=0.10.dev0,<0.16) ; implementation_name == \"cpython\""]
 default = ["brotli ; implementation_name == \"cpython\" and sys_platform != \"ios\"", "brotlicffi ; implementation_name != \"cpython\"", "certifi", "mutagen", "pycryptodomex", "requests (>=2.32.2,<3)", "urllib3 (>=2.0.2,<3)", "websockets (>=13.0)", "yt-dlp-ejs (==0.8.0)"]
 deno = ["deno (>=2.6.6)"]
-pin = ["brotli (==1.2.0) ; implementation_name == \"cpython\" and sys_platform != \"ios\"", "brotlicffi (==1.2.0.1) ; implementation_name != \"cpython\"", "certifi (==2026.7.22)", "charset-normalizer (==3.5.0)", "idna (==3.18)", "mutagen (==1.48.1)", "pycryptodomex (==3.23.0)", "requests (==2.34.2)", "urllib3 (==2.7.0)", "websockets (==16.1.1) ; python_full_version < \"3.11.0\"", "websockets (==17.0.1) ; python_full_version >= \"3.11.0\"", "yt-dlp-ejs (==0.8.0)"]
-pin-curl-cffi = ["certifi (==2026.7.22) ; implementation_name == \"cpython\"", "cffi (==2.1.1) ; implementation_name == \"cpython\"", "curl-cffi (==0.16.0) ; implementation_name == \"cpython\"", "pycparser (==3.0) ; implementation_name == \"cpython\"", "typing-extensions (==4.16.0) ; python_full_version < \"3.11.0\""]
-pin-deno = ["deno (==2.9.5)"]
-pin-secretstorage = ["cffi (==2.1.1) ; platform_python_implementation != \"PyPy\"", "cryptography (==50.0.0)", "jeepney (==0.9.0)", "pycparser (==3.0) ; implementation_name != \"PyPy\" and platform_python_implementation != \"PyPy\"", "secretstorage (==3.5.0)", "typing-extensions (==4.16.0) ; python_full_version < \"3.11.0\""]
+pin = ["brotli (==1.2.0) ; implementation_name == \"cpython\" and sys_platform != \"ios\"", "brotlicffi (==1.2.0.1) ; implementation_name != \"cpython\"", "certifi (==2026.6.17)", "charset-normalizer (==3.4.7)", "idna (==3.18)", "mutagen (==1.48.1)", "pycryptodomex (==3.23.0)", "requests (==2.34.2)", "urllib3 (==2.7.0)", "websockets (==16.0)", "yt-dlp-ejs (==0.8.0)"]
+pin-curl-cffi = ["certifi (==2026.6.17) ; implementation_name == \"cpython\"", "cffi (==2.0.0) ; implementation_name == \"cpython\"", "curl-cffi (==0.15.0) ; implementation_name == \"cpython\"", "markdown-it-py (==4.2.0) ; implementation_name == \"cpython\"", "mdurl (==0.1.2) ; implementation_name == \"cpython\"", "pycparser (==3.0) ; implementation_name == \"cpython\"", "pygments (==2.20.0) ; implementation_name == \"cpython\"", "rich (==15.0.0) ; implementation_name == \"cpython\""]
+pin-deno = ["deno (==2.8.3)"]
+pin-secretstorage = ["cffi (==2.0.0) ; platform_python_implementation != \"PyPy\"", "cryptography (==49.0.0)", "jeepney (==0.9.0)", "pycparser (==3.0) ; implementation_name != \"PyPy\" and platform_python_implementation != \"PyPy\"", "secretstorage (==3.5.0)", "typing-extensions (==4.15.0) ; python_full_version < \"3.11.0\""]
 secretstorage = ["secretstorage"]
 
 [[package]]
@@ -4167,4 +4167,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.14"
-content-hash = "a4f3baab55cce9730f33e86a0f268e94d7bc871a9ed64b67b10944b9a0e67299"
+content-hash = "2ff0c0eb68a648620072beddb8435d5f8b5376d357d76fd7c38ee5790b14ca89"
