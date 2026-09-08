@@ -72,6 +72,7 @@ ytdlp_ops = {
     "quiet": True,
     "simulate": True,
     "forcejson": True,
+    "impersonate": "Chrome-150",
 }
 
 # tiktok info typing
