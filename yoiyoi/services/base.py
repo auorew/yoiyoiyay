@@ -65,15 +65,7 @@ from yoiyoi.services.namedtuples import Link
 # setup logger
 log = structlog.get_logger(__name__)
 
-# Override yt-dlp's default User-Agent globally at startup
-yt_dlp.utils.std_headers["User-Agent"] = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0.0.0 Safari/537.36"
-)
-
 ytdlp_opts_base = {
-    "http_headers": get_fake_headers(),
     # extractor settings
     "extractor_args": {
         "youtube": {

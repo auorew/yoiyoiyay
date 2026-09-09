@@ -160,46 +160,75 @@ async def stream_response(
     Returns:
         AsyncIterator[httpx.Response]: streaming response
     """
+    request_headers = get_fake_headers() if not headers else headers.copy()
+    request_cookies = cookies.copy() if cookies else {}
+
+    if "headers" in request_headers and isinstance(request_headers["headers"], dict):
+        log.debug("Unpacking nested 'headers' key found inside headers dict.")
+        nested_headers = request_headers.pop("headers")
+        request_headers.update(nested_headers)
+
+    if "cookies" in request_headers and isinstance(request_headers["cookies"], dict):
+        log.debug("Unpacking nested 'cookies' key found inside headers dict.")
+        nested_cookies = request_headers.pop("cookies")
+        request_cookies.update(nested_cookies)
+
+    sanitized_headers = {}
+    for key, val in request_headers.items():
+        if isinstance(val, dict):
+            log.warning(
+                "Dropping invalid dictionary header value for key '%s': %r",
+                key,
+                val,
+                extra={"url": url, "invalid_key": key, "invalid_val": val},
+            )
+            continue
+        sanitized_headers[str(key)] = (
+            str(val) if not isinstance(val, (str, bytes)) else val
+        )
+
     try:
         async with get_async_client(with_proxy=with_proxy) as client:
-            if not headers:
-                request_headers = get_fake_headers()
-            else:
-                request_headers = headers.copy()
-            # get cookies in session
-            cookies = cookies if cookies else {}
-            if referer and (new_cookies := await get_cookies(referer, headers=headers)):
-                cookies.update(new_cookies)
-            if xsrf:
-                request_headers[xsrf] = unquote(cookies["XSRF-TOKEN"])
+            # Get session cookies if referer is supplied
+            if referer and (
+                new_cookies := await get_cookies(referer, headers=sanitized_headers)
+            ):
+                request_cookies.update(new_cookies)
+
+            if xsrf and "XSRF-TOKEN" in request_cookies:
+                sanitized_headers[xsrf] = unquote(request_cookies["XSRF-TOKEN"])
 
             async with client.stream(
                 method=method,
                 url=url,
-                headers=request_headers,
-                cookies=cookies if referer or cookies else None,
+                headers=sanitized_headers,
+                cookies=request_cookies if request_cookies else None,
                 follow_redirects=follow_redirects,
                 timeout=timeout,
                 **kwargs,
             ) as response:
                 yield response
+
     except Exception as exception:
         log.warning(
-            "Failed to stream an httpx respons, because of %s: %r.",
+            "Failed to stream an httpx response due to %s: %r.",
             exception.__class__.__name__,
             exception,
             exc_info=True,
-            # function info
-            url=url,
-            method=method,
-            headers=headers,
-            follow_redirects=follow_redirects,
-            timeout=timeout,
-            referer=referer,
-            xsrf=xsrf,
-            cookies=cookies,
-            proxy=with_proxy,
-            kwargs=kwargs,
+            # extra info
+            extra={
+                "url": url,
+                "method": method,
+                "sanitized_headers": sanitized_headers,
+                "raw_headers_input": headers,
+                "request_cookies": request_cookies,
+                "follow_redirects": follow_redirects,
+                "timeout": timeout,
+                "referer": referer,
+                "xsrf": xsrf,
+                "proxy": with_proxy,
+                "kwargs": kwargs,
+            },
         )
         raise
 
