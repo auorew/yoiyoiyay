@@ -360,7 +360,11 @@ async def get_basic_info_ytdlp(link: str) -> Optional[TikTokInfo]:
         return TikTokInfo(
             id=int(info["id"], 0),
             author=info["uploader"],
-            type="photo" if info["video_ext"] == "none" else "video",
+            type=(
+                "photo"
+                if info.get("ext", "") == "none" or info.get("video_ext", "") == "none"
+                else "video"
+            ),
             info_source="yt-dlp",
         )
 

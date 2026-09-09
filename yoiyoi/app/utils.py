@@ -9,9 +9,6 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
 from typing import AsyncGenerator, Optional
 
-# working with image with minimal memory
-import pyvips
-
 # structured logging
 import structlog
 
@@ -23,12 +20,6 @@ from yoiyoi.bot import CACHE_DIR
 
 # get logger
 log = structlog.get_logger(__name__)
-
-# limit pyvips cache for minimal memory usage
-os.environ["VIPS_CONCURRENCY"] = "1"
-pyvips.cache_set_max(0)
-pyvips.cache_set_max_mem(0)
-pyvips.cache_set_max_files(0)
 
 
 @asynccontextmanager
@@ -56,6 +47,15 @@ def _sync_resize_image_file(
     ext: str = "image/jpeg",
     to_ext: str = "webp",
 ) -> tuple[Path, str, Optional[str]]:
+    # working with image with minimal memory
+    import pyvips
+
+    # limit pyvips cache for minimal memory usage
+    os.environ["VIPS_CONCURRENCY"] = "1"
+    pyvips.cache_set_max(0)
+    pyvips.cache_set_max_mem(0)
+    pyvips.cache_set_max_files(0)
+
     image = None
     try:
         buffer = file.read_bytes()
