@@ -4,7 +4,7 @@ import re
 import tempfile
 
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Optional
+from typing import Any, AsyncGenerator, Optional
 from urllib.parse import unquote
 
 # http requests
@@ -35,8 +35,48 @@ from yoiyoi.extra.request_retriers import retry_request
 log = structlog.get_logger(__name__)
 
 
+def _prepare_request_payload(
+    url: str,
+    headers: Optional[dict[str, Any]] = None,
+    cookies: Optional[dict[str, Any]] = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Prepares and sanitizes headers and cookies for httpx requests."""
+    request_headers = get_fake_headers() if not headers else headers.copy()
+    request_cookies = cookies.copy() if cookies else {}
+
+    if "headers" in request_headers and isinstance(request_headers["headers"], dict):
+        log.debug("Unpacking nested 'headers' key found inside headers dict.", url=url)
+        nested_headers = request_headers.pop("headers")
+        request_headers.update(nested_headers)
+
+    if "cookies" in request_headers and isinstance(request_headers["cookies"], dict):
+        log.debug("Unpacking nested 'cookies' key found inside headers dict.", url=url)
+        nested_cookies = request_headers.pop("cookies")
+        request_cookies.update(nested_cookies)
+
+    sanitized_headers = {}
+    for key, val in request_headers.items():
+        if isinstance(val, dict):
+            log.warning(
+                "Dropping invalid dictionary header value for key '%s': %r",
+                key,
+                val,
+                url=url,
+                invalid_key=key,
+                invalid_val=val,
+            )
+            continue
+        sanitized_headers[str(key)] = (
+            str(val) if not isinstance(val, (str, bytes)) else val
+        )
+
+    return sanitized_headers, request_cookies
+
+
 @asynccontextmanager
-async def get_async_client(with_proxy: bool = False):
+async def get_async_client(
+    with_proxy: bool = False,
+) -> AsyncGenerator[httpx.AsyncClient]:
     use_proxy = (
         with_proxy
         and proxy_manager.active
@@ -66,12 +106,12 @@ async def get_async_client(with_proxy: bool = False):
 async def make_request(
     url: str,
     method: str = "POST",
-    headers: dict = None,
+    headers: Optional[dict[str, Any]] = None,
     follow_redirects: bool = True,
     timeout: int = DEFAULT_REQUEST_TIMEOUT,
-    referer: str = None,
-    xsrf: str = None,
-    cookies: dict = None,
+    referer: Optional[str] = None,
+    xsrf: Optional[str] = None,
+    cookies: Optional[dict[str, Any]] = None,
     with_proxy: bool = False,
     header_range: int = 0,
     **kwargs: Any,
@@ -92,58 +132,81 @@ async def make_request(
     Returns:
         httpx.Response: response
     """
+    sanitized_headers, request_cookies = _prepare_request_payload(url, headers, cookies)
     use_proxy = (
         with_proxy
         and proxy_manager.active
         and proxy_manager.request_attempts < RETRY_PROXY_MAX_TRIES
     )
     proxy_server = proxy_manager.active if use_proxy else None
-    async with httpx.AsyncClient(proxy=proxy_server) as client:
-        if not headers:
-            request_headers = get_fake_headers()
-        else:
-            request_headers = headers.copy()
-        # get cookies in session
-        cookies = cookies if cookies else {}
-        if referer:
-            cookies.update(
-                (
-                    await client.get(
+
+    try:
+        async with httpx.AsyncClient(proxy=proxy_server) as client:
+            if referer:
+                try:
+                    ref_resp = await client.get(
                         url=referer,
-                        headers=headers,
+                        headers=sanitized_headers,
                         follow_redirects=True,
                     )
-                ).cookies
-            )
-        if xsrf:
-            request_headers[xsrf] = unquote(cookies["XSRF-TOKEN"])
-        if header_range > 1:
-            request_headers["Range"] = f"bytes=0-{header_range - 1}"
+                    request_cookies.update(ref_resp.cookies)
+                except Exception as ref_exc:
+                    log.warning(
+                        "Failed to fetch cookies from referer %s: %r",
+                        referer,
+                        ref_exc,
+                        url=url,
+                    )
+            if xsrf and "XSRF-TOKEN" in request_cookies:
+                sanitized_headers[xsrf] = unquote(request_cookies["XSRF-TOKEN"])
+            if header_range > 1:
+                sanitized_headers["Range"] = f"bytes=0-{header_range - 1}"
 
-        return await client.request(
-            method=method,
+            return await client.request(
+                method=method,
+                url=url,
+                headers=sanitized_headers,
+                cookies=request_cookies if referer or request_cookies else None,
+                follow_redirects=follow_redirects,
+                timeout=timeout,
+                **kwargs,
+            )
+    except Exception as exception:
+        log.warning(
+            "Failed to make request, because of %s: %r.",
+            exception.__class__.__name__,
+            exception,
+            exc_info=True,
+            # function info
             url=url,
-            headers=request_headers,
-            cookies=cookies if referer or cookies else None,
+            method=method,
+            sanitized_headers=sanitized_headers,
+            raw_headers_input=headers,
+            request_cookies=request_cookies,
             follow_redirects=follow_redirects,
             timeout=timeout,
-            **kwargs,
+            referer=referer,
+            xsrf=xsrf,
+            proxy=with_proxy,
+            header_range=header_range,
+            kwargs=kwargs,
         )
+        raise
 
 
 @asynccontextmanager
 async def stream_response(
     url: str,
     method: str = "POST",
-    headers: dict = None,
+    headers: Optional[dict[str, Any]] = None,
     follow_redirects: bool = True,
     timeout: int = 15,
-    referer: str = None,
-    xsrf: str = None,
-    cookies: dict = None,
+    referer: Optional[str] = None,
+    xsrf: Optional[str] = None,
+    cookies: Optional[dict[str, Any]] = None,
     with_proxy: bool = False,
     **kwargs: Any,
-) -> AsyncIterator[httpx.Response]:
+) -> AsyncGenerator[httpx.Response]:
     """Makes request and streams response with httpx.AsyncClient
 
     Args:
@@ -160,32 +223,7 @@ async def stream_response(
     Returns:
         AsyncIterator[httpx.Response]: streaming response
     """
-    request_headers = get_fake_headers() if not headers else headers.copy()
-    request_cookies = cookies.copy() if cookies else {}
-
-    if "headers" in request_headers and isinstance(request_headers["headers"], dict):
-        log.debug("Unpacking nested 'headers' key found inside headers dict.")
-        nested_headers = request_headers.pop("headers")
-        request_headers.update(nested_headers)
-
-    if "cookies" in request_headers and isinstance(request_headers["cookies"], dict):
-        log.debug("Unpacking nested 'cookies' key found inside headers dict.")
-        nested_cookies = request_headers.pop("cookies")
-        request_cookies.update(nested_cookies)
-
-    sanitized_headers = {}
-    for key, val in request_headers.items():
-        if isinstance(val, dict):
-            log.warning(
-                "Dropping invalid dictionary header value for key '%s': %r",
-                key,
-                val,
-                extra={"url": url, "invalid_key": key, "invalid_val": val},
-            )
-            continue
-        sanitized_headers[str(key)] = (
-            str(val) if not isinstance(val, (str, bytes)) else val
-        )
+    sanitized_headers, request_cookies = _prepare_request_payload(url, headers, cookies)
 
     try:
         async with get_async_client(with_proxy=with_proxy) as client:
@@ -216,25 +254,27 @@ async def stream_response(
             exception,
             exc_info=True,
             # extra info
-            extra={
-                "url": url,
-                "method": method,
-                "sanitized_headers": sanitized_headers,
-                "raw_headers_input": headers,
-                "request_cookies": request_cookies,
-                "follow_redirects": follow_redirects,
-                "timeout": timeout,
-                "referer": referer,
-                "xsrf": xsrf,
-                "proxy": with_proxy,
-                "kwargs": kwargs,
-            },
+            url=url,
+            method=method,
+            sanitized_headers=sanitized_headers,
+            raw_headers_input=headers,
+            request_cookies=request_cookies,
+            follow_redirects=follow_redirects,
+            timeout=timeout,
+            referer=referer,
+            xsrf=xsrf,
+            proxy=with_proxy,
+            kwargs=kwargs,
         )
         raise
 
 
 @asynccontextmanager
-async def get_content(url: str, chunk_size: int = 1024, **kwargs) -> AsyncIterator[bytes]:
+async def get_content(
+    url: str,
+    chunk_size: int = 1024,
+    **kwargs: Any,
+) -> AsyncGenerator[AsyncGenerator[bytes]]:
     try:
         async with stream_response(url, **kwargs) as response:
             yield response.aiter_bytes(chunk_size)
@@ -253,7 +293,11 @@ async def get_content(url: str, chunk_size: int = 1024, **kwargs) -> AsyncIterat
 
 
 @retry_request
-async def save_file(url: str, method="GET", **kwargs) -> Optional[str]:
+async def save_file(
+    url: str,
+    method: str = "GET",
+    **kwargs: Any,
+) -> Optional[str]:
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         await write_content_to_file(url, temp_file, method=method, **kwargs)
         return temp_file.name
@@ -263,7 +307,7 @@ async def save_file(url: str, method="GET", **kwargs) -> Optional[str]:
 async def write_content_to_file(
     url: str,
     file: tempfile.NamedTemporaryFile,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     try:
         async with get_content(url, **kwargs) as content_iterator:
@@ -285,20 +329,30 @@ async def write_content_to_file(
 
 
 @retry_request
-async def get_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
+async def get_headers(
+    url: str,
+    **kwargs: Any,
+) -> Optional[httpx.Headers]:
     async with stream_response(url, **kwargs) as response:
         if response.is_success:
             return response.headers
 
 
 @retry_request
-async def get_cookies(url: str, **kwargs) -> Optional[httpx.Cookies]:
+async def get_cookies(
+    url: str,
+    **kwargs: Any,
+) -> Optional[httpx.Cookies]:
     async with stream_response(url, "GET", **kwargs) as response:
         if response.is_success:
             return response.cookies
 
 
-async def get_body_length(url: str, chunk_size: int = 8192, **kwargs) -> int:
+async def get_body_length(
+    url: str,
+    chunk_size: int = 8192,
+    **kwargs: Any,
+) -> int:
     length = 0
     async with stream_response(url, "GET", **kwargs) as response:
         async for chunk in response.aiter_bytes(chunk_size=chunk_size):
@@ -307,7 +361,10 @@ async def get_body_length(url: str, chunk_size: int = 8192, **kwargs) -> int:
 
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
-async def get_content_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
+async def get_content_headers(
+    url: str,
+    **kwargs: Any,
+) -> Optional[httpx.Headers]:
     # try HEAD request
     headers_with_head = await get_headers(url, method="HEAD", **kwargs)
     # try GET request, since HEAD may be forbidden
@@ -324,10 +381,15 @@ async def get_content_headers(url: str, **kwargs) -> Optional[httpx.Headers]:
 
 
 @cached(ttl=15, key_builder=lambda fn, *a, **kw: a[0])
-async def get_content_size(url: str, headers=get_fake_headers(), **kwargs) -> int:
+async def get_content_size(
+    url: str,
+    headers: Optional[dict[str, Any]] = None,
+    **kwargs: Any,
+) -> int:
+    effective_headers = get_fake_headers() if headers is None else headers
     if file_headers := await get_content_headers(
         url,
-        headers={**headers, "Access-Control-Expose-Headers": "Content-Length"},
+        headers={**effective_headers, "Access-Control-Expose-Headers": "Content-Length"},
         **kwargs,
     ):
         if size := int(file_headers.get("Content-Length", 0)):
@@ -341,7 +403,7 @@ async def get_content_name(
     url: str,
     pattern: re.Pattern,
     group: str = "name",
-    **kwargs,
+    **kwargs: Any,
 ) -> str:
     file_name = ""
     if (matched := re.search(pattern, url)) and len(matched[group]) > 0:
@@ -357,7 +419,11 @@ async def get_content_name(
 
 
 @retry_request
-async def get_content_type(url: str, mime=True, **kwargs) -> Optional[str]:
+async def get_content_type(
+    url: str,
+    mime: bool = True,
+    **kwargs: Any,
+) -> Optional[str]:
     async with get_content(url, **kwargs) as content_iterator:
         if chunk := await anext(content_iterator, None):
             return magic.from_buffer(chunk, mime=mime)
@@ -374,7 +440,10 @@ async def get_content_type(url: str, mime=True, **kwargs) -> Optional[str]:
 
 
 @retry_request
-async def get_content_extension(url: str, **kwargs) -> Optional[str]:
+async def get_content_extension(
+    url: str,
+    **kwargs: Any,
+) -> Optional[str]:
     kwargs["method"] = "HEAD"
     if mime_type := await get_content_type(url, mime=True, **kwargs):
         return mime_type.split("/")[-1]
@@ -386,9 +455,9 @@ async def get_content_extension(url: str, **kwargs) -> Optional[str]:
 async def get_file_info(
     url: str,
     size: bool = False,
-    pattern: re.Pattern = False,
-    group: str = None,
-) -> dict:
+    pattern: Optional[re.Pattern] = None,
+    group: Optional[str] = None,
+) -> dict[str, Any]:
     info = {}
     if size and (file_size := await get_content_size(url)):
         info["size"] = file_size
@@ -398,7 +467,11 @@ async def get_file_info(
 
 
 @retry_request
-async def get_file(url: str, method: str = "GET", **kwargs) -> bytes:
+async def get_file(
+    url: str,
+    method: str = "GET",
+    **kwargs: Any,
+) -> bytes:
     if (
         (response := await make_request(url, method, **kwargs))
         and response.is_success
