@@ -47,6 +47,9 @@ from yoiyoi.bot.senders import reply_media_group, send_error
 # database table
 from yoiyoi.db.models import Chat
 
+# get fake headers
+from yoiyoi.extra.request_helpers import get_fake_headers
+
 # http requests
 from yoiyoi.extra.requests import save_file
 
@@ -63,6 +66,7 @@ from yoiyoi.services.namedtuples import Link
 log = structlog.get_logger(__name__)
 
 ytdlp_opts_base = {
+    "http_headers": get_fake_headers(),
     # extractor settings
     "extractor_args": {
         "youtube": {
@@ -411,7 +415,7 @@ class BaseSender(ABC):
                 {
                     **ytdlp_opts_base,
                     "outtmpl": dest_tmpl,
-                    # "headers": headers or {},
+                    "http_headers": headers or get_fake_headers(),
                     "cookiefile": StringIO(
                         Fernet(bot_settings.yt_key)
                         .decrypt(bot_settings.yt_cookies.encode())
@@ -442,7 +446,7 @@ class BaseSender(ABC):
                 {
                     **ytdlp_opts_base,
                     "outtmpl": str(dest_tmpl),
-                    # "headers": headers or {},
+                    "http_headers": headers or get_fake_headers(),
                     "cookiefile": StringIO(
                         Fernet(bot_settings.yt_key)
                         .decrypt(bot_settings.yt_cookies.encode())
