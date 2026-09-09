@@ -38,19 +38,25 @@ PIXIV_HEADERS = {
 # dynamic fake headers
 def get_fake_headers():
     ua_string = ua_generator.random
+
+    # Clamp Chrome/Edge versions to 131 to prevent curl_cffi impersonation errors
+    ua_string = re.sub(
+        r"(Chrome|Edg)/(\d+)(\.\d+\.\d+\.\d+)",
+        lambda m: f"{m.group(1)}/{min(int(m.group(2)), 131)}{m.group(3)}",
+        ua_string,
+    )
+
     headers = {
         "User-Agent": ua_string,
         "Accept-Language": "en-US,en;q=0.9",
         "Connection": "keep-alive",
     }
+
     # Logic for Chromium-based browsers (Chrome/Edge)
     # These MUST have Sec-CH-UA headers to look real
     if "Chrome" in ua_string or "Edg" in ua_string:
-        # Extract the major version using a regex
-        # e.g., 'Chrome/132.0.0.0' -> '132'
         version_match = re.search(r"(?:Chrome|Edg)/(\d+)", ua_string)
-        major_version = version_match.group(1) if version_match else "132"
-
+        major_version = version_match.group(1) if version_match else "131"
         brand = "Google Chrome" if "Chrome" in ua_string else "Microsoft Edge"
 
         headers.update(

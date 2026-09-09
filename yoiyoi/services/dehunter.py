@@ -56,4 +56,6 @@ def dehunter(string: bytes | str):
     if result := re.search(
         r"(?P<html><[a-zA-Z]+.+>)?\s*\";[^{]+(?P<status>{ \"status\".+?})?", response
     ):
-        return result["html"], msgspec.json.decode(result["status"]) if result["status"] else {}
+        return result["html"], (
+            msgspec.json.decode(result["status"]) if result["status"] else {}
+        )
