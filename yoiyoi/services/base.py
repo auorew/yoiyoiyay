@@ -13,6 +13,9 @@ from typing import AsyncGenerator, Optional
 # structured logging
 import structlog
 
+# yt-dlp
+import yt_dlp
+
 # decrypting
 from cryptography.fernet import Fernet
 
@@ -28,9 +31,6 @@ from telegram import (
 # telegram constants
 from telegram.constants import MediaGroupLimit as MGL
 from telegram.constants import ParseMode as PM
-
-# yt-dlp
-from yt_dlp import YoutubeDL
 
 # bot constants and cache dir
 from yoiyoi.bot import CACHE_DIR, MAX_REQUEST_SIZE, MAX_VIDEO_SIZE
@@ -64,6 +64,13 @@ from yoiyoi.services.namedtuples import Link
 
 # setup logger
 log = structlog.get_logger(__name__)
+
+# Override yt-dlp's default User-Agent globally at startup
+yt_dlp.utils.std_headers["User-Agent"] = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
 
 ytdlp_opts_base = {
     "http_headers": get_fake_headers(),
@@ -411,7 +418,7 @@ class BaseSender(ABC):
         try:
             dest_tmpl = str(self.storage_dir / f"{self.update_id}_yt_direct.%(ext)s")
             self.log.debug("Attempt 1: Direct download", url=url, template=dest_tmpl)
-            with YoutubeDL(
+            with yt_dlp.YoutubeDL(
                 {
                     **ytdlp_opts_base,
                     "outtmpl": dest_tmpl,
@@ -442,7 +449,7 @@ class BaseSender(ABC):
             self.log.debug(
                 "Attempt 2: Fallback to source", target=target_url, template=dest_tmpl
             )
-            with YoutubeDL(
+            with yt_dlp.YoutubeDL(
                 {
                     **ytdlp_opts_base,
                     "outtmpl": str(dest_tmpl),
