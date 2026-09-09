@@ -46,6 +46,9 @@ from yoiyoi.extra.requests import (
     make_request,
 )
 
+# base opts
+from yoiyoi.services.base import ytdlp_opts_base
+
 # link types and other info
 from yoiyoi.services.constants import LINKS, TikTokMediaKind
 
@@ -69,6 +72,7 @@ TT = LINKS["tiktok"]
 
 # yt-dlp options
 ytdlp_ops = {
+    **ytdlp_opts_base,
     "verbose": True,
     "simulate": True,
     "forcejson": True,

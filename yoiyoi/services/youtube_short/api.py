@@ -61,6 +61,7 @@ duration_regex = re.compile(r"PT(?:(?P<H>\d+)H)?(?:(?P<M>\d+)M)?(?:(?P<S>\d+)S)?
 # yt-dlp options
 ytdlp_ops = {
     **ytdlp_opts_base,
+    "verbose": True,
     "simulate": True,
     "forcejson": True,
 }
