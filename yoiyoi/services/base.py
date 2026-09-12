@@ -6,7 +6,6 @@ import gc
 from abc import ABC, abstractmethod
 from contextlib import ExitStack
 from dataclasses import dataclass
-from io import StringIO
 from pathlib import Path
 from typing import AsyncGenerator, Optional
 
@@ -15,9 +14,6 @@ import structlog
 
 # yt-dlp
 import yt_dlp
-
-# decrypting
-from cryptography.fernet import Fernet
 
 # telegram core bot api
 from telegram import (
@@ -58,6 +54,9 @@ from yoiyoi.extra.settings import bot_settings
 
 # file utils
 from yoiyoi.extra.utils import delete_files, move_file
+
+# service helpers
+from yoiyoi.services.helpers import get_yt_cookies_stream
 
 # Link namedtuple
 from yoiyoi.services.namedtuples import Link
@@ -415,11 +414,7 @@ class BaseSender(ABC):
                     **ytdlp_opts_base,
                     "outtmpl": dest_tmpl,
                     "http_headers": headers or get_fake_headers(),
-                    "cookiefile": StringIO(
-                        Fernet(bot_settings.secret_key)
-                        .decrypt(bot_settings.yt_cookies.encode())
-                        .decode()
-                    ),
+                    "cookiefile": get_yt_cookies_stream(bot_settings),
                 }
             ) as ydl:
                 info = await loop.run_in_executor(
@@ -446,11 +441,7 @@ class BaseSender(ABC):
                     **ytdlp_opts_base,
                     "outtmpl": str(dest_tmpl),
                     "http_headers": headers or get_fake_headers(),
-                    "cookiefile": StringIO(
-                        Fernet(bot_settings.secret_key)
-                        .decrypt(bot_settings.yt_cookies.encode())
-                        .decode()
-                    ),
+                    "cookiefile": get_yt_cookies_stream(bot_settings),
                 }
             ) as ydl:
                 info = await loop.run_in_executor(

@@ -4,7 +4,6 @@ import asyncio
 import re
 import time
 
-from io import StringIO
 from typing import Optional
 
 # parse json
@@ -18,9 +17,6 @@ import yt_dlp
 
 # async caching
 from aiocache import cached
-
-# decrypting
-from cryptography.fernet import Fernet
 
 # proxy
 from yoiyoi.app.proxy import proxy_manager
@@ -45,6 +41,9 @@ from yoiyoi.services.base import ytdlp_opts_base
 
 # link types and other info
 from yoiyoi.services.constants import LINKS
+
+# service helpers
+from yoiyoi.services.helpers import get_yt_cookies_stream
 
 # YouTubeShortMedia namedtuple
 from yoiyoi.services.namedtuples import Link, YouTubeShortContent, YouTubeShortMedia
@@ -156,11 +155,7 @@ async def get_ytdlp_with_proxy(link: str):
         with yt_dlp.YoutubeDL(
             {
                 **ytdlp_ops,
-                "cookiefile": StringIO(
-                    Fernet(bot_settings.secret_key)
-                    .decrypt(bot_settings.yt_cookies.encode())
-                    .decode()
-                ),
+                "cookiefile": get_yt_cookies_stream(bot_settings),
                 "proxy": current_proxy,
             }
         ) as ytdl:

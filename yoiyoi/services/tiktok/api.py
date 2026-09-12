@@ -5,12 +5,8 @@ import re
 import secrets
 
 from http.cookies import SimpleCookie
-from io import StringIO
 from typing import Optional, TypedDict
 from urllib.parse import quote
-
-# parse json
-import msgspec
 
 # structured logging
 import structlog
@@ -24,9 +20,6 @@ from aiocache import cached
 # beautiful soup
 from bs4 import BeautifulSoup
 
-# decrypting
-from cryptography.fernet import Fernet
-
 # hardcore retrying
 from tenacity import stop_after_attempt
 
@@ -37,7 +30,7 @@ from yoiyoi.app.proxy import proxy_manager
 from yoiyoi.extra import RETRY_PROXY_MAX_TRIES
 
 # request helpers
-from yoiyoi.extra.request_helpers import get_fake_headers, get_request_info
+from yoiyoi.extra.request_helpers import get_fake_headers
 
 # retriers
 from yoiyoi.extra.request_retriers import retry_request
@@ -61,6 +54,9 @@ from yoiyoi.services.constants import LINKS, TikTokMediaKind
 
 # deobfuscate js response
 from yoiyoi.services.dehunter import dehunter
+
+# service helpers
+from yoiyoi.services.helpers import fetch_api_json, get_tt_cookies_stream
 
 # TikTokVideo namedtuple
 from yoiyoi.services.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
@@ -142,53 +138,6 @@ def enrich_tiktok_info(info: TikTokInfo, link: str) -> TikTokInfo:
     return info
 
 
-async def fetch_api_json(
-    url: str,
-    method: str = "POST",
-    api_log: structlog.BoundLogger = log,
-    retry_with: dict = None,
-    **kwargs,
-) -> dict:
-    if not retry_with:
-        response = await make_request(url=url, method=method, **kwargs)
-    else:
-        response = await make_request.retry_with(**retry_with)(
-            url=url, method=method, **kwargs
-        )
-    if response is None:
-        api_log.error(
-            "No response object!",
-            request={
-                "method": method,
-                "url": url,
-                "headers": kwargs.get("headers", {}),
-                "body": kwargs.get("data", None) or kwargs.get("json", None),
-            },
-        )
-        return {}
-    request_info = await get_request_info(response)
-    if response.is_error:
-        api_log.warning(
-            "Request to API failed: %s.",
-            response,
-            status_code=response.status_code,
-            response=response.content,
-            request=request_info,
-        )
-        return {}
-    try:
-        info = msgspec.json.decode(response.content)
-        api_log.debug("Loaded JSON.", json=info, request=request_info)
-        return info
-    except msgspec.DecodeError:
-        api_log.warning(
-            "Couldn't decode json response.",
-            response=response.content,
-            request=request_info,
-        )
-        return {}
-
-
 def build_multipart_form(fields: dict, boundary: str) -> str:
     payload_parts = []
     for name, value in fields.items():
@@ -230,11 +179,7 @@ async def get_ytdlp_info(link: str) -> Optional[AdvancedInfo]:
         with yt_dlp.YoutubeDL(
             {
                 **ytdlp_ops,
-                "cookiefile": StringIO(
-                    Fernet(bot_settings.secret_key)
-                    .decrypt(bot_settings.tt_cookies.encode())
-                    .decode()
-                ),
+                "cookiefile": get_tt_cookies_stream(bot_settings),
                 "proxy": current_proxy,
             }
         ) as ytdl:
