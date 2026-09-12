@@ -5,9 +5,6 @@ import asyncio
 from http.cookies import SimpleCookie
 from typing import Optional
 
-# json parsing
-import msgspec
-
 # structured logging
 import structlog
 
@@ -23,14 +20,11 @@ from yoiyoi.app.proxy import proxy_manager
 # retry proxy max tries
 from yoiyoi.extra import RETRY_PROXY_MAX_TRIES
 
-# request helpers
-from yoiyoi.extra.request_helpers import get_fake_headers
-
 # retriers
 from yoiyoi.extra.request_retriers import retry_request
 
 # requests
-from yoiyoi.extra.requests import get_content_size, make_request
+from yoiyoi.extra.requests import get_content_size
 
 # TikTokVideo namedtuple
 from yoiyoi.services.namedtuples import XiaohongshuMedia, XiaohongshuVideo
@@ -177,61 +171,6 @@ async def get_links_ytdlp(link):
     return result
 
 
-async def get_links_seekin(link):
-    log.info("API: Seekin AI.")
-
-    result = {}
-    if (
-        response := await make_request(
-            "https://api.seekin.ai/ikool/media/download",
-            headers={
-                **get_fake_headers(),
-                "Accept": "*/*",
-                "Referer": "https://www.seekin.ai/",
-                "Content-Type": "application/json",
-                "Origin": "https://www.seekin.ai",
-                "DNT": "1",
-                "Sec-GPC": "1",
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-site",
-                "Priority": "u=0",
-            },
-            json={"url": link},
-        )
-    ).is_error:
-        log.info("No response.")
-        return
-    try:
-        info = msgspec.json.decode(response.content)
-    except msgspec.DecodeError:
-        log.warning("Couldn't decode json response: %r.", response.content)
-        return
-
-    if not (code := info.get("code", "")) or code != "0000":
-        log.warning("No success code found: %r.", code)
-        return
-
-    if not (data := info.get("data", "")):
-        log.warning("No success code found: %r.", info["code"])
-        return
-
-    if "|||" in data["title"]:
-        result["title"], result["description"] = data["title"].split("|||")
-    else:
-        result["title"], result["description"] = data["title"], ""
-    result["thumb"] = data["imageUrl"]
-    result["content"] = []
-    for media in data["medias"]:
-        video = {}
-        video["link"] = media["url"]
-        video["size"] = media["fileSize"]
-        video["extra"] = {}
-        result["content"].append(video)
-
-    return result
-
-
 async def convert_dictionary_to_namedtuple(
     result: dict[str, str | int],
 ) -> XiaohongshuMedia:
@@ -269,10 +208,7 @@ async def get_xiaohongshu_links(link: str) -> Optional[XiaohongshuMedia]:
         "id": link.rsplit("/")[-1],
         "source": link,
     }
-    for get_links in (
-        get_links_ytdlp,  # good
-        get_links_seekin,  # good
-    ):
+    for get_links in (get_links_ytdlp,):  # good
         if result := await get_links(link):
             return await convert_dictionary_to_namedtuple({**data, **result})
         log.info("Trying another API...")

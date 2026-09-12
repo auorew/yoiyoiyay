@@ -1045,23 +1045,23 @@ async def get_links_premierely(
 
 BASIC_INFO_PROVIDERS = (
     get_basic_info_tiktok,  # original
-    get_basic_info_ytdlp,  # best
     get_basic_info_tikmate,  # nice
+    get_basic_info_ytdlp,  # best
     get_basic_info_downr,  # nice
 )
 
 ADVANCED_INFO_PROVIDERS = (
-    get_info_ytdlp,  # best
     get_info_tokcounter,  # good
     get_info_premierely,  # okay
+    get_info_ytdlp,  # best
     get_basic_info_downr,  # fallback metadata
     get_basic_info_tikmate,  # fallback metadata
 )
 
 VIDEO_PROVIDERS = (
     get_links_tikmate_app,  # good
-    get_links_ytdlp,  # good
     get_links_premierely,  # ???
+    get_links_ytdlp,  # good
     get_links_unduhtiktok,  # okay
     get_links_downr,  # nice
 )
