@@ -52,10 +52,10 @@ class XHSImageDetail(msgspec.Struct):
 
 class XHSNoteData(msgspec.Struct):
     id: str
+    type: str  # "image" or "video"
     title: Optional[str] = ""
     desc: Optional[str] = ""
     author: Optional[str] = ""
-    type: str  # "image" or "video"
     image_list: List[XHSImageDetail] = []
     video_url: Optional[str] = None
 
