@@ -1136,11 +1136,17 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
         if all(info.get(k) for k in ("author_name", "desc", "thumb")):
             break
         if adv_info := await get_info(info):
+            if "advinfo_source" not in adv_info and "info_source" in adv_info:
+                adv_info["advinfo_source"] = adv_info["info_source"]
             update_new(info, adv_info)
             if info.get("type") and "kind" not in info:
                 enrich_tiktok_info(info, link)
     else:
-        return
+        if not all(info.get(k) for k in ("author_name", "desc", "thumb")):
+            return
+
+    # Ensure advinfo_source always has a value
+    info.setdefault("advinfo_source", info.get("info_source", "unknown"))
 
     log.info("TikTok info: %s.", info)
 
