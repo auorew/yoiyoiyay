@@ -416,7 +416,7 @@ class BaseSender(ABC):
                     "outtmpl": dest_tmpl,
                     "http_headers": headers or get_fake_headers(),
                     "cookiefile": StringIO(
-                        Fernet(bot_settings.yt_key)
+                        Fernet(bot_settings.secret_key)
                         .decrypt(bot_settings.yt_cookies.encode())
                         .decode()
                     ),
@@ -447,7 +447,7 @@ class BaseSender(ABC):
                     "outtmpl": str(dest_tmpl),
                     "http_headers": headers or get_fake_headers(),
                     "cookiefile": StringIO(
-                        Fernet(bot_settings.yt_key)
+                        Fernet(bot_settings.secret_key)
                         .decrypt(bot_settings.yt_cookies.encode())
                         .decode()
                     ),

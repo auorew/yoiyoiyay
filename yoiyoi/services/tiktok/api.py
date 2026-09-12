@@ -5,6 +5,7 @@ import re
 import secrets
 
 from http.cookies import SimpleCookie
+from io import StringIO
 from typing import Optional, TypedDict
 from urllib.parse import quote
 
@@ -22,6 +23,9 @@ from aiocache import cached
 
 # beautiful soup
 from bs4 import BeautifulSoup
+
+# decrypting
+from cryptography.fernet import Fernet
 
 # hardcore retrying
 from tenacity import stop_after_attempt
@@ -45,6 +49,9 @@ from yoiyoi.extra.requests import (
     get_content_size,
     make_request,
 )
+
+# settings
+from yoiyoi.extra.settings import bot_settings
 
 # base opts
 from yoiyoi.services.base import ytdlp_opts_base
@@ -220,7 +227,17 @@ async def get_ytdlp_info(link: str) -> Optional[AdvancedInfo]:
     current_proxy = proxy_manager.active if use_proxy else None
 
     def _extract():
-        with yt_dlp.YoutubeDL({**ytdlp_ops, "proxy": current_proxy}) as ytdl:
+        with yt_dlp.YoutubeDL(
+            {
+                **ytdlp_ops,
+                "cookiefile": StringIO(
+                    Fernet(bot_settings.secret_key)
+                    .decrypt(bot_settings.tt_cookies.encode())
+                    .decode()
+                ),
+                "proxy": current_proxy,
+            }
+        ) as ytdl:
             return ytdl.extract_info(link, download=False)
 
     try:

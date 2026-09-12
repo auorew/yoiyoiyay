@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field, SecretStr
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -52,8 +52,11 @@ class BotSettings(BaseSettings):
     # youtube cookies (needed for yt-dlp's youtube API)
     yt_cookies: Optional[str] = Field("")
 
-    # youtube cookies key (see above)
-    yt_key: Optional[str] = Field("")
+    # tiktok cookies (needed for yt-dlp's tiktok API)
+    tt_cookies: Optional[str] = Field("")
+
+    # youtube & tiktok cookies key (see above)
+    secret_key: Optional[SecretStr] = Field(None)
 
     # pixiv refresh token (needed for pixiv API)
     px_refresh: Optional[str] = Field("")
@@ -116,9 +119,12 @@ class BotSettings(BaseSettings):
     # pot provider
     pot_provider: Optional[str] = None
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        secrets_dir="/run/secrets",
+        secrets_dir_missing="ok",
+    )
 
 
 bot_settings = BotSettings()

@@ -157,7 +157,7 @@ async def get_ytdlp_with_proxy(link: str):
             {
                 **ytdlp_ops,
                 "cookiefile": StringIO(
-                    Fernet(bot_settings.yt_key)
+                    Fernet(bot_settings.secret_key)
                     .decrypt(bot_settings.yt_cookies.encode())
                     .decode()
                 ),
