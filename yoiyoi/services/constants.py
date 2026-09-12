@@ -221,10 +221,10 @@ LINKS = {
         (?:
             (?:http(?:s)?\:\/\/)?
             (?:xhslink\.(?:com|cn)\/o\/)
-            (?P<id>\w{11})
+            (?P<id>\w+)
         )
         """,
-        "link": "http://xhslink.com/o/{id}",
+        "link": "https://xhslink.cn/o/{id}",
         "type": LinkType.XIAOHONGSHU,
     },
 }
