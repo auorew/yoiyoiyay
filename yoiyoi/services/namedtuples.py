@@ -172,6 +172,14 @@ XiaohongshuVideo = namedtuple(
     ),
 )
 
+XiaohongshuPhoto = namedtuple(
+    "XiaohongshuPhoto",
+    (
+        "link",
+        "size",
+        "extra",
+    ),
+)
 
 # media type
 AnyMedia = (

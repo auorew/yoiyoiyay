@@ -34,6 +34,9 @@ class BotSettings(BaseSettings):
     # postesql database URL
     database_url: str = Field("sqlite:///./db.sqlite3")
 
+    # xiaohongshu api
+    xhs_api_url: Optional[str] = Field("http://xhs-downloader:5556/xhs/detail")
+
     # twitter [auth_token] (needed for gallery-dl's twitter API)
     tw_token: Optional[str] = Field("")
 
@@ -55,7 +58,10 @@ class BotSettings(BaseSettings):
     # tiktok cookies (needed for yt-dlp's tiktok API)
     tt_cookies: Optional[str] = Field("")
 
-    # youtube & tiktok cookies key (see above)
+    # xiaohongshu cookies
+    xhs_cookie: Optional[str] = Field("")
+
+    # secret cookies key (see above)
     secret_key: Optional[SecretStr] = Field(None)
 
     # pixiv refresh token (needed for pixiv API)
