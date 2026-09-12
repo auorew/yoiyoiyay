@@ -5,6 +5,9 @@ import asyncio
 from http.cookies import SimpleCookie
 from typing import List, Optional
 
+# http requests
+import httpx
+
 # parse json
 import msgspec
 
@@ -131,6 +134,7 @@ async def get_xhs_links(url: str) -> Optional[XHSApiResponse]:
         url=bot_settings.xhs_api_url,
         method="POST",
         json=payload,
+        timeout=httpx.Timeout(60.0, connect=10.0),
         api_log=log,
     )
 
