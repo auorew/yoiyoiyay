@@ -91,11 +91,13 @@ async def get_ytdlp_info(link: str) -> dict:
     Returns:
         dict: xhs info.
     """
-    api_log = log.bind(api="yt-dlp")
+    api_log = log.bind(api="yt-dlp", link=link)
     use_proxy = (
         proxy_manager.active and proxy_manager.request_attempts <= RETRY_PROXY_MAX_TRIES
     )
     current_proxy = proxy_manager.active if use_proxy else None
+
+    api_log.debug("Executing yt-dlp extraction.", proxy=current_proxy)
 
     def _extract():
         with yt_dlp.YoutubeDL({**ytdlp_ops, "proxy": current_proxy}) as ytdl:
@@ -104,6 +106,9 @@ async def get_ytdlp_info(link: str) -> dict:
     try:
         info = await asyncio.to_thread(_extract)
         proxy_manager.reset_attempts()
+        api_log.info(
+            "yt-dlp extraction successful.", id=info.get("id"), title=info.get("title")
+        )
         return info
 
     except Exception as exception:
@@ -120,6 +125,8 @@ async def get_ytdlp_info(link: str) -> dict:
 
 async def get_xhs_links(url: str) -> Optional[XHSApiResponse]:
     """Posts a Note URL to the XHS-Downloader container API."""
+    req_log = log.bind(api="XHS-Downloader", request_url=url)
+
     payload = {
         "url": url,
         "download": False,
@@ -128,6 +135,13 @@ async def get_xhs_links(url: str) -> Optional[XHSApiResponse]:
 
     if bot_settings.xhs_cookie:
         payload["cookie"] = bot_settings.xhs_cookie
+        req_log.debug("Using configured XHS cookie.")
+
+    req_log.debug(
+        "Sending request to container endpoint.",
+        endpoint=bot_settings.xhs_api_url,
+        payload=payload,
+    )
 
     response_data = await fetch_api_json(
         url=bot_settings.xhs_api_url,
@@ -138,37 +152,66 @@ async def get_xhs_links(url: str) -> Optional[XHSApiResponse]:
     )
 
     if not response_data:
+        req_log.warning("Empty response received from XHS container.")
         return None
 
+    req_log.debug(
+        "Received raw response data from container.", raw_response=response_data
+    )
+
     try:
-        return msgspec.convert(response_data, XHSApiResponse)
+        parsed = msgspec.convert(response_data, XHSApiResponse)
+        req_log.info("Successfully converted container JSON to XHSApiResponse.")
+        return parsed
     except (msgspec.ValidationError, TypeError) as e:
-        log.warning("Failed to parse XHS container response.", error=str(e))
+        req_log.warning(
+            "Failed to parse XHS container response.",
+            error=str(e),
+            raw_response=response_data,
+        )
         return None
 
 
 async def get_links_container(link: str) -> Optional[dict]:
     """Gets xiaohongshu content from the XHS-Downloader container API."""
-    log.info("API: XHS-Downloader.")
+    container_log = log.bind(api="XHS-Downloader", link=link)
+    container_log.info("Attempting extraction via XHS container.")
 
     response = await get_xhs_links(link)
     if not response or not response.data:
-        log.warning("XHS container returned no data.")
+        container_log.warning("XHS container returned no valid data object.")
         return None
 
     data = response.data
     urls = data.download_urls or []
+
+    container_log.debug(
+        "Parsed note metadata from response.",
+        note_id=data.id,
+        title=data.title,
+        author=data.author,
+        note_type=data.note_type,
+        urls_count=len(urls),
+        has_explicit_cover=bool(data.cover),
+    )
+
     if not urls:
-        log.error("No download URLs found in container response.")
+        container_log.error("No download URLs found in note data.")
         return None
 
-    # Thumbnail fallback: use explicit cover or first media URL
     thumb = data.cover or urls[0]
-    content = []
+    container_log.debug(
+        "Selected thumbnail URL.", thumb_url=thumb, is_fallback=not bool(data.cover)
+    )
 
+    content = []
     if data.note_type == "视频":
-        for video_url in urls:
+        container_log.info("Processing video note type.", url_count=len(urls))
+        for idx, video_url in enumerate(urls, start=1):
             size = await get_content_size(video_url)
+            container_log.debug(
+                "Retrieved video stream size.", index=idx, url=video_url, size_bytes=size
+            )
             content.append(
                 XiaohongshuVideo(
                     link=video_url,
@@ -177,8 +220,12 @@ async def get_links_container(link: str) -> Optional[dict]:
                 )
             )
     else:  # "图文" (Image Carousel)
-        for img_url in urls:
+        container_log.info("Processing photo carousel note type.", photo_count=len(urls))
+        for idx, img_url in enumerate(urls, start=1):
             size = await get_content_size(img_url)
+            container_log.debug(
+                "Retrieved photo size.", index=idx, url=img_url, size_bytes=size
+            )
             content.append(
                 XiaohongshuPhoto(
                     link=img_url,
@@ -205,35 +252,50 @@ async def get_info_ytdlp(link: str) -> dict:
     Returns:
         dict: tiktok id and author info.
     """
-    log.info("Info: YouTube-DLP.")
+    log.info("Fetching info via yt-dlp.", link=link)
     if info := await get_ytdlp_info(link):
-        log.debug("yt-dlp info.", info=info)
+        log.debug(
+            "yt-dlp info retrieved successfully.",
+            id=info.get("id"),
+            formats_count=len(info.get("formats", [])),
+        )
         return info
 
 
 async def get_links_ytdlp(link: str) -> Optional[dict]:
-    log.info("API: YouTube-DLP.")
+    ytdlp_log = log.bind(api="YouTube-DLP", link=link)
+    ytdlp_log.info("Attempting extraction via yt-dlp fallback.")
 
     if not (info := await get_info_ytdlp(link)):
+        ytdlp_log.warning("yt-dlp returned no info dict.")
         return None
 
-    if not (thumbnails := info.get("thumbnails")):
-        log.error("No thumbnail.")
+    thumbnails = info.get("thumbnails") or []
+    if not thumbnails:
+        ytdlp_log.error("No thumbnails available in yt-dlp info.")
         return None
 
+    ytdlp_log.debug("Evaluating thumbnail candidates.", count=len(thumbnails))
     max_size = 0
     largest_thumbnail = None
     for thumbnail in thumbnails:
-        if (size := await get_content_size(thumbnail["url"])) >= max_size:
+        size = await get_content_size(thumbnail["url"])
+        if size >= max_size:
             max_size = size
             largest_thumbnail = thumbnail["url"]
 
     if not largest_thumbnail:
-        log.error("No largest thumbnail?!")
+        ytdlp_log.error("Could not determine largest thumbnail.")
         return None
 
+    ytdlp_log.debug(
+        "Selected largest thumbnail.", url=largest_thumbnail, size_bytes=max_size
+    )
+
+    formats = info.get("formats", [])
+    ytdlp_log.debug("Filtering video formats.", total_formats=len(formats))
     videos = []
-    for video_format in info.get("formats", []):
+    for video_format in formats:
         if (
             video_format.get("height")
             and video_format.get("vcodec")
@@ -242,6 +304,8 @@ async def get_links_ytdlp(link: str) -> Optional[dict]:
             and video_format.get("acodec") != "none"
         ):
             videos.append(video_format)
+
+    ytdlp_log.debug("Filtered suitable video streams.", valid_videos_count=len(videos))
 
     content = []
     for video in sorted(videos, key=lambda x: x.get("filesize", 0) or 0, reverse=True):
@@ -254,11 +318,12 @@ async def get_links_ytdlp(link: str) -> Optional[dict]:
         headers: dict = video.get("http_headers", {})
         extra = {"cookies": cookies, "headers": headers}
 
-        if (
-            _size := video.get("filesize")
+        _size = (
+            video.get("filesize")
             or video.get("filesize_approx")
             or await get_content_size(video["url"], **extra)
-        ):
+        )
+        if _size:
             content.append(
                 {
                     "link": video["url"],
@@ -267,11 +332,11 @@ async def get_links_ytdlp(link: str) -> Optional[dict]:
                 }
             )
 
-    # yt-dlp only extracts videos; return None if no video formats were extracted
     if not content:
-        log.warning("yt-dlp found no video content.")
+        ytdlp_log.warning("yt-dlp found no usable video streams.")
         return None
 
+    ytdlp_log.info("yt-dlp extraction successful.", content_items=len(content))
     return {
         "title": info.get("title", ""),
         "description": info.get("description", ""),
@@ -283,8 +348,10 @@ async def get_links_ytdlp(link: str) -> Optional[dict]:
 async def convert_dictionary_to_namedtuple(
     result: dict,
 ) -> XiaohongshuMedia:
+    conv_log = log.bind(media_id=result.get("id"))
     content = []
-    for item in result["content"]:
+
+    for idx, item in enumerate(result["content"], start=1):
         if isinstance(item, (XiaohongshuVideo, XiaohongshuPhoto)):
             content.append(item)
         elif isinstance(item, dict):
@@ -296,7 +363,17 @@ async def convert_dictionary_to_namedtuple(
                 )
             )
 
-    media = XiaohongshuMedia(
+    photos_count = sum(1 for x in content if isinstance(x, XiaohongshuPhoto))
+    videos_count = sum(1 for x in content if isinstance(x, XiaohongshuVideo))
+
+    conv_log.debug(
+        "Converted raw result to XiaohongshuMedia.",
+        total_items=len(content),
+        photos=photos_count,
+        videos=videos_count,
+    )
+
+    return XiaohongshuMedia(
         id=result["id"],
         source=result["source"],
         title=result["title"],
@@ -304,8 +381,6 @@ async def convert_dictionary_to_namedtuple(
         thumb=result["thumb"],
         content=content,
     )
-
-    return media
 
 
 async def get_xiaohongshu_links(link: str) -> Optional[XiaohongshuMedia]:
@@ -317,14 +392,26 @@ async def get_xiaohongshu_links(link: str) -> Optional[XiaohongshuMedia]:
     Returns:
         Optional[XiaohongshuMedia]: full xiaohongshu info.
     """
+    main_log = log.bind(target_link=link)
+    main_log.info("Starting Xiaohongshu extraction workflow.")
+
     data = {
         "id": link.rsplit("/")[-1],
         "source": link,
     }
-    for get_links in (get_links_container, get_links_ytdlp):  # fallback sequence
+
+    for get_links in (get_links_container, get_links_ytdlp):
+        func_name = get_links.__name__
+        main_log.debug("Trying extraction strategy.", strategy=func_name)
+
         if result := await get_links(link):
+            main_log.info("Extraction strategy succeeded.", strategy=func_name)
             return await convert_dictionary_to_namedtuple({**data, **result})
-        log.info("Trying another API...")
+
+        main_log.warning(
+            "Extraction strategy failed, attempting next provider.",
+            failed_strategy=func_name,
+        )
     else:
-        log.error("Couldn't get content.")
+        main_log.error("All Xiaohongshu extraction strategies exhausted.")
         return None
