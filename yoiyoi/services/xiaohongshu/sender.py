@@ -63,16 +63,21 @@ class XiaohongshuSender(BaseSender):
 
         # Handle Photo / Image Carousel posts
         if photos:
-            for i, photo in enumerate(photos):
-                _, filepath = await self.download_helper(photo.link, to_ext="jpeg")
-                if not filepath:
+            for i, photo in enumerate(photos, start=1):
+                photo_name = getattr(photo, "name", f"{media.id}_{i}.jpeg")
+                imagepath, filepath = await self.download_helper(
+                    photo.link,
+                    filename=photo_name,
+                )
+                if not imagepath:
                     self.log.warning("Failed to download photo.", link=photo.link)
                     continue
 
                 yield MediaItem(
-                    path=filepath,
+                    path=imagepath,
                     type="photo",
-                    caption=info if i == 0 else "",
+                    caption=info,
+                    orig_path=filepath if self.chat.xhs_orig else None,
                 )
             return
 
