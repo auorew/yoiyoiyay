@@ -3,7 +3,7 @@
 import asyncio
 
 from http.cookies import SimpleCookie
-from typing import List, Optional
+from typing import Optional
 
 # http requests
 import httpx
@@ -53,19 +53,18 @@ class XHSImageDetail(msgspec.Struct):
     url: str
 
 
-class XHSNoteData(msgspec.Struct):
-    id: str
-    type: str  # "image" or "video"
-    title: Optional[str] = ""
-    desc: Optional[str] = ""
-    author: Optional[str] = ""
-    image_list: List[XHSImageDetail] = []
-    video_url: Optional[str] = None
+class XHSNoteData(msgspec.Struct, kw_only=True):
+    id: str = msgspec.field(name="作品ID")
+    title: Optional[str] = msgspec.field(default="", name="作品标题")
+    desc: Optional[str] = msgspec.field(default="", name="作品描述")
+    author: Optional[str] = msgspec.field(default="", name="作者昵称")
+    note_type: str = msgspec.field(default="图文", name="作品类型")
+    download_urls: Optional[list[str]] = msgspec.field(default=None, name="下载地址")
+    cover: Optional[str] = msgspec.field(default=None, name="封面地址")
 
 
-class XHSApiResponse(msgspec.Struct):
-    code: int
-    msg: str
+class XHSApiResponse(msgspec.Struct, kw_only=True):
+    message: Optional[str] = None
     data: Optional[XHSNoteData] = None
 
 
@@ -123,7 +122,7 @@ async def get_xhs_links(url: str) -> Optional[XHSApiResponse]:
     """Posts a Note URL to the XHS-Downloader container API."""
     payload = {
         "url": url,
-        "download": False,  # Request direct media URLs without saving to container disk
+        "download": False,
         "check_record": False,
     }
 
@@ -142,10 +141,9 @@ async def get_xhs_links(url: str) -> Optional[XHSApiResponse]:
         return None
 
     try:
-        return msgspec.json.decode(
-            msgspec.json.encode(response_data), type=XHSApiResponse
-        )
-    except msgspec.DecodeError as e:
+        # Convert dictionary directly into msgspec struct
+        return msgspec.structs.convert(response_data, XHSApiResponse)
+    except (msgspec.ValidationError, TypeError) as e:
         log.warning("Failed to parse XHS container response.", error=str(e))
         return None
 
@@ -160,37 +158,40 @@ async def get_links_container(link: str) -> Optional[dict]:
         return None
 
     data = response.data
-    thumb = data.image_list[0].url if data.image_list else ""
+    urls = data.download_urls or []
+    if not urls:
+        log.error("No download URLs found in container response.")
+        return None
+
+    # Thumbnail fallback: use explicit cover or first media URL
+    thumb = data.cover or urls[0]
     content = []
 
-    if data.type == "video" and data.video_url:
-        size = await get_content_size(data.video_url)
-        content.append(
-            XiaohongshuVideo(
-                link=data.video_url,
-                size=size,
-                extra={},
+    if data.note_type == "视频":
+        for video_url in urls:
+            size = await get_content_size(video_url)
+            content.append(
+                XiaohongshuVideo(
+                    link=video_url,
+                    size=size,
+                    extra={},
+                )
             )
-        )
-    elif data.image_list:
-        for img in data.image_list:
-            size = await get_content_size(img.url)
+    else:  # "图文" (Image Carousel)
+        for img_url in urls:
+            size = await get_content_size(img_url)
             content.append(
                 XiaohongshuPhoto(
-                    link=img.url,
+                    link=img_url,
                     size=size,
                     extra={},
                 )
             )
 
-    if not content:
-        log.error("No media content extracted from container response.")
-        return None
-
     return {
-        "id": data.id or link.rsplit("/")[-1],
-        "title": data.title or "",
-        "description": data.desc or "",
+        "id": data.id,
+        "title": data.title,
+        "description": data.desc,
         "thumb": thumb,
         "content": content,
     }
@@ -211,15 +212,15 @@ async def get_info_ytdlp(link: str) -> dict:
         return info
 
 
-async def get_links_ytdlp(link):
+async def get_links_ytdlp(link: str) -> Optional[dict]:
     log.info("API: YouTube-DLP.")
 
     if not (info := await get_info_ytdlp(link)):
-        return
+        return None
 
     if not (thumbnails := info.get("thumbnails")):
         log.error("No thumbnail.")
-        return
+        return None
 
     max_size = 0
     largest_thumbnail = None
@@ -230,16 +231,10 @@ async def get_links_ytdlp(link):
 
     if not largest_thumbnail:
         log.error("No largest thumbnail?!")
-        return
-
-    result = {
-        "title": info["title"],
-        "description": info["description"],
-        "thumb": largest_thumbnail,
-    }
+        return None
 
     videos = []
-    for video_format in info["formats"]:
+    for video_format in info.get("formats", []):
         if (
             video_format.get("height")
             and video_format.get("vcodec")
@@ -249,32 +244,23 @@ async def get_links_ytdlp(link):
         ):
             videos.append(video_format)
 
-    result["content"] = []
-    for video in sorted(videos, key=lambda x: x["filesize"], reverse=True):
+    content = []
+    for video in sorted(videos, key=lambda x: x.get("filesize", 0) or 0, reverse=True):
         cookies = {}
         if video_cookies := video.get("cookies"):
-            log.info("Cookies found!")
             cookie = SimpleCookie()
             cookie.load(video_cookies)
             cookies = {key: morsel.value for key, morsel in cookie.items()}
-        else:
-            log.info("No cookies found!")
-        headers: dict = video["http_headers"]
+
+        headers: dict = video.get("http_headers", {})
         extra = {"cookies": cookies, "headers": headers}
-        # if _ext := await get_content_extension(video["url"], **extra):
-        #     log.info("Video extension: %s.", _ext)
-        #     if _ext == "html":
-        #         log.warning("Can't download video in html format.")
-        #         continue
+
         if (
             _size := video.get("filesize")
             or video.get("filesize_approx")
-            or await get_content_size(
-                video["url"],
-                **extra,
-            )
+            or await get_content_size(video["url"], **extra)
         ):
-            result["content"].append(
+            content.append(
                 {
                     "link": video["url"],
                     "size": _size,
@@ -282,7 +268,17 @@ async def get_links_ytdlp(link):
                 }
             )
 
-    return result
+    # yt-dlp only extracts videos; return None if no video formats were extracted
+    if not content:
+        log.warning("yt-dlp found no video content.")
+        return None
+
+    return {
+        "title": info.get("title", ""),
+        "description": info.get("description", ""),
+        "thumb": largest_thumbnail,
+        "content": content,
+    }
 
 
 async def convert_dictionary_to_namedtuple(
