@@ -21,7 +21,7 @@ from yoiyoi.extra.utils import move_file
 from yoiyoi.services.base import BaseSender, MediaItem, SenderError
 
 # media tuples
-from yoiyoi.services.namedtuples import XiaohongshuVideo
+from yoiyoi.services.namedtuples import XiaohongshuPhoto, XiaohongshuVideo
 
 # xiaohongshu api
 from yoiyoi.services.xiaohongshu.api import get_xiaohongshu_links
@@ -49,14 +49,34 @@ class XiaohongshuSender(BaseSender):
             )
 
         info = await get_info(self.link, XiaohongshuStyle, self.chat, media)
+
+        photos = [x for x in media.content if isinstance(x, XiaohongshuPhoto)]
         videos = [x for x in media.content if isinstance(x, XiaohongshuVideo)]
 
-        if not videos:
+        if not photos and not videos:
             raise SenderError(
-                message="can't be sent, because didn't find any video!",
-                telegram_message="can't be sent, because didn't find any video\\!",
+                message="can't be sent, because the bot didn't find any media content!",
+                telegram_message=(
+                    "can't be sent, because the bot didn't find any media content\\!"
+                ),
             )
 
+        # Handle Photo / Image Carousel posts
+        if photos:
+            for i, photo in enumerate(photos):
+                _, filepath = await self.download_helper(photo.link, to_ext="jpeg")
+                if not filepath:
+                    self.log.warning("Failed to download photo.", link=photo.link)
+                    continue
+
+                yield MediaItem(
+                    path=filepath,
+                    type="photo",
+                    caption=info if i == 0 else "",
+                )
+            return
+
+        # Handle Video posts
         target_video = next(
             (v for v in videos if 0 < v.size < MAX_VIDEO_SIZE),
             None,
@@ -74,7 +94,7 @@ class XiaohongshuSender(BaseSender):
         if not videopath:
             raise SenderError(
                 message=(
-                    "can't be downloaded! " "If this seems to be wrong, try again later."
+                    "can't be downloaded! If this seems to be wrong, try again later."
                 ),
                 telegram_message=(
                     "can't be downloaded\\! "
