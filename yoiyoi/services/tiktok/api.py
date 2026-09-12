@@ -138,6 +138,15 @@ def enrich_tiktok_info(info: TikTokInfo, link: str) -> TikTokInfo:
     return info
 
 
+def is_metadata_complete(info: dict) -> bool:
+    """Checks if required basic metadata fields are present."""
+    return (
+        info.get("author_name") is not None
+        and info.get("desc") is not None
+        and bool(info.get("thumb"))
+    )
+
+
 def build_multipart_form(fields: dict, boundary: str) -> str:
     payload_parts = []
     for name, value in fields.items():
@@ -1046,14 +1055,14 @@ async def get_links_premierely(
 BASIC_INFO_PROVIDERS = (
     get_basic_info_tiktok,  # original
     get_basic_info_tikmate,  # nice
-    get_basic_info_ytdlp,  # best
+    # get_basic_info_ytdlp,  # best
     get_basic_info_downr,  # nice
 )
 
 ADVANCED_INFO_PROVIDERS = (
     get_info_tokcounter,  # good
     get_info_premierely,  # okay
-    get_info_ytdlp,  # best
+    # get_info_ytdlp,  # best
     get_basic_info_downr,  # fallback metadata
     get_basic_info_tikmate,  # fallback metadata
 )
@@ -1061,7 +1070,7 @@ ADVANCED_INFO_PROVIDERS = (
 VIDEO_PROVIDERS = (
     get_links_tikmate_app,  # good
     get_links_premierely,  # ???
-    get_links_ytdlp,  # good
+    # get_links_ytdlp,  # good
     get_links_unduhtiktok,  # okay
     get_links_downr,  # nice
 )
@@ -1095,7 +1104,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     info = enrich_tiktok_info(basic_info, link)
 
     for get_info in ADVANCED_INFO_PROVIDERS:
-        if all(info.get(k) for k in ("author_name", "desc", "thumb")):
+        if is_metadata_complete(info):
             break
         if adv_info := await get_info(info):
             if "advinfo_source" not in adv_info and "info_source" in adv_info:
@@ -1104,7 +1113,7 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
             if info.get("type") and "kind" not in info:
                 enrich_tiktok_info(info, link)
     else:
-        if not all(info.get(k) for k in ("author_name", "desc", "thumb")):
+        if not is_metadata_complete(info):
             return
 
     # Ensure advinfo_source always has a value
