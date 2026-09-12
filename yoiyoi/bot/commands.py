@@ -103,6 +103,16 @@ async def command_instagram_hd(
 
 
 @clear_context()
+async def command_xiaohongshu_hd(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    """Toggles xiaohongshu HD mode."""
+    notify(update, command="/xiaohongshu_hd")
+    await toggler(update, mode="xiaohongshu HD", field="xhs_orig")
+
+
+@clear_context()
 async def command_tiktok_hd(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -198,6 +208,7 @@ channel_commands_dict = {
     "pixiv_hd": command_pixiv_hd,
     "tiktok_hd": command_tiktok_hd,
     "instagram_hd": command_instagram_hd,
+    "xiaohongshu_hd": command_xiaohongshu_hd,
     "pixiv_style": command_pixiv_style,
     "tiktok_style": command_tiktok_style,
     "twitter_style": command_twitter_style,
