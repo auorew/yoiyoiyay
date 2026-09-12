@@ -58,12 +58,6 @@ from yoiyoi.services.dehunter import dehunter
 # TikTokVideo namedtuple
 from yoiyoi.services.namedtuples import TikTokMedia, TikTokPhoto, TikTokVideo
 
-# url expanders
-from yoiyoi.services.urlexpander.api import (
-    expand_with_expandurl,
-    expand_with_urlex,
-)
-
 # setup logger
 log = structlog.get_logger(__name__, service="tiktok")
 
@@ -246,6 +240,11 @@ async def get_ytdlp_info(link: str) -> Optional[AdvancedInfo]:
         raise
 
 
+@cached(
+    ttl=15,
+    key_builder=lambda fn, *a, **kw: a[0],
+    skip_cache_func=lambda r: r is None,
+)
 async def get_tikmate_app_info(link: str) -> Optional[dict]:
     """Gets tiktok info from TikMate.App.
 
@@ -288,101 +287,59 @@ async def get_tikmate_app_info(link: str) -> Optional[dict]:
         return info
 
 
-async def get_basic_info_url_expand(link: str) -> Optional[TikTokInfo]:
-    """Gets tiktok info from TikTok with URL expanders.
-
-    Args:
-        link (str): formatted tiktok link.
-
-    Returns:
-        Optional[TikTokInfo]: tiktok id and author info.
-    """
-    api_log = log.bind(api="url-expanders", type="info")
-    # send request
-    for get_info in asyncio.as_completed(
-        (
-            expand_with_expandurl(link),  # good
-            expand_with_urlex(link),  # okay
-        )
+@cached(
+    ttl=300,  # Cache session cookie for 5 minutes
+    key_builder=lambda fn, *a, **kw: "downr_session_cookie",
+    skip_cache_func=lambda r: not r,
+)
+async def get_downr_session_cookies() -> dict:
+    """Hits downr's analytics endpoint to acquire the required session token."""
+    api_log = log.bind(api="downr", type="session")
+    if response := await make_request(
+        url="https://downr.org/.netlify/functions/analytics",
+        method="GET",
+        headers={
+            **get_fake_headers(),
+            "Accept": "*/*",
+            "Referer": "https://downr.org/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "Priority": "u=4",
+        },
+        with_proxy=True,
     ):
-        if (
-            (url := await get_info)
-            and (info := re.search(TT["info"], url))
-            and info["author"] != "web"
-        ):
-            api_log.info("Succeeded in URL expanding!")
-            return TikTokInfo(
-                **info.groupdict(),
-                info_source="urlexpander",
+        if response.cookies:
+            api_log.debug(
+                "Acquired session cookies via analytics.",
+                cookies=dict(response.cookies),
             )
+            return dict(response.cookies)
+    return {}
 
 
-async def get_basic_info_tiktok(link: str) -> Optional[TikTokInfo]:
-    """Gets tiktok info from TikTok.
-
-    Args:
-        link (str): formatted tiktok link.
-
-    Returns:
-        Optional[TikTokInfo]: tiktok id and author info.
-    """
-    api_log = log.bind(api="tiktok", type="info")
-    # send request
-    if (
-        (response := await make_request(link, method="HEAD", with_proxy=True))
-        and response.is_success
-        and response.url.path != "/"
-        and (info := re.search(TT["info"], response.url.path))
-        and info["author"] != "web"
-    ):
-        # process response
-        api_log.debug("TikTok URL: %s.", response.url)
-        return TikTokInfo(
-            **info.groupdict(),
-            info_source="tiktok",
-        )
-
-
-async def get_basic_info_ytdlp(link: str) -> Optional[TikTokInfo]:
-    """Gets basic tiktok info from yt-dlp.
+@cached(
+    ttl=15,
+    key_builder=lambda fn, *a, **kw: a[0],
+    skip_cache_func=lambda r: r is None,
+)
+async def get_downr_info(link: str) -> Optional[dict]:
+    """Gets raw TikTok payload from downr.org.
 
     Args:
-        link (str): formatted tiktok link.
+        link (str): TikTok URL link.
 
     Returns:
-        Optional[TikTokInfo]: tiktok id and author info.
+        Optional[dict]: Raw API response JSON.
     """
-    api_log = log.bind(api="yt-dlp", type="info")
-    # send request
-    if info := await get_ytdlp_info(link):
-        api_log.debug("Loaded JSON.", json=info)
-        # process response
-        return TikTokInfo(
-            id=int(info["id"], 0),
-            author=info["uploader"],
-            type=(
-                "photo"
-                if info.get("ext", "") == "none" or info.get("video_ext", "") == "none"
-                else "video"
-            ),
-            info_source="yt-dlp",
-        )
+    api_log = log.bind(api="downr", type="raw")
 
+    # Fetch dynamic session cookie before making API call
+    cookies = await get_downr_session_cookies()
 
-async def get_basic_info_downr(link: str) -> Optional[TikTokInfo]:
-    """Gets basic tiktok info from downr.org.
-
-    Args:
-        link (str): formatted tiktok link.
-
-    Returns:
-        dict: tiktok id and author info.
-    """
-    api_log = log.bind(api="downr", type="info")
-    api = "https://downr.org/.netlify/functions/download"
-    # send request
     if info := await fetch_api_json(
-        url=api,
+        url="https://downr.org/.netlify/functions/bbc",
+        method="POST",
         api_log=api_log,
         headers={
             **get_fake_headers(),
@@ -395,11 +352,147 @@ async def get_basic_info_downr(link: str) -> Optional[TikTokInfo]:
             "Sec-Fetch-Site": "same-origin",
             "Priority": "u=0",
         },
+        cookies=cookies,
         json={"url": link},
         follow_redirects=True,
         with_proxy=True,
     ):
-        # process response
+        return info
+    return None
+
+
+@cached(
+    ttl=15,
+    key_builder=lambda fn, *a, **kw: a[0],
+    skip_cache_func=lambda r: r is None,
+)
+async def get_premierely_info(link: str) -> Optional[dict]:
+    """Gets raw TikTok payload from premierely.io.
+
+    Args:
+        link (str): TikTok URL link.
+
+    Returns:
+        Optional[dict]: Raw API response JSON.
+    """
+    api_log = log.bind(api="premierely", type="raw")
+    base = "premierely.io"
+    encoded_url = quote(link, safe="")
+    api = (
+        f"https://{base}/tools/tiktok-to-mp3/tiktok-api.php?action=info&url={encoded_url}"
+    )
+
+    if info := await fetch_api_json(
+        url=api,
+        method="GET",
+        api_log=api_log,
+        headers={
+            **get_fake_headers(),
+            "Accept": "*/*",
+            "Referer": f"https://{base}/tools/tiktok-video-downloader/",
+        },
+        retry_with=dict(stop=stop_after_attempt(2)),
+        with_proxy=True,
+    ):
+        return info
+    return None
+
+
+async def get_basic_info_tiktok(link: str | dict) -> Optional[TikTokInfo]:
+    """Gets tiktok info from TikTok.
+
+    Args:
+        link (str | dict): formatted tiktok link.
+
+    Returns:
+        Optional[TikTokInfo]: tiktok id and author info.
+    """
+    """Gets tiktok info from TikTok."""
+    api_log = log.bind(api="tiktok", type="info")
+    target_url = (
+        link
+        if isinstance(link, str)
+        else link.get("original_link") or link.get("fallback")
+    )
+    if not target_url:
+        return None
+
+    if (
+        (response := await make_request(target_url, method="HEAD", with_proxy=True))
+        and response.is_success
+        and response.url.path != "/"
+        and (info := re.search(TT["info"], response.url.path))
+        and info["author"] != "web"
+    ):
+        api_log.debug("TikTok URL: %s.", response.url)
+        return TikTokInfo(
+            **info.groupdict(),
+            info_source="tiktok",
+        )
+
+
+async def get_basic_info_ytdlp(link: str | dict) -> Optional[TikTokInfo]:
+    """Gets basic tiktok info from yt-dlp.
+
+    Args:
+        link (str | dict): formatted tiktok link.
+
+    Returns:
+        Optional[TikTokInfo]: tiktok id and author info.
+    """
+    api_log = log.bind(api="yt-dlp", type="info")
+    target_url = (
+        link
+        if isinstance(link, str)
+        else link.get("original_link") or link.get("fallback")
+    )
+    if not target_url:
+        return None
+
+    if info := await get_ytdlp_info(target_url):
+        api_log.debug("Loaded JSON.", json=info)
+        return TikTokInfo(
+            id=int(info["id"], 0),
+            author=info["uploader"],
+            author_name=info.get("uploader"),
+            desc=info.get("description"),
+            thumb=(
+                None
+                if len(info.get("thumbnails") or []) < 1
+                else info["thumbnails"][0]["url"]
+            ),
+            type=(
+                "photo"
+                if info.get("ext", "") == "none" or info.get("video_ext", "") == "none"
+                else "video"
+            ),
+            info_source="yt-dlp",
+        )
+
+
+async def get_basic_info_downr(link: str | dict) -> Optional[TikTokInfo]:
+    """Gets basic tiktok info from downr.org.
+
+    Args:
+        link (str | dict): formatted tiktok link.
+
+    Returns:
+        Optional[TikTokInfo]: tiktok id and author info.
+    """
+    api_log = log.bind(api="downr", type="info")
+    target_url = (
+        link
+        if isinstance(link, str)
+        else link.get("original_link") or link.get("fallback")
+    )
+    if not target_url:
+        return None
+
+    if info := await get_downr_info(target_url):
+        if info.get("error"):
+            api_log.warning("downr returned an error.", json=info)
+            return None
+
         tiktok_type = "video"
         if medias := info.get("medias"):
             for media in medias:
@@ -409,6 +502,7 @@ async def get_basic_info_downr(link: str) -> Optional[TikTokInfo]:
                 elif media.get("type") == "image":
                     tiktok_type = "photo"
                     break
+
         return TikTokInfo(
             id=int(info.get("id", 0)),
             author=info.get("unique_id"),
@@ -420,16 +514,24 @@ async def get_basic_info_downr(link: str) -> Optional[TikTokInfo]:
         )
 
 
-async def get_basic_info_tikmate(link: str) -> Optional[TikTokInfo]:
+async def get_basic_info_tikmate(link: str | dict) -> Optional[TikTokInfo]:
     """Gets tiktok info from TikMate.
 
     Args:
-        link (str): formatted tiktok link.
+        link (str | dict): formatted tiktok link.
 
     Returns:
         dict: tiktok id and author info.
     """
-    if info := await get_tikmate_app_info(link):
+    target_url = (
+        link
+        if isinstance(link, str)
+        else link.get("original_link") or link.get("fallback")
+    )
+    if not target_url:
+        return None
+
+    if info := await get_tikmate_app_info(target_url):
         return TikTokInfo(
             id=int(info.get("id", 0)),
             author=info.get("author_id"),
@@ -446,27 +548,6 @@ async def get_basic_info_tikmate(link: str) -> Optional[TikTokInfo]:
         )
 
 
-async def get_tiktok_thumbnail(basic_info: dict) -> Optional[AdvancedInfo]:
-    api_log = log.bind(api="tiktok", type="advinfo")
-    # send request
-    if info := await fetch_api_json(
-        url=f'https://www.tiktok.com/oembed?url={basic_info["source"]}',
-        method="GET",
-        retry_with=dict(stop=stop_after_attempt(2)),
-        with_proxy=True,
-    ):
-        if info["author_name"] == "@":
-            api_log.warning("TikTok Embed: Hidden content.")
-            return
-        # process response
-        return AdvancedInfo(
-            thumb=info.get("thumbnail_url"),
-            author_name=info.get("author_name"),
-            desc=info.get("title"),
-            advinfo_source="tiktok_embed",
-        )
-
-
 async def get_info_tokcounter(basic_info: dict) -> Optional[AdvancedInfo]:
     """Gets advanced tiktok info from TokCounter.
 
@@ -474,69 +555,39 @@ async def get_info_tokcounter(basic_info: dict) -> Optional[AdvancedInfo]:
         basic_info (dict): basic tiktok info.
 
     Returns:
-        dict: advanced tiktok info.
+        Optional[AdvancedInfo]: advanced tiktok info.
     """
     api_log = log.bind(api="tokcounter", type="advinfo")
     # api info
-    api = "https://tiktok.livecounts.io/video/download"
+    api = "https://tiktok-api.tokcounter.com/video/data"
+
     # send request
     if info := await fetch_api_json(
         url=f"{api}/{basic_info['id']}",
         method="GET",
-        headers={**get_fake_headers(), "Origin": "https://tokcounter.com"},
-        retry_with=dict(stop=stop_after_attempt(2)),
-        with_proxy=True,
-    ):
-        # process response
-        if not info["success"]:
-            api_log.warning("Couldn't find tiktok video.")
-            return
-        return AdvancedInfo(
-            thumb=None,  # info['video']['cover'] is animated
-            author_name=info["author"]["name"],
-            desc=info["video"]["title"],
-            advinfo_source="tokcounter",
-        )
-
-
-async def get_info_lovetik(basic_info: dict) -> Optional[AdvancedInfo]:
-    """Gets advanced tiktok info from LoveTik.
-
-    Args:
-        basic_info (dict): basic tiktok info.
-
-    Returns:
-        dict: advanced tiktok info.
-    """
-    api_log = log.bind(api="lovetik", type="advinfo")
-    # api info
-    base = "lovetik.com"
-    api = f"https://{base}/api/ajax/search"
-    # send request
-    if info := await fetch_api_json(
-        url=api,
         headers={
             **get_fake_headers(),
-            "Content-Type": "application/x-www-form-urlencoded;" " charset=UTF-8",
-            "Referer": f"https://{base}/",
+            "Origin": "https://tokcounter.com",
+            "Referer": "https://tokcounter.com/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
         },
-        # fallback source, since /photo/ URLs are not currently supported
-        data={"query": basic_info["fallback"]},
         retry_with=dict(stop=stop_after_attempt(2)),
         with_proxy=True,
     ):
         # process response
-        if info["status"] != "ok" or info["mess"].startswith("Error"):
+        if not info.get("success"):
             api_log.warning("Couldn't find tiktok video.")
-            return
-        if info["author"] == "@":
-            api_log.warning("TikTok Embed: Hidden content.")
-            return
+            return None
+
+        author_info = info.get("author", {})
+
         return AdvancedInfo(
-            thumb=info["cover"],
-            author_name=info["author_name"],
-            desc=info["desc"],
-            advinfo_source="lovetik",
+            thumb=None,  # too small
+            author_name=author_info.get("username"),
+            desc=info.get("title"),
+            advinfo_source="tokcounter",
         )
 
 
@@ -576,37 +627,16 @@ async def get_info_premierely(basic_info: dict) -> Optional[AdvancedInfo]:
         Optional[AdvancedInfo]: advanced tiktok info.
     """
     api_log = log.bind(api="premierely", type="advinfo")
-    base = "premierely.io"
+    target_url = basic_info.get("original_link") or basic_info["fallback"]
 
-    # Target URL from basic_info (or fallback if preferred)
-    target_url = basic_info["fallback"]
-    encoded_url = quote(target_url, safe="")
-
-    api = (
-        f"https://{base}/tools/tiktok-to-mp3/tiktok-api.php"
-        f"?action=info&url={encoded_url}"
-    )
-
-    if info := await fetch_api_json(
-        url=api,
-        headers={
-            **get_fake_headers(),
-            "Accept": "*/*",
-            "Referer": f"https://{base}/tools/tiktok-video-downloader/",
-        },
-        retry_with=dict(stop=stop_after_attempt(2)),
-        with_proxy=True,
-    ):
-        api_log.debug("Loaded JSON.", json=info)
-
-        # process response
+    if info := await get_premierely_info(target_url):
         if not info.get("ok"):
             api_log.warning("Couldn't find TikTok media from Premierely.")
             return None
 
         return AdvancedInfo(
             thumb=info.get("thumbnail"),
-            author_name=info.get("authorName"),
+            author_name=info.get("authorName") or info.get("author"),
             desc=info.get("title"),
             advinfo_source="premierely",
         )
@@ -668,50 +698,6 @@ async def get_links_ytdlp(
     return content
 
 
-async def get_links_tokcounter(
-    tiktok_info: TikTokInfo,
-) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
-    """Gets video links from TokCounter.
-
-    Args:
-        tiktok_info (dict): tiktok info dictionary.
-
-    Returns:
-        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
-    """
-    api_log = log.bind(api="tokcounter", type="links")
-    content = content_videos, content_images = [], []
-    # api info
-    api = "https://tiktok.livecounts.io/video/download"
-    # send request
-    if info := await fetch_api_json(
-        url=f"{api}/{tiktok_info['id']}",
-        method="GET",
-        headers={**get_fake_headers(), "Origin": "https://tokcounter.com"},
-        retry_with=dict(stop=stop_after_attempt(2)),
-        with_proxy=True,
-    ):
-        # process response
-        if not info["success"]:
-            api_log.warning("Couldn't find tiktok video.")
-            return content
-        api_log.debug("Getting links...")
-        _link = info["video"]["downloadUrl"]
-        if _ext := await get_content_extension(_link):
-            api_log.info("Video extension: %s.", _ext)
-            if _ext == "html":
-                api_log.warning("Can't download video in html format.")
-                return content
-        else:
-            api_log.info("Couldn't get video extension.")
-        if _size := await get_content_size(_link):
-            for _ in range(2):
-                content_videos.append(TikTokVideo(_link, _size, {}))
-        if not content_videos:
-            api_log.warning("No content.")
-    return content
-
-
 async def get_links_tikmate_app(
     tiktok_info: TikTokInfo,
 ) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
@@ -738,53 +724,6 @@ async def get_links_tikmate_app(
             else:
                 api_log.info("Couldn't get video extension.")
             if _size := await get_content_size(_link):
-                content_videos.append(TikTokVideo(_link, _size, {}))
-        if not content_videos:
-            api_log.warning("No content.")
-    return content
-
-
-async def get_links_lovetik(
-    tiktok_info: TikTokInfo,
-) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
-    """Gets video links from LoveTik.
-
-    Args:
-        tiktok_info (str): tiktok info dictionary.
-
-    Returns:
-        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
-    """
-    api_log = log.bind(api="lovetik", type="links")
-    content = content_videos, content_images = [], []
-    # api info
-    base = "lovetik.com"
-    api = f"https://{base}/api/ajax/search"
-    # send request
-    if info := await fetch_api_json(
-        url=api,
-        headers={
-            **get_fake_headers(),
-            "Content-Type": "application/x-www-form-urlencoded;" " charset=UTF-8",
-            "Referer": f"https://{base}/",
-        },
-        data={"query": f"https://www.tiktok.com/@web/video/{tiktok_info['id']}"},
-    ):
-        # process response
-        if info["status"] != "ok" or info["mess"].startswith("Error"):
-            api_log.warning("Couldn't find tiktok video.")
-            return content
-        api_log.debug("Getting links...")
-        _link = info["links"][0]["a"]
-        if _ext := await get_content_extension(_link):
-            api_log.info("Video extension: %s.", _ext)
-            if _ext == "html":
-                api_log.warning("Can't download video in html format.")
-                return content
-        else:
-            api_log.info("Couldn't get video extension.")
-        if _size := await get_content_size(_link):
-            for _ in range(2):
                 content_videos.append(TikTokVideo(_link, _size, {}))
         if not content_videos:
             api_log.warning("No content.")
@@ -885,69 +824,6 @@ async def get_links_unduhtiktok(
         if _size := await get_content_size(_link, cookies=cookies):
             for _ in range(2):
                 content_videos.append(TikTokVideo(_link, _size, {"cookies": cookies}))
-    return content
-
-
-async def get_links_tikgo(
-    tiktok_info: TikTokInfo,
-) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
-    """Gets video links from TikGo.
-
-    Args:
-        tiktok_info (str): tiktok info dictionary.
-
-    Returns:
-        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
-    """
-    api_log = log.bind(api="tikgo", type="links")
-    content = content_videos, content_images = [], []
-    # api info
-    base = "https://tikgo.me"
-    api = f"{base}/api/"
-    # send request
-    if info := await fetch_api_json(
-        url=api,
-        headers={
-            **get_fake_headers(),
-            "Referer": f"{base}/slide",
-            "Content-Type": "application/json",
-            "Origin": base,
-            "Connection": "keep-alive",
-        },
-        json={
-            "url": tiktok_info["fallback"],
-        },
-        follow_redirects=True,
-        with_proxy=True,
-    ):
-        # process response
-        # if metadata := info.get("metadata"):
-        #     title = metadata.get("title")
-        #     author = metadata.get("author")
-        #     thumb = metadata.get("thumbnail")
-        #     duration = metadata.get("duration")
-        if medias := info.get("medias"):
-            for media in medias:
-                if media.get("type") == "video":
-                    if _ext := await get_content_extension(media["url"]):
-                        api_log.info("Video extension: %s.", _ext)
-                        if _ext == "html":
-                            api_log.warning("Can't download video in html format.")
-                            continue
-                    else:
-                        api_log.info("Couldn't get video extension.")
-                    if _size := await get_content_size(media["url"]):
-                        content_videos.append(TikTokVideo(media["url"], _size, {}))
-                elif media.get("type") == "image":
-                    _prev = media.get("url")
-                    _link = media.get("url")
-                    _name = await get_content_name(_link, REGEX_TIKTOK_CDN)
-                    if _size := await get_content_size(_link):
-                        content_images.append(TikTokPhoto(_link, _size, _prev, _name))
-                    else:
-                        api_log.error("Failed to download.")
-                        content_images = []
-                        return content
     return content
 
 
@@ -1100,36 +976,17 @@ async def get_links_downr(
     """Gets video links from downr.org.
 
     Args:
-        tiktok_info (str): tiktok info dictionary.
+        tiktok_info (TikTokInfo): tiktok info dictionary.
 
     Returns:
         tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video links and sizes.
     """
     api_log = log.bind(api="downr", type="links")
     content = content_videos, content_images = [], []
-    # api info
-    api = "https://downr.org/.netlify/functions/download"
-    # send request
-    if info := await fetch_api_json(
-        url=api,
-        method="POST",
-        headers={
-            **get_fake_headers(),
-            "Referer": "https://downr.org/",
-            "Content-Type": "application/json",
-            "Origin": "https://downr.org",
-            "Connection": "keep-alive",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "Priority": "u=0",
-        },
-        json={"url": tiktok_info["fallback"]},
-        follow_redirects=True,
-        with_proxy=True,
-    ):
-        # process response
-        if info["error"]:
+    link = tiktok_info.get("original_link") or tiktok_info["fallback"]
+
+    if info := await get_downr_info(link):
+        if info.get("error"):
             api_log.warning("downr returned error.", json=info)
             return content
         api_log.debug("Loaded JSON.", json=info)
@@ -1162,28 +1019,87 @@ async def get_links_downr(
     return content
 
 
+async def get_links_premierely(
+    tiktok_info: TikTokInfo,
+) -> tuple[list[TikTokVideo], list[TikTokPhoto]]:
+    """Gets video and photo links from Premierely.
+
+    Args:
+        tiktok_info (TikTokInfo): tiktok info dictionary.
+
+    Returns:
+        tuple[list[TikTokVideo], list[TikTokPhoto]]: tiktok video and photo links.
+    """
+    api_log = log.bind(api="premierely", type="links")
+    content = content_videos, content_images = [], []
+    link = tiktok_info.get("original_link") or tiktok_info["fallback"]
+
+    if info := await get_premierely_info(link):
+        if not info.get("ok"):
+            api_log.warning("Premierely returned an error or no media.", json=info)
+            return content
+
+        api_log.debug("Loaded JSON.", json=info)
+
+        # Process slideshow images
+        if images := info.get("images"):
+            for img_url in images:
+                _prev = img_url
+                _link = img_url
+                _name = await get_content_name(_link, REGEX_TIKTOK_CDN)
+                if _size := await get_content_size(_link):
+                    content_images.append(TikTokPhoto(_link, _size, _prev, _name))
+                else:
+                    api_log.error("Failed to download image.")
+                    content_images = []
+                    return content
+
+        # Process video links if not a photo slideshow
+        if not content_images:
+            video_urls = []
+            audio_url = info.get("audioUrl")
+            for key in ("hdVideoUrl", "videoUrl"):
+                if (
+                    (v_url := info.get(key))
+                    and v_url not in video_urls
+                    and v_url != audio_url
+                ):
+                    video_urls.append(v_url)
+
+            for _link in video_urls:
+                if _ext := await get_content_extension(_link):
+                    api_log.info("Video extension: %s.", _ext)
+                    if _ext in ("html", "mp3"):
+                        api_log.warning("Invalid video extension: %s.", _ext)
+                        continue
+                else:
+                    api_log.info("Couldn't get video extension.")
+
+                if _size := await get_content_size(_link):
+                    content_videos.append(TikTokVideo(_link, _size, {}))
+
+    return content
+
+
 BASIC_INFO_PROVIDERS = (
-    get_basic_info_tiktok,  # original source
-    get_basic_info_ytdlp,  # best source
-    get_basic_info_tikmate,  # nice source
-    get_basic_info_downr,  # nice source
-    get_basic_info_url_expand,  # link source
+    get_basic_info_tiktok,  # original
+    get_basic_info_ytdlp,  # best
+    get_basic_info_tikmate,  # nice
+    get_basic_info_downr,  # nice
 )
 
 ADVANCED_INFO_PROVIDERS = (
     get_info_ytdlp,  # best
     get_info_tokcounter,  # good
-    get_info_lovetik,  # okay
     get_info_premierely,  # okay
-    get_tiktok_thumbnail,  # thumbnail
+    get_basic_info_downr,  # fallback metadata
+    get_basic_info_tikmate,  # fallback metadata
 )
 
 VIDEO_PROVIDERS = (
     get_links_tikmate_app,  # good
-    get_links_tikgo,  # good
-    get_links_tokcounter,  # good
-    get_links_lovetik,  # good
     get_links_ytdlp,  # good
+    get_links_premierely,  # ???
     get_links_unduhtiktok,  # okay
     get_links_downr,  # nice
 )
@@ -1191,7 +1107,7 @@ VIDEO_PROVIDERS = (
 SLIDE_PROVIDERS = (
     get_slides_links_tikmate_io,  # nice
     get_slides_links_snaptik,  # nice
-    get_links_tikgo,  # good
+    get_links_premierely,  # ???
     get_links_unduhtiktok,  # good
     get_links_downr,  # nice
 )
@@ -1217,10 +1133,12 @@ async def get_tiktok_links(link: str) -> Optional[TikTokMedia]:
     info = enrich_tiktok_info(basic_info, link)
 
     for get_info in ADVANCED_INFO_PROVIDERS:
-        if adv_info := await get_info(basic_info):
+        if all(info.get(k) for k in ("author_name", "desc", "thumb")):
+            break
+        if adv_info := await get_info(info):
             update_new(info, adv_info)
-            if info.get("thumb"):
-                break
+            if info.get("type") and "kind" not in info:
+                enrich_tiktok_info(info, link)
     else:
         return
 
