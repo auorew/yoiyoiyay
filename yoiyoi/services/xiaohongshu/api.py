@@ -141,8 +141,7 @@ async def get_xhs_links(url: str) -> Optional[XHSApiResponse]:
         return None
 
     try:
-        # Convert dictionary directly into msgspec struct
-        return msgspec.structs.convert(response_data, XHSApiResponse)
+        return msgspec.convert(response_data, XHSApiResponse)
     except (msgspec.ValidationError, TypeError) as e:
         log.warning("Failed to parse XHS container response.", error=str(e))
         return None
