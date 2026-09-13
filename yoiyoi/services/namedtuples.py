@@ -155,6 +155,7 @@ XiaohongshuMedia = namedtuple(
     (
         "id",
         "source",
+        "author",
         "title",
         "description",
         "thumb",
