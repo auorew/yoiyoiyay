@@ -236,6 +236,7 @@ async def get_links_container(link: str) -> Optional[dict]:
 
     return {
         "id": data.id,
+        "author": data.author or "",
         "title": data.title,
         "description": data.desc,
         "thumb": thumb,
@@ -338,6 +339,10 @@ async def get_links_ytdlp(link: str) -> Optional[dict]:
 
     ytdlp_log.info("yt-dlp extraction successful.", content_items=len(content))
     return {
+        "author": info.get("uploader")
+        or info.get("channel")
+        or info.get("creator")
+        or "",
         "title": info.get("title", ""),
         "description": info.get("description", ""),
         "thumb": largest_thumbnail,
@@ -376,6 +381,7 @@ async def convert_dictionary_to_namedtuple(
     return XiaohongshuMedia(
         id=result["id"],
         source=result["source"],
+        author=result.get("author", ""),
         title=result["title"],
         description=result["description"],
         thumb=result["thumb"],

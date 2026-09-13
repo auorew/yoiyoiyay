@@ -342,7 +342,7 @@ class TikTokMode(Switcher):
 
 
 class XiaohongshuStyle(Style):
-    """Represents tiktok style."""
+    """Represents Xiaohongshu style."""
 
     name = "Xiaohongshu"
     field = "xhs_style"
@@ -362,11 +362,9 @@ class XiaohongshuStyle(Style):
             case cls.VIDEO_LINK_DESC:
                 return "\\[ `Video` \\]\n\nLink\n\nDescription"
             case cls.VIDEO_INFO_EMBED_LINK:
-                return f"\\[ `Video` \\]\n\n[**Title | UserID**]({link})"
+                return f"\\[ `Video` \\]\n\n[**Title | Author**]({link})"
             case cls.VIDEO_INFO_EMBED_LINK_DESC:
-                return (
-                    f"\\[ `Video` \\]\n\n[**Title | UserID**]({link})" "\n\nDescription"
-                )
+                return f"\\[ `Video` \\]\n\n[**Title | Author**]({link})\n\nDescription"
             case _:
                 return "Unknown"
 
@@ -376,17 +374,29 @@ class XiaohongshuStyle(Style):
         style: int,
         vid: XiaohongshuMedia,
     ) -> str:
-        link, title, desc = (
-            escape_html(vid.source),
-            escape_html(vid.title),
-            escape_html(vid.description),
-        )
+        link = escape_html(vid.source)
+        title = escape_html(vid.title.strip()) if vid.title else ""
+        desc = escape_html(vid.description.strip()) if vid.description else ""
+        author = escape_html(getattr(vid, "author", "").strip())
+
+        # Determine embedded anchor text header
+        if title and author:
+            header = f"{title} | {author}"
+        elif title:
+            header = title
+        elif author:
+            header = f"xhs post #{vid.id} | {author}"
+        else:
+            header = f"xhs post #{vid.id}"
+
+        embed_link = f"<a href='{link}'><b>{header}</b></a>"
+
         match style:
             case cls.VIDEO_LINK_DESC:
-                return f"{link}\n\n{desc}"
+                return f"{link}\n\n{desc}" if desc else link
             case cls.VIDEO_INFO_EMBED_LINK:
-                return f"<a href='{link}'><b>{title}</b></a>"
+                return embed_link
             case cls.VIDEO_INFO_EMBED_LINK_DESC:
-                return f"<a href='{link}'>>b>{title}</b></a>\n\n{desc}"
+                return f"{embed_link}\n\n{desc}" if desc else embed_link
             case cls.VIDEO_LINK | _:
                 return link
