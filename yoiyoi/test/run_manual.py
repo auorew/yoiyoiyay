@@ -13,7 +13,9 @@ structlog.configure(
 )
 
 TEST_URLS = [
-    "https://www.tiktok.com/@web/video/7576696635258899724",
+    "https://www.tiktok.com/@osudailybanger/video/7167401459322080518",
+    "https://www.tiktok.com/@codehase/photo/7266491035704888581",
+    "https://vt.tiktok.com/ZSqHLs6YU/",
 ]
 
 
