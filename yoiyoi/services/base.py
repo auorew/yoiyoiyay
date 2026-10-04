@@ -32,10 +32,15 @@ from telegram.constants import ParseMode as PM
 from yoiyoi.bot import CACHE_DIR, MAX_REQUEST_SIZE, MAX_VIDEO_SIZE
 
 # bot formatters
-from yoiyoi.bot.formatters import esc, make_file_name
+from yoiyoi.bot.formatters import esc, make_file_name, make_thumb_name
 
 # bot processors
-from yoiyoi.bot.processors import process_image, process_video
+from yoiyoi.bot.processors import (
+    create_thumbnail,
+    process_image,
+    process_thumbnail,
+    process_video,
+)
 
 # bot senders
 from yoiyoi.bot.senders import reply_media_group, send_error
@@ -243,6 +248,68 @@ class BaseSender(ABC):
         # returning
         return procpath, filepath
 
+    async def prepare_thumbnail(
+        self,
+        thumb: Optional[str] = None,
+        videopath: Optional[Path] = None,
+        headers: Optional[dict] = None,
+        video_width: Optional[int] = None,
+        video_height: Optional[int] = None,
+        crop: bool = False,
+    ) -> Optional[Path]:
+        """Prepares a Telegram-compliant native JPEG thumbnail (<= 320x320, < 200 kB)."""
+        thumbfile = None
+
+        if thumb:
+            try:
+                raw_thumb, _ = await self.download_helper(thumb, headers=headers)
+                if raw_thumb and raw_thumb.exists():
+                    thumbfile = raw_thumb
+            except Exception as exception:
+                self.log.warning(
+                    "Failed to download thumbnail from %s: %r.", thumb, exception
+                )
+
+        if not thumbfile and videopath and videopath.exists():
+            try:
+                self.log.info("Extracting thumbnail from video %s...", videopath.name)
+                thumbfile = await create_thumbnail(videopath)
+                if thumbfile:
+                    self.storage.add(thumbfile)
+            except Exception as exception:
+                self.log.warning(
+                    "Failed to create thumbnail from video %s: %r.",
+                    videopath.name,
+                    exception,
+                )
+
+        if not thumbfile or not thumbfile.exists():
+            self.log.warning("No thumbnail available for %s.", videopath)
+            return None
+
+        proc_thumb = await process_thumbnail(
+            thumbfile,
+            video_width=video_width,
+            video_height=video_height,
+            crop=crop,
+        )
+        if not proc_thumb or not proc_thumb.exists():
+            self.log.warning("Failed to process thumbnail %s.", thumbfile)
+            return None
+
+        self.storage.add(proc_thumb)
+
+        base_name = videopath.name if videopath else proc_thumb.name
+        thumbname = await make_thumb_name(base_name, proc_thumb)
+        final_thumbpath = self.storage_dir / thumbname
+
+        if proc_thumb != final_thumbpath:
+            final_thumbpath = move_file(proc_thumb, final_thumbpath)
+            self.storage.discard(proc_thumb)
+            self.storage.add(final_thumbpath)
+
+        return final_thumbpath
+
     # helpers
 
     async def _send_batched(self, generator: AsyncGenerator[MediaItem, None]):
@@ -299,11 +366,11 @@ class BaseSender(ABC):
                 )
 
                 thumb_handle = input_thumb = None
-                if item.thumb_path:
+                if item.thumb_path and item.thumb_path.exists():
                     thumb_handle = stack.enter_context(item.thumb_path.open("rb"))
                     input_thumb = InputFile(
                         thumb_handle,
-                        filename=item.path.name,
+                        filename=item.thumb_path.name,
                         attach=True,
                         read_file_handle=False,
                     )
@@ -380,6 +447,8 @@ class BaseSender(ABC):
                     item.orig_path.unlink(missing_ok=True)
                 # Remove from the global set so _cleanup doesn't try again
                 self.storage.discard(item.path)
+                if item.thumb_path:
+                    self.storage.discard(item.thumb_path)
                 if item.orig_path:
                     self.storage.discard(item.orig_path)
             except Exception as exception:

@@ -130,10 +130,12 @@ class InstagramSender(BaseSender):
                     )
 
                 # get InstaMedia.thumb
-                thumbfile, _ = await self.download_helper(item.thumb)
-                thumbname = await make_thumb_name(filepath.name, thumbfile)
-                thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
-                self.storage.add(thumbpath)
+                thumbpath = await self.prepare_thumbnail(
+                    thumb=item.thumb,
+                    videopath=procpath,
+                    video_width=videoinfo[0],
+                    video_height=videoinfo[1],
+                )
 
                 yield MediaItem(
                     path=filepath,

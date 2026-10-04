@@ -89,12 +89,13 @@ class PixivSender(BaseSender):
                 )
 
             # get PixivContent.thumb
-            thumbfile, _ = await self.download_helper(
-                item.thumb, headers=PIXIV_HEADERS, to_ext="jpeg"
+            thumbpath = await self.prepare_thumbnail(
+                thumb=item.thumb,
+                videopath=procpath,
+                headers=PIXIV_HEADERS,
+                video_width=videoinfo[0],
+                video_height=videoinfo[1],
             )
-            thumbname = await make_thumb_name(filepath.name, thumbfile)
-            thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
-            self.storage.add(thumbpath)
 
             yield MediaItem(
                 path=procpath,

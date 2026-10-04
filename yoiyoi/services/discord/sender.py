@@ -66,10 +66,11 @@ class DiscordSender(BaseSender):
                 )
 
             # create thumbnail
-            thumbfile = await create_thumbnail(procpath)
-            thumbname = await make_thumb_name(filepath.name, thumbfile)
-            thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
-            self.storage.add(thumbpath)
+            thumbpath = await self.prepare_thumbnail(
+                videopath=procpath,
+                video_width=video_info[0],
+                video_height=video_info[1],
+            )
 
             yield MediaItem(
                 path=procpath,

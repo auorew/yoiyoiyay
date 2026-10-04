@@ -1,4 +1,5 @@
 import asyncio
+import io
 import os
 
 from hashlib import sha256
@@ -15,7 +16,7 @@ import pillow_jxl  # noqa: F401
 import structlog
 
 # working with images
-from PIL import Image
+from PIL import Image, ImageOps
 
 # working with heif (just in case)
 from pillow_heif import register_heif_opener
@@ -30,6 +31,8 @@ from yoiyoi.app.utils import resize_image_file
 from yoiyoi.bot import (
     MAX_PHOTO_FILE_SIZE,
     MAX_PHOTO_SIZE_SUM,
+    MAX_THUMB_FILE_SIZE,
+    MAX_THUMB_SIZE,
     MAX_VIDEO_DURATION,
     MAX_VIDEO_SIZE,
 )
@@ -59,49 +62,136 @@ log = structlog.get_logger(__name__)
 register_heif_opener()
 
 
-def _crop_thumbnail_sync(thumbpath: Path, video_width: int, video_height: int) -> bool:
-    """Synchronous worker that performs the actual cropping."""
-    # Safe temporary path using stem/suffix manipulation
-    newthumbpath = thumbpath.with_name(f"{thumbpath.stem}_rethumb{thumbpath.suffix}")
+def _process_thumbnail_sync(
+    thumbpath: Path,
+    video_width: Optional[int] = None,
+    video_height: Optional[int] = None,
+    crop: bool = False,
+) -> Optional[Path]:
+    """Processes an image into a Telegram-compliant native JPEG thumbnail:
+    - JPEG format (RGB mode, no alpha)
+    - Width and height <= 320
+    - File size < 200 kB
+    """
+    if not thumbpath or not thumbpath.exists() or thumbpath.stat().st_size == 0:
+        return None
+
+    target_path = thumbpath.with_suffix(".jpeg")
+    temp_out = thumbpath.with_name(f"{thumbpath.stem}_thumb_tmp.jpeg")
 
     try:
         with Image.open(thumbpath) as image:
-            image_width, image_height = image.size
+            image = ImageOps.exif_transpose(image)
 
-            # Calculate target crop width preserving original video aspect ratio
-            thumbnail_width = video_width * image_height / video_height
+            # Center-crop if aspect ratio matching is requested
+            if (
+                crop
+                and video_width
+                and video_height
+                and image.width > 0
+                and image.height > 0
+            ):
+                target_aspect = video_width / video_height
+                img_aspect = image.width / image.height
+                if img_aspect > target_aspect:
+                    crop_w = round(target_aspect * image.height)
+                    left = (image.width - crop_w) / 2
+                    image = image.crop((left, 0, left + crop_w, image.height))
+                elif img_aspect < target_aspect:
+                    crop_h = round(image.width / target_aspect)
+                    top = (image.height - crop_h) / 2
+                    image = image.crop((0, top, image.width, top + crop_h))
 
-            # Center-crop horizontal bounding box
-            top, bottom = 0, image_height
-            left = (image_width - thumbnail_width) / 2
-            right = left + thumbnail_width
+            # Resize if width or height exceeds MAX_THUMB_SIZE (320)
+            width, height = image.size
+            if width > MAX_THUMB_SIZE or height > MAX_THUMB_SIZE:
+                scale = min(MAX_THUMB_SIZE / width, MAX_THUMB_SIZE / height)
+                new_width = max(1, round(width * scale))
+                new_height = max(1, round(height * scale))
+                image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
-            # Crop and save as JPEG
-            cropped_img = image.crop((left, top, right, bottom))
-            cropped_img.save(newthumbpath, quality=95)
+            # Ensure color mode is compatible with JPEG (RGB or L only)
+            if image.mode in ("RGBA", "LA") or (
+                image.mode == "P" and "transparency" in image.info
+            ):
+                bg = Image.new("RGB", image.size, (255, 255, 255))
+                rgba_image = image.convert("RGBA")
+                bg.paste(rgba_image, mask=rgba_image.split()[-1])
+                image = bg
+            elif image.mode != "RGB":
+                image = image.convert("RGB")
 
-        replace_file(newthumbpath, thumbpath)
-        return True
+            # Compress as native JPEG ensuring size is less than MAX_THUMB_FILE_SIZE (200 kB)
+            target_size = MAX_THUMB_FILE_SIZE - 1024  # Strict margin below 200 kB
+            buf = io.BytesIO()
+            quality = 90
+            while quality >= 20:
+                buf.seek(0)
+                buf.truncate()
+                image.save(buf, format="JPEG", quality=quality, optimize=True)
+                if buf.tell() < target_size:
+                    break
+                quality -= 10
+
+            # Iterative downscale in case quality reduction alone wasn't enough
+            while buf.tell() >= target_size and (image.width > 50 and image.height > 50):
+                image = image.resize(
+                    (int(image.width * 0.8), int(image.height * 0.8)),
+                    Image.Resampling.LANCZOS,
+                )
+                buf.seek(0)
+                buf.truncate()
+                image.save(buf, format="JPEG", quality=quality, optimize=True)
+
+            temp_out.write_bytes(buf.getvalue())
+
+        if target_path != thumbpath:
+            replace_file(temp_out, target_path)
+            thumbpath.unlink(missing_ok=True)
+            return target_path
+        else:
+            replace_file(temp_out, thumbpath)
+            return thumbpath
 
     except Exception as exception:
         log.warning(
-            "Failed to crop thumbnail for %s because of %s: %r.",
+            "Failed to process thumbnail for %s: %r.",
             thumbpath,
-            exception.__class__.__name__,
             exception,
             exc_info=True,
-            # function info
             thumbpath=thumbpath,
-            video_width=video_width,
-            video_height=video_height,
         )
-        if newthumbpath.exists():
-            newthumbpath.unlink(missing_ok=True)
-        return False
+        if temp_out.exists():
+            temp_out.unlink(missing_ok=True)
+        return None
+
+
+async def process_thumbnail(
+    thumbpath: Path,
+    video_width: Optional[int] = None,
+    video_height: Optional[int] = None,
+    crop: bool = False,
+) -> Optional[Path]:
+    """Async entry point for processing thumbnails."""
+    return await asyncio.to_thread(
+        _process_thumbnail_sync,
+        thumbpath,
+        video_width,
+        video_height,
+        crop,
+    )
+
+
+def _crop_thumbnail_sync(thumbpath: Path, video_width: int, video_height: int) -> bool:
+    """Synchronous worker that performs cropping and thumbnail processing."""
+    result = _process_thumbnail_sync(
+        thumbpath, video_width=video_width, video_height=video_height, crop=True
+    )
+    return bool(result)
 
 
 async def crop_thumbnail(thumbpath: Path, video_width: int, video_height: int) -> bool:
-    """Async entry point — offloads blocking image operations to a thread."""
+    """Async entry point — crops and converts thumbnail for Telegram."""
     return await asyncio.to_thread(
         _crop_thumbnail_sync, thumbpath, video_width, video_height
     )
@@ -262,22 +352,44 @@ async def choose_twitter_video(
 
 # write a code that will create thumbnail from video file
 async def create_thumbnail(filepath: Path) -> Optional[Path]:
-    log.info("Creating a thumbnail...")
+    log.info("Creating a thumbnail from video %s...", filepath.name)
     # create output path
-    thumbpath = filepath.parent / f"{filepath.stem}.thumb.jpg"
+    raw_thumbpath = filepath.parent / f"{filepath.stem}.raw_thumb.jpeg"
     # fmt: off
     ffmpeg_command = (
         "ffmpeg",
         "-hide_banner", "-loglevel", "warning",
+        "-y",
+        "-ss", "00:00:00",
         "-i", str(filepath),
-        "-vf", "select=eq(n\\,0)",
         "-frames:v", "1",
-        str(thumbpath),
+        str(raw_thumbpath),
     )
     # fmt: on
     log.debug("ffmpeg command: %s.", " ".join(ffmpeg_command))
     process = await asyncio.create_subprocess_exec(*ffmpeg_command)
-    if await process.wait() != 0:
-        log.warning("ffmpeg command failed.")
-        return
-    return thumbpath
+    if (
+        await process.wait() != 0
+        or not raw_thumbpath.exists()
+        or raw_thumbpath.stat().st_size == 0
+    ):
+        log.warning("ffmpeg fast extraction failed, trying frame select fallback...")
+        fallback_command = (
+            "ffmpeg",
+            "-hide_banner", "-loglevel", "warning",
+            "-y",
+            "-i", str(filepath),
+            "-vf", "select=eq(n\\,0)",
+            "-frames:v", "1",
+            str(raw_thumbpath),
+        )
+        process = await asyncio.create_subprocess_exec(*fallback_command)
+        if (
+            await process.wait() != 0
+            or not raw_thumbpath.exists()
+            or raw_thumbpath.stat().st_size == 0
+        ):
+            log.warning("ffmpeg fallback command failed.")
+            return None
+
+    return await process_thumbnail(raw_thumbpath)

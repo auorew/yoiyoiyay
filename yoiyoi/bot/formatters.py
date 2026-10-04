@@ -412,5 +412,6 @@ async def join_file_name(file_name: str, file: str | bytes) -> str:
     return ".".join((file_name, extract_file_ext(file)))
 
 
-async def make_thumb_name(file_name: str, file: str | bytes) -> str:
-    return ".".join((file_name.rsplit(".")[0], "thumb", extract_file_ext(file)))
+async def make_thumb_name(file_name: str, file: str | bytes = "") -> str:
+    base = Path(file_name).stem if file_name else "thumb"
+    return f"{base}.thumb.jpeg"

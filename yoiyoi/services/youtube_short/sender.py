@@ -90,19 +90,14 @@ class YouTubeShortSender(BaseSender):
                 )
 
             # get YouTubeShortMedia.thumb
-            thumbfile, _ = await self.download_helper(media.thumb, to_ext="jpeg")
-            thumbname = await make_thumb_name(filepath.name, thumbfile)
-            thumbpath = move_file(thumbfile, self.storage_dir / thumbname)
-
             video_w, video_h, *_ = video_info
-
-            await crop_thumbnail(
-                thumbpath=thumbpath,
+            thumbpath = await self.prepare_thumbnail(
+                thumb=media.thumb,
+                videopath=videopath,
                 video_width=video_w,
                 video_height=video_h,
+                crop=True,
             )
-
-            self.storage.add(thumbpath)
 
             yield MediaItem(
                 path=videopath,

@@ -27,9 +27,8 @@ def get_file_bytes(filepath: str) -> bytes:
     return get_file_chunk(filepath, None)
 
 
-def replace_file(filepath: str, replaced_filepath: str) -> None:
-    os.remove(replaced_filepath)
-    os.rename(filepath, replaced_filepath)
+def replace_file(filepath: str | Path, replaced_filepath: str | Path) -> None:
+    os.replace(filepath, replaced_filepath)
 
 
 def move_file(src: str | Path, dst: str | Path) -> Path:

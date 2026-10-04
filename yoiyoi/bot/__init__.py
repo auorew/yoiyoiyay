@@ -44,6 +44,13 @@ MAX_PHOTO_SIZE_SUM = 10000
 # telegram max photo size (10 MiB)
 MAX_PHOTO_FILE_SIZE = 10 << 20
 
+# telegram max thumbnail dimension must not exceed 320 but it's
+# applied if not sent as multipart, though, so set to 1280
+MAX_THUMB_SIZE = 1280
+
+# telegram max thumbnail file size (less than 200 KiB in size)
+MAX_THUMB_FILE_SIZE = 200 << 10
+
 # presumed max gif file size (3 MiB)
 MAX_GIF_FILE_SIZE = 3 << 20
 
