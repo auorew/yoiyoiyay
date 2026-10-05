@@ -1,15 +1,15 @@
-import io
-import pytest
 from pathlib import Path
+
 from PIL import Image
 
 from yoiyoi.bot import MAX_THUMB_FILE_SIZE, MAX_THUMB_SIZE
 from yoiyoi.bot.formatters import make_thumb_name
-from yoiyoi.bot.processors import _process_thumbnail_sync, process_thumbnail
+from yoiyoi.bot.processors import _process_thumbnail_sync
 
 
 def test_make_thumb_name():
     import asyncio
+
     name1 = asyncio.run(make_thumb_name("test_video.mp4"))
     assert name1 == "test_video.thumb.jpeg"
 
@@ -113,6 +113,7 @@ class DummyService:
         self.storage = set()
         self.update_id = 1234
         from unittest.mock import MagicMock
+
         self.log = MagicMock()
         self.update = MagicMock()
         self.chat = MagicMock()
@@ -122,6 +123,7 @@ class DummyService:
 
 def test_base_service_prepare_thumbnail_from_url(tmp_path: Path):
     import asyncio
+
     from unittest.mock import AsyncMock
 
     svc = DummyService(tmp_path)
@@ -156,6 +158,7 @@ def test_base_service_prepare_thumbnail_from_url(tmp_path: Path):
 
 def test_base_service_prepare_thumbnail_fallback_to_video(tmp_path: Path):
     import asyncio
+
     from unittest.mock import AsyncMock, patch
 
     svc = DummyService(tmp_path)
@@ -167,7 +170,10 @@ def test_base_service_prepare_thumbnail_fallback_to_video(tmp_path: Path):
     img = Image.new("RGB", (1280, 720), (50, 50, 50))
     img.save(extracted_thumb, format="JPEG")
 
-    with patch("yoiyoi.services.base.create_thumbnail", new=AsyncMock(return_value=extracted_thumb)):
+    with patch(
+        "yoiyoi.services.base.create_thumbnail",
+        new=AsyncMock(return_value=extracted_thumb),
+    ):
         final_thumb = asyncio.run(
             svc.prepare_thumbnail(
                 thumb=None,
@@ -190,7 +196,9 @@ def test_base_service_prepare_thumbnail_fallback_to_video(tmp_path: Path):
 
 def test_base_service_input_file_uses_thumb_name(tmp_path: Path):
     import asyncio
-    from unittest.mock import AsyncMock, patch
+
+    from unittest.mock import patch
+
     from yoiyoi.services.base import MediaItem
 
     svc = DummyService(tmp_path)
@@ -219,6 +227,7 @@ def test_base_service_input_file_uses_thumb_name(tmp_path: Path):
         return [MagicMock()]
 
     from unittest.mock import MagicMock
+
     with patch("yoiyoi.services.base.reply_media_group", new=fake_reply_media_group):
         asyncio.run(svc._process_and_flush([item]))
 

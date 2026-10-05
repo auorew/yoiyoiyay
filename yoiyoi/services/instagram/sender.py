@@ -6,10 +6,7 @@ import structlog
 from yoiyoi.app.utils import convert_webp_to_png
 
 # bot formatters
-from yoiyoi.bot.formatters import get_video_info, make_thumb_name
-
-# file utils
-from yoiyoi.extra.utils import move_file
+from yoiyoi.bot.formatters import get_video_info
 
 # base sender class and media item dataclass
 from yoiyoi.services.base import BaseSender, MediaItem, SenderError

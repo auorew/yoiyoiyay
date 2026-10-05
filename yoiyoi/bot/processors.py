@@ -66,12 +66,14 @@ def _process_thumbnail_sync(
     thumbpath: Path,
     video_width: Optional[int] = None,
     video_height: Optional[int] = None,
-    crop: bool = False,
+    crop: bool = True,
 ) -> Optional[Path]:
-    """Processes an image into a Telegram-compliant native JPEG thumbnail:
-    - JPEG format (RGB mode, no alpha)
-    - Width and height <= 320
-    - File size < 200 kB
+    """Processes an image into a Telegram-compliant JPEG thumbnail:
+    - RGB mode (no alpha/palettes)
+    - Stripped EXIF/ICC metadata (baseline JPEG)
+    - Limit max size on longest side
+    - Matches video aspect ratio
+    - File size strictly < 200 kB
     """
     if not thumbpath or not thumbpath.exists() or thumbpath.stat().st_size == 0:
         return None
@@ -80,37 +82,11 @@ def _process_thumbnail_sync(
     temp_out = thumbpath.with_name(f"{thumbpath.stem}_thumb_tmp.jpeg")
 
     try:
-        with Image.open(thumbpath) as image:
-            image = ImageOps.exif_transpose(image)
+        with Image.open(thumbpath) as raw_image:
+            # 1. Correct orientation from EXIF before stripping metadata
+            image = ImageOps.exif_transpose(raw_image)
 
-            # Center-crop if aspect ratio matching is requested
-            if (
-                crop
-                and video_width
-                and video_height
-                and image.width > 0
-                and image.height > 0
-            ):
-                target_aspect = video_width / video_height
-                img_aspect = image.width / image.height
-                if img_aspect > target_aspect:
-                    crop_w = round(target_aspect * image.height)
-                    left = (image.width - crop_w) / 2
-                    image = image.crop((left, 0, left + crop_w, image.height))
-                elif img_aspect < target_aspect:
-                    crop_h = round(image.width / target_aspect)
-                    top = (image.height - crop_h) / 2
-                    image = image.crop((0, top, image.width, top + crop_h))
-
-            # Resize if width or height exceeds MAX_THUMB_SIZE (320)
-            width, height = image.size
-            if width > MAX_THUMB_SIZE or height > MAX_THUMB_SIZE:
-                scale = min(MAX_THUMB_SIZE / width, MAX_THUMB_SIZE / height)
-                new_width = max(1, round(width * scale))
-                new_height = max(1, round(height * scale))
-                image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-            # Ensure color mode is compatible with JPEG (RGB or L only)
+            # 2. Convert to clean RGB BEFORE resizing/cropping
             if image.mode in ("RGBA", "LA") or (
                 image.mode == "P" and "transparency" in image.info
             ):
@@ -121,27 +97,64 @@ def _process_thumbnail_sync(
             elif image.mode != "RGB":
                 image = image.convert("RGB")
 
-            # Compress as native JPEG ensuring size is less than MAX_THUMB_FILE_SIZE (200 kB)
-            target_size = MAX_THUMB_FILE_SIZE - 1024  # Strict margin below 200 kB
+            # 3. Match video aspect ratio if dimensions provided
+            if video_width and video_height and video_width > 0 and video_height > 0:
+                target_aspect = video_width / video_height
+                img_aspect = image.width / image.height
+
+                if crop:
+                    # Center-crop thumbnail to match video aspect ratio
+                    if img_aspect > target_aspect:
+                        crop_w = round(target_aspect * image.height)
+                        left = (image.width - crop_w) / 2
+                        image = image.crop((left, 0, left + crop_w, image.height))
+                    elif img_aspect < target_aspect:
+                        crop_h = round(image.width / target_aspect)
+                        top = (image.height - crop_h) / 2
+                        image = image.crop((0, top, image.width, top + crop_h))
+
+            # 4. Scale down so longest edge
+            width, height = image.size
+            if width > MAX_THUMB_SIZE or height > MAX_THUMB_SIZE:
+                scale = min(MAX_THUMB_SIZE / width, MAX_THUMB_SIZE / height)
+                new_w = max(1, round(width * scale))
+                new_h = max(1, round(height * scale))
+                image = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+            # 5. Compress to baseline JPEG under max size (removing EXIF/ICC data)
+            target_size = MAX_THUMB_FILE_SIZE - 1024
             buf = io.BytesIO()
-            quality = 90
+            quality = 95
+
             while quality >= 20:
                 buf.seek(0)
                 buf.truncate()
-                image.save(buf, format="JPEG", quality=quality, optimize=True)
-                if buf.tell() < target_size:
+                image.save(
+                    buf,
+                    format="JPEG",
+                    quality=quality,
+                    optimize=True,
+                    progressive=False,
+                )
+                if buf.tell() <= target_size:
                     break
-                quality -= 10
+                quality -= 5
 
-            # Iterative downscale in case quality reduction alone wasn't enough
-            while buf.tell() >= target_size and (image.width > 50 and image.height > 50):
+            # Emergency downscale loop if compression alone exceeds limit
+            while buf.tell() > target_size and image.width > 50 and image.height > 50:
                 image = image.resize(
-                    (int(image.width * 0.8), int(image.height * 0.8)),
+                    (int(image.width * 0.85), int(image.height * 0.85)),
                     Image.Resampling.LANCZOS,
                 )
                 buf.seek(0)
                 buf.truncate()
-                image.save(buf, format="JPEG", quality=quality, optimize=True)
+                image.save(
+                    buf,
+                    format="JPEG",
+                    quality=quality,
+                    optimize=True,
+                    progressive=False,
+                )
 
             temp_out.write_bytes(buf.getvalue())
 
@@ -374,6 +387,7 @@ async def create_thumbnail(filepath: Path) -> Optional[Path]:
         or raw_thumbpath.stat().st_size == 0
     ):
         log.warning("ffmpeg fast extraction failed, trying frame select fallback...")
+        # fmt: off
         fallback_command = (
             "ffmpeg",
             "-hide_banner", "-loglevel", "warning",
@@ -383,6 +397,7 @@ async def create_thumbnail(filepath: Path) -> Optional[Path]:
             "-frames:v", "1",
             str(raw_thumbpath),
         )
+        # fmt: on
         process = await asyncio.create_subprocess_exec(*fallback_command)
         if (
             await process.wait() != 0

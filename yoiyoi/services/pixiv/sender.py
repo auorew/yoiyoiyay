@@ -6,7 +6,7 @@ import structlog
 from yoiyoi.bot import PixivParse
 
 # bot formatters
-from yoiyoi.bot.formatters import get_video_info, make_thumb_name, pixiv_parse
+from yoiyoi.bot.formatters import get_video_info, pixiv_parse
 
 # get info
 from yoiyoi.bot.helpers import get_info
@@ -16,9 +16,6 @@ from yoiyoi.extra.request_helpers import PIXIV_HEADERS, get_fake_headers
 
 # media styles
 from yoiyoi.extra.styles import PixivStyle
-
-# file utils
-from yoiyoi.extra.utils import move_file
 
 # base sender class and media item dataclass
 from yoiyoi.services.base import BaseSender, MediaItem, SenderError

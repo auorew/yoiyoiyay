@@ -8,7 +8,7 @@ import structlog
 from yoiyoi.bot import MAX_VIDEO_DURATION, MAX_VIDEO_SIZE, PixivParse
 
 # bot formatters
-from yoiyoi.bot.formatters import esc, get_video_info, make_thumb_name, pixiv_parse
+from yoiyoi.bot.formatters import esc, get_video_info, pixiv_parse
 
 # get info
 from yoiyoi.bot.helpers import get_info
@@ -18,9 +18,6 @@ from yoiyoi.bot.senders import send_error, send_reply
 
 # media styles
 from yoiyoi.extra.styles import TwitterStyle
-
-# file utils
-from yoiyoi.extra.utils import move_file
 
 # base sender class and media item dataclass
 from yoiyoi.services.base import BaseSender, MediaItem, SenderError

@@ -6,19 +6,13 @@ import structlog
 from yoiyoi.bot import MAX_VIDEO_SIZE
 
 # bot formatters
-from yoiyoi.bot.formatters import get_video_info, make_thumb_name
+from yoiyoi.bot.formatters import get_video_info
 
 # get info
 from yoiyoi.bot.helpers import get_info
 
-# bot processors
-from yoiyoi.bot.processors import crop_thumbnail
-
 # media styles
 from yoiyoi.extra.styles import YouTubeShortStyle
-
-# file utils
-from yoiyoi.extra.utils import move_file
 
 # base sender class and media item dataclass
 from yoiyoi.services.base import BaseSender, MediaItem, SenderError

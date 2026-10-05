@@ -257,7 +257,7 @@ class BaseSender(ABC):
         video_height: Optional[int] = None,
         crop: bool = False,
     ) -> Optional[Path]:
-        """Prepares a Telegram-compliant native JPEG thumbnail (<= 320x320, < 200 kB)."""
+        """Prepares a Telegram-compliant native JPEG thumbnail."""
         thumbfile = None
 
         if thumb:

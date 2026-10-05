@@ -3,16 +3,10 @@
 import structlog
 
 # bot formatters
-from yoiyoi.bot.formatters import get_video_info, make_thumb_name
-
-# process video to create thumbnail
-from yoiyoi.bot.processors import create_thumbnail
+from yoiyoi.bot.formatters import get_video_info
 
 # http requests
 from yoiyoi.extra.requests import get_content_type
-
-# file utils
-from yoiyoi.extra.utils import move_file
 
 # base sender class and media item dataclass
 from yoiyoi.services.base import BaseSender, MediaItem, SenderError
