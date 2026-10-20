@@ -19,15 +19,15 @@ repos:
     hooks:
       - id: yesqa
   - repo: https://github.com/pycqa/isort
-    rev: 9.0.2
+    rev: 10.0.0b1
     hooks:
       - id: isort
   - repo: https://github.com/ambv/black
-    rev: 26.10.0
+    rev: 26.10.1
     hooks:
       - id: black
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.10
+    rev: v0.17.1
     hooks:
       - id: ruff
         args: [ --fix ]

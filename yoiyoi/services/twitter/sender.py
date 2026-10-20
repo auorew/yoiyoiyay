@@ -156,7 +156,10 @@ class TwitterSender(BaseSender):
                     )
 
                 videoinfo = await get_video_info(procpath)
-                if not all(videoinfo):
+                width, height, duration, has_video, has_audio, _ = videoinfo
+                duration = max(1, duration)
+
+                if not (width and height and has_video):
                     raise SenderError(
                         message=(
                             "can't be uploaded! "

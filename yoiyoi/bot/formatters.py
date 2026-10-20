@@ -193,7 +193,12 @@ async def get_video_info(
 
                 s_duration = stream.get("duration") or duration
                 if s_duration and not duration:
-                    duration = int(float(s_duration))
+                    duration = max(1, round(float(s_duration)))
+
+                if not duration:
+                    f_duration = format_info.get("duration") or duration
+                    if f_duration:
+                        duration = max(1, round(float(f_duration)))
 
             elif ctype == "audio":
                 if audio_codec_tag := stream.get("codec_tag_string"):
