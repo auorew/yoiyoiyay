@@ -70,8 +70,8 @@ class PixivSender(BaseSender):
                     ),
                 )
 
-            videoinfo = await get_video_info(procpath)
-            if not all(videoinfo):
+            video_info = await get_video_info(procpath)
+            if not all(video_info[:3]):
                 raise SenderError(
                     message=(
                         "can't be uploaded! "
@@ -90,8 +90,8 @@ class PixivSender(BaseSender):
                 thumb=item.thumb,
                 videopath=procpath,
                 headers=PIXIV_HEADERS,
-                video_width=videoinfo[0],
-                video_height=videoinfo[1],
+                video_width=video_info[0],
+                video_height=video_info[1],
             )
 
             yield MediaItem(
@@ -99,9 +99,9 @@ class PixivSender(BaseSender):
                 type="video",
                 caption=info,
                 thumb_path=thumbpath,
-                width=videoinfo[0],
-                height=videoinfo[1],
-                duration=videoinfo[2],
+                width=video_info[0],
+                height=video_info[1],
+                duration=video_info[2],
             )
 
         else:

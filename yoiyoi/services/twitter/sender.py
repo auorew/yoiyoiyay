@@ -155,11 +155,8 @@ class TwitterSender(BaseSender):
                         ),
                     )
 
-                videoinfo = await get_video_info(procpath)
-                width, height, duration, has_video, has_audio, _ = videoinfo
-                duration = max(1, duration)
-
-                if not (width and height and has_video):
+                video_info = await get_video_info(procpath)
+                if not all(video_info[:3]):
                     raise SenderError(
                         message=(
                             "can't be uploaded! "
@@ -176,8 +173,8 @@ class TwitterSender(BaseSender):
                 thumbpath = await self.prepare_thumbnail(
                     thumb=item.thumb,
                     videopath=procpath,
-                    video_width=videoinfo[0],
-                    video_height=videoinfo[1],
+                    video_width=video_info[0],
+                    video_height=video_info[1],
                 )
 
                 yield MediaItem(
@@ -185,9 +182,9 @@ class TwitterSender(BaseSender):
                     type="video",
                     caption=info,
                     thumb_path=thumbpath,
-                    width=videoinfo[0],
-                    height=videoinfo[1],
-                    duration=videoinfo[2],
+                    width=video_info[0],
+                    height=video_info[1],
+                    duration=video_info[2],
                 )
 
     async def _choose_twitter_video(self, content: TweetContent) -> Optional[str]:
