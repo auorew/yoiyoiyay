@@ -52,9 +52,6 @@ RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh &&
 # Install Poetry and project dependencies
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 
-# Tell Poetry explicitly where the python interpreter is located to avoid discovery bugs
-RUN poetry config python /usr/local/bin/python
-
 # Copy dependencies first
 COPY pyproject.toml poetry.lock* ./
 
