@@ -3821,20 +3821,6 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3_binary"]
 
 [[package]]
-name = "sqlalchemy-repr"
-version = "0.1.0"
-description = "Automatically generates pretty repr of a SQLAlchemy model."
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "sqlalchemy-repr-0.1.0.tar.gz", hash = "sha256:eaf46d28479bd7416d33a184affa851aba9231e0de38123218fa6dfb59f1f2e8"},
-]
-
-[package.dependencies]
-SQLAlchemy = "*"
-
-[[package]]
 name = "starlette"
 version = "1.9.0"
 description = "The little ASGI library that shines."
@@ -4567,4 +4553,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.14"
-content-hash = "a1641919d6552587a8956b63d99f811aa71a26762caa4ac19d3b765dfc4901a1"
+content-hash = "6450917bee93e0098b9d7d24a39b3a07c70d1919479c635c4ebd90d6d21e7485"
