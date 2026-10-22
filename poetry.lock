@@ -3536,6 +3536,7 @@ files = [
 
 [package.dependencies]
 cffi = ">=1.0.0"
+pyvips-binary = {version = "*", optional = true, markers = "extra == \"binary\""}
 
 [package.extras]
 binary = ["pyvips-binary"]
@@ -3543,6 +3544,30 @@ doc = ["sphinx", "sphinx_rtd_theme"]
 sdist = ["build"]
 test = ["pyperf", "pytest"]
 tox = ["tox"]
+
+[[package]]
+name = "pyvips-binary"
+version = "8.18.7"
+description = "Binary distribution of libvips and dependencies for use with pyvips"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "pyvips_binary-8.18.7-cp37-abi3-macosx_10_15_x86_64.whl", hash = "sha256:f7678611d18b7b40e2a90062412b7efc49d436fe21d9bfd4f82ac8e09285693f"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:4531cfbda41534b22d2824287ab2dd3aa696bc18bce1abf4560d73c047f4dd81"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:a30a8b22b21e3063648b11796e75845c8e1cc71b2fb22c5fb1b2dc5ac4ed723d"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-manylinux_2_28_armv7l.manylinux_2_31_armv7l.whl", hash = "sha256:ef4688e2a3599ab7e6dd102ef93700c225935e7c48a7aa8218c59c45b4c64cf9"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:312046c567abd89ce577ccb0dda8c8cbd9f37d520d5246290cdf8e114e91fbfc"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:9ec74d333373faf263000a754413ea58ab44b7c4085e66fdc196bf6fc0e899eb"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:62db93b5c627c6c88db1fdc080c218bcb23787dd406aa463d3dbad681e0d23cc"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-win32.whl", hash = "sha256:f6594910e8f4db8e004ef35022df740d595a5288c2d999e1bd9ad0b4ba59673a"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-win_amd64.whl", hash = "sha256:0c31cdaf88196e01a7a3e4372f3447d06db3c58383c15ff2eeaaa715952b1ec8"},
+    {file = "pyvips_binary-8.18.7-cp37-abi3-win_arm64.whl", hash = "sha256:c6005481208c3c768e1dfba345bfbbcbad886aad9615b15cd62a9dc7ccb0e88b"},
+    {file = "pyvips_binary-8.18.7.tar.gz", hash = "sha256:ee6b59c6b88494651b18483f52a850ef24883eac4130e8cf6e6d14277506f973"},
+]
+
+[package.dependencies]
+cffi = ">=1.0.0"
 
 [[package]]
 name = "pyyaml"
@@ -4542,4 +4567,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.14"
-content-hash = "2bd291696208f6f1c0036887a2542ca69b55adae14be755025715f82a0b7f810"
+content-hash = "a1641919d6552587a8956b63d99f811aa71a26762caa4ac19d3b765dfc4901a1"
