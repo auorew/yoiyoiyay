@@ -18,8 +18,6 @@ ENV LANG=C.UTF-8 \
     POETRY_VIRTUALENVS_CREATE=false \
     POETRY_CACHE_DIR='/tmp/poetry_cache' \
     DENO_INSTALL="/usr/local/deno" \
-    UV_PYTHON_INSTALL_DIR=/opt/python \
-    VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:/usr/local/deno/bin:$PATH"
 
 # Create workdir
@@ -53,6 +51,9 @@ RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh &&
 
 # Install Poetry and project dependencies
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+
+# Tell Poetry explicitly where the python interpreter is located to avoid discovery bugs
+RUN poetry config python /usr/local/bin/python
 
 # Copy dependencies first
 COPY pyproject.toml poetry.lock* ./
