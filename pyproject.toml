@@ -11,25 +11,25 @@ python = "^3.14"
 python-telegram-bot = {version = "^22.8", extras = ["job-queue", "webhooks", "http2"]}
 python-dotenv = "^1.2.4"
 sqlalchemy = "2.0.52"
-alembic = "^1.20.0"
-tzdata = "^2026.5"
+alembic = "^1.20.1"
+tzdata = "^2026.6"
 python-magic = {version = "^0.4.27", platform = "linux"}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 tenacity = "^9.2.1"
 beautifulsoup4 = "^4.15.0"
 pillow = "^13.0.0"
-logtail-python = "^0.5.2"
+logtail-python = "^0.5.3"
 pixivpy-async = "^1.2.14"
 aiocache = "^0.12.3"
 msgspec = "^0.22.0"
 python-dateutil = "^3.0.0"
-gallery-dl = "^1.32.17"
-yt-dlp = {extras = ["curl-cffi", "default"], version = "^2026.10.21.233146.dev0", allow-prereleases = true}
-fastapi = "^0.159.1"
+gallery-dl = "^1.32.18"
+yt-dlp = {extras = ["curl-cffi", "default"], version = "^2026.10.29.232701.dev0", allow-prereleases = true}
+fastapi = "^0.162.0"
 uvicorn = "^0.54.0"
 httpx = {version = "0.28.1", extras = ["socks"]}
 pillow-heif = "^1.8.1"
-pydantic-settings = "^2.16.1"
+pydantic-settings = "^2.16.2"
 cryptography = "^50.0.2"
 structlog = "^26.1.0"
 colorama = "^0.4.6"
@@ -49,7 +49,7 @@ psycopg = {extras = ["binary"], version = "^3.3.6"}
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.7.0"
-pytest = "^9.1.1"
+pytest = "^9.2.0"
 
 [tool.isort]
 profile = "black"
