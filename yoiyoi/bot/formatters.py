@@ -199,7 +199,7 @@ def parse_link_modifiers(
 
     # 3. Actions in query parameters (&stitch=fill:black;gap:8, &^, etc.)
     for param in re.finditer(
-        r"[?&](?P<key>[a-zA-Z0-9_\-\^]+)(?:=(?P<val>[^\s&+!#]+|[#][0-9a-fA-F]{6}))?",
+        r"[?&](?P<key>[a-zA-Z0-9_\-\^]+)(?:=(?P<val>[^\s&+!#;]+|[#][0-9a-fA-F]{6}))?",
         tail,
     ):
         key = param.group("key").lower()
