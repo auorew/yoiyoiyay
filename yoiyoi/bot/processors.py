@@ -16,7 +16,7 @@ import pillow_jxl  # noqa: F401
 import structlog
 
 # working with images
-from PIL import Image, ImageOps
+from PIL import Image, ImageColor, ImageDraw, ImageOps
 
 # working with heif (just in case)
 from pillow_heif import register_heif_opener
@@ -408,3 +408,144 @@ async def create_thumbnail(filepath: Path) -> Optional[Path]:
             return None
 
     return await process_thumbnail(raw_thumbpath)
+
+
+def _stitch_images_sync(
+    image_paths: list[Path],
+    output_path: Path,
+    fill_color: Optional[str] = None,
+) -> Path:
+    """Stitches images horizontally mirroring Twitter gallery carousel styles:
+    - Base parameters at Twitter reference height 327.35px:
+      - border-radius: 8px
+      - gap: 4px
+      - frame margins: 4px (each side)
+    - All images are scaled to match the smallest image height.
+    - Parameters are scaled proportionally: scale = target_height / 327.35.
+    - Each image card gets rounded corners.
+    """
+    if not image_paths:
+        raise ValueError("No images to stitch.")
+
+    opened_images: list[Image.Image] = []
+    try:
+        for p in image_paths:
+            img = Image.open(p)
+            img = ImageOps.exif_transpose(img)
+            opened_images.append(img.convert("RGBA"))
+
+        # Determine target height (smallest among all images)
+        target_height = min(img.height for img in opened_images)
+
+        # Proportional scaling factor against Twitter's reference height 327.35px
+        scale = target_height / 327.35
+        margin = max(1, round(4 * scale))
+        gap = max(1, round(4 * scale))
+        radius = max(1, round(8 * scale))
+
+        log.info(
+            "Stitching %d images: target_height=%d, scale=%.3f, "
+            "margin=%d, gap=%d, radius=%d, fill_color=%r",
+            len(opened_images),
+            target_height,
+            scale,
+            margin,
+            gap,
+            radius,
+            fill_color,
+            image_count=len(opened_images),
+            target_height=target_height,
+            scale=scale,
+            margin=margin,
+            gap=gap,
+            radius=radius,
+            fill_color=fill_color,
+        )
+
+        # Resize each image to target_height preserving aspect ratio
+        scaled_images: list[Image.Image] = []
+        for img in opened_images:
+            if img.height != target_height:
+                scaled_w = max(1, round(img.width * (target_height / img.height)))
+                resized_img = img.resize(
+                    (scaled_w, target_height), Image.Resampling.LANCZOS
+                )
+            else:
+                resized_img = img
+
+            # Apply rounded corners to individual image
+            w, h = resized_img.size
+            corner_radius = min(radius, w // 2, h // 2)
+
+            # High-resolution supersampled mask for smooth anti-aliased corners
+            ss = 4
+            mask_ss = Image.new("L", (w * ss, h * ss), 0)
+            draw_ss = ImageDraw.Draw(mask_ss)
+            draw_ss.rounded_rectangle(
+                (0, 0, w * ss, h * ss), radius=corner_radius * ss, fill=255
+            )
+            mask = mask_ss.resize((w, h), Image.Resampling.LANCZOS)
+
+            # Apply mask to image alpha channel
+            card = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            card.paste(resized_img, (0, 0), mask=mask)
+            scaled_images.append(card)
+
+        # Calculate canvas dimensions
+        total_width = (
+            2 * margin
+            + sum(img.width for img in scaled_images)
+            + (len(scaled_images) - 1) * gap
+        )
+        total_height = 2 * margin + target_height
+
+        # Determine background color
+        if fill_color:
+            try:
+                rgb = ImageColor.getrgb(fill_color)
+                bg_color = (rgb[0], rgb[1], rgb[2], 255)
+            except ValueError:
+                log.warning(
+                    "Invalid fill color %r, defaulting to transparent.", fill_color
+                )
+                bg_color = (0, 0, 0, 0)
+        else:
+            bg_color = (0, 0, 0, 0)
+
+        canvas = Image.new("RGBA", (total_width, total_height), bg_color)
+
+        # Paste images onto canvas
+        curr_x = margin
+        for img in scaled_images:
+            canvas.alpha_composite(img, (curr_x, margin))
+            curr_x += img.width + gap
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        canvas.save(output_path, format="PNG")
+        log.info(
+            "Saved stitched canvas: %s (dimensions: %dx%d, size: %d bytes)",
+            output_path.name,
+            total_width,
+            total_height,
+            output_path.stat().st_size,
+            output_file=output_path.name,
+            canvas_width=total_width,
+            canvas_height=total_height,
+            file_size=output_path.stat().st_size,
+        )
+        return output_path
+
+    finally:
+        for img in opened_images:
+            img.close()
+
+
+async def stitch_images(
+    image_paths: list[Path],
+    output_path: Path,
+    fill_color: Optional[str] = None,
+) -> Path:
+    """Async wrapper to stitch images."""
+    return await asyncio.to_thread(
+        _stitch_images_sync, image_paths, output_path, fill_color
+    )

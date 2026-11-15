@@ -11,8 +11,9 @@ Link = namedtuple(
         "id",
         "illust",
         "info",
+        "action",
     ),
-    defaults=(None, None),
+    defaults=(None, None, None),
 )
 
 InstaMedia = namedtuple(

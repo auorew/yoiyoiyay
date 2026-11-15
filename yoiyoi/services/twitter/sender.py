@@ -13,6 +13,9 @@ from yoiyoi.bot.formatters import esc, get_video_info, pixiv_parse
 # get info
 from yoiyoi.bot.helpers import get_info
 
+# bot processors
+from yoiyoi.bot.processors import process_image, stitch_images
+
 # bot senders
 from yoiyoi.bot.senders import send_error, send_reply
 
@@ -110,6 +113,83 @@ class TwitterSender(BaseSender):
                             "while parsing your input\\."
                         ),
                     )
+
+        # handle stitching if requested and multiple photos are selected
+        stitch_action = self.link.action.get("stitch") if self.link.action else None
+        photo_indices = [idx for idx in ids if tweet.content[idx - 1].type == "photo"]
+        if stitch_action and len(photo_indices) >= 2:
+            self.log.info(
+                "Stitching requested for Twitter link %s: "
+                "%d photos selected (out of %d total media)",
+                self.link.id,
+                len(photo_indices),
+                len(tweet.content),
+                tweet_id=self.link.id,
+                photo_count=len(photo_indices),
+                total_media=len(tweet.content),
+                action=stitch_action,
+            )
+            downloaded_paths = []
+            for idx in photo_indices:
+                item: TweetContent = tweet.content[idx - 1]
+                _, filepath = await self.download_helper(item.links[0])
+                if not filepath or not filepath.exists():
+                    raise SenderError(
+                        message=(
+                            "can't be downloaded! "
+                            "The bot failed to download the content."
+                        ),
+                        telegram_message=(
+                            "can't be downloaded\\! "
+                            "The bot failed to download the content\\."
+                        ),
+                    )
+                downloaded_paths.append(filepath)
+
+            stitched_filename = f"stitched_{self.link.id}.png"
+            stitched_raw_path = self.storage_dir / stitched_filename
+            fill_color = stitch_action.get("fill")
+            self.log.info(
+                "Calling stitch_images: fill_color=%r, output=%s",
+                fill_color,
+                stitched_raw_path.name,
+                fill_color=fill_color,
+                output=stitched_raw_path.name,
+                tweet_id=self.link.id,
+            )
+            await stitch_images(
+                downloaded_paths, stitched_raw_path, fill_color=fill_color
+            )
+            self.storage.add(stitched_raw_path)
+
+            procpath = await process_image(stitched_raw_path)
+            if procpath and procpath != stitched_raw_path:
+                self.log.info(
+                    "Downscaled stitched image for Telegram: %s",
+                    procpath.name,
+                    downscaled_file=procpath.name,
+                    tweet_id=self.link.id,
+                )
+                self.storage.add(procpath)
+            else:
+                procpath = stitched_raw_path
+
+            yield MediaItem(
+                path=procpath,
+                type="photo",
+                caption=info,
+                orig_path=stitched_raw_path if self.chat.tw_orig else None,
+            )
+            return
+        elif stitch_action:
+            self.log.warning(
+                "Stitch action was requested but could not proceed "
+                "(photo_indices count=%d)",
+                len(photo_indices),
+                tweet_id=self.link.id,
+                photo_count=len(photo_indices),
+                action=stitch_action,
+            )
 
         for i, idx in enumerate(ids):
             item: TweetContent = tweet.content[idx - 1]

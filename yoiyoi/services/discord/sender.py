@@ -32,6 +32,8 @@ class DiscordSender(BaseSender):
             )
 
         info = self.link.link if self.chat.include_link else None
+        if self.link.info:
+            info = f"{self.link.info}\n\n{info}" if info else self.link.info
 
         procpath, filepath = await self.download_helper(self.link.link)
 

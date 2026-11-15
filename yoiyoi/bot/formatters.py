@@ -8,7 +8,7 @@ import sys
 
 from functools import partial
 from pathlib import Path
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Optional
 
 # file extension check
 import magic
@@ -94,6 +94,51 @@ async def pixiv_parse(
     return (PixivParse.SUCCESS, tuple(ids))
 
 
+def parse_link_modifiers(
+    tail: str, service: str = ""
+) -> tuple[Optional[str], Optional[str], dict]:
+    """Parses modifiers from link tail:
+    - Caption: extracted from '!! ... !!' (must be at the end)
+    - Selection: first '+ [ids]' block only
+    - Actions: parses '?key=val' and '&key=val', extracts actions
+               while ignoring tracking noise
+    Returns: (illust, info, action)
+    """
+    if not tail:
+        return None, None, {}
+
+    info = None
+    illust = None
+    action = {}
+
+    # 1. Caption !! ... !! at the end
+    caption_match = re.search(r"!!\s+(?P<caption>.+?)\s+!!\s*$", tail)
+    if caption_match:
+        info = caption_match.group("caption")
+        tail = tail[: caption_match.start()]
+
+    # 2. First selection block (+ 1-4, etc.)
+    illust_match = re.search(
+        r"\+\s*(?P<illust>\d{1,3}(?:-\d{1,3})?(?:[\s\.,]+\d{1,3}(?:-\d{1,3})?)*)",
+        tail,
+    )
+    if illust_match:
+        illust = illust_match.group("illust").strip()
+
+    # 3. Actions in query parameters (&stitch, &stitch=black, etc.)
+    for param in re.finditer(
+        r"[?&](?P<key>[a-zA-Z0-9_\-]+)(?:=(?P<val>[^\s&+!#]+|[#][0-9a-fA-F]{6}))?",
+        tail,
+    ):
+        key = param.group("key").lower()
+        val = param.group("val")
+        # twitter actions
+        if service == "twitter" and key == "stitch" and "stitch" not in action:
+            action["stitch"] = {"fill": val if val else None}
+
+    return illust, info, action
+
+
 async def formatter(query: str) -> AsyncGenerator[Link, None]:
     """Exctracts links from text and formats them
 
@@ -114,13 +159,38 @@ async def formatter(query: str) -> AsyncGenerator[Link, None]:
             else:
                 _link = query
             log.debug("Received %s link: %r.", re_key, _link)
-            # add to response list
+
+            # parse tail if present (e.g. twitter), otherwise fallback to matched groups
+            illust = matched.get("illust")
+            info = matched.get("info")
+            action = {}
+
+            if "tail" in matched:
+                illust, info, action = parse_link_modifiers(
+                    matched.get("tail") or "", service=re_key
+                )
+
+            log.info(
+                "Parsed %s link: id=%r, illust=%r, info=%r, action=%r",
+                re_key,
+                link["id"],
+                illust,
+                info,
+                action,
+                service=re_key,
+                link_id=link["id"],
+                illust=illust,
+                info=info,
+                action=action,
+            )
+
             yield Link(
                 re_type["type"],
                 _link,
                 link["id"],
-                link["illust"] if matched.get("illust") else None,
-                link["info"] if matched.get("info") else None,
+                illust,
+                info,
+                action,
             )
 
 
