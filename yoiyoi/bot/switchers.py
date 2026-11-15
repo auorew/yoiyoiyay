@@ -12,7 +12,7 @@ from telegram import Update
 from yoiyoi.bot.helpers import notify
 
 # bot senders
-from yoiyoi.bot.senders import send_error, send_reply
+from yoiyoi.bot.senders import send_error, send_reply_md2
 
 # database helpers
 from yoiyoi.db.updaters import cycle_style, switch_style, toggle_field
@@ -37,7 +37,7 @@ async def toggler(update: Update, mode: str, field: str) -> None:
     """
     if (state := await toggle_field(update.effective_chat.id, field)) is not None:
         notify(update, toggle=(field, state))
-        await send_reply(update, f"*{mode}* mode is now *{states[state]}*\\.")
+        await send_reply_md2(update, f"*{mode}* mode is now *{states[state]}*\\.")
 
 
 async def parse_style_args(args: list[str]) -> Optional[int]:
@@ -76,7 +76,7 @@ async def change_style(update: Update, style: Style, args: list[str] = None) -> 
             )
             return
         new_style = await switch_style(chat_id, style, arg)
-    await send_reply(
+    await send_reply_md2(
         update,
         f"*{style.name} style* has been changed to\\:\n\n"
         f"{style.get_example(new_style)}",

@@ -17,7 +17,7 @@ from yoiyoi.bot.helpers import get_info
 from yoiyoi.bot.processors import process_image, stitch_images
 
 # bot senders
-from yoiyoi.bot.senders import send_error, send_reply
+from yoiyoi.bot.senders import send_error, send_reply_md2
 
 # media styles
 from yoiyoi.extra.styles import TwitterStyle
@@ -301,7 +301,7 @@ class TwitterSender(BaseSender):
                 self.update,
                 f"Sorry, video is *too long*\\: `{esc(str(content.duration))} s`\\! ",
             )
-            await send_reply(
+            await send_reply_md2(
                 self.update, f"Here's your download links\\: {video_links}\\."
             )
             return None
@@ -309,8 +309,8 @@ class TwitterSender(BaseSender):
         for link, size in zip(content.links, content.sizes, strict=False):
             if size > MAX_VIDEO_SIZE:
                 await send_error(self.update, "Sorry, file is *too huge*\\!")
-                await send_reply(self.update, f"[Download link]({link})\\.")
-                await send_reply(self.update, "Trying to get smaller version\\.\\.\\.")
+                await send_reply_md2(self.update, f"[Download link]({link})\\.")
+                await send_reply_md2(self.update, "Trying to get smaller version\\.\\.\\.")
                 continue
             return link
         return None

@@ -20,7 +20,7 @@ from yoiyoi.bot.filters import clear_context
 from yoiyoi.bot.helpers import notify
 
 # bor senders
-from yoiyoi.bot.senders import send_reply
+from yoiyoi.bot.senders import send_reply, send_reply_md2
 
 # bot switchers
 from yoiyoi.bot.switchers import change_style, toggler
@@ -55,7 +55,7 @@ async def command_start(
     """Sends start message."""
     notify(update, command="/start")
     await update_chat(update.effective_chat)
-    await send_reply(
+    await send_reply_md2(
         update,
         f"Yo\\~, {update.effective_chat.mention_markdown_v2()}\\!\n"
         "I'm *Yoi Yoi* chan\\! 🎉\nCall for /help if in need\\!",

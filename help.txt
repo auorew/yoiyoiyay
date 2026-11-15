@@ -1,60 +1,60 @@
-\[ `HELP v\.4\.6` *:* `2024\.05\.28` \]
+[ <code>HELP v.4.6</code> <b>:</b> <code>2024.05.28</code> ]
 
-*/help* — show this very message\.
+<b>/help</b> — show this very message.
 
-_*Any text message*_ — the bot will ignore it, unless there's a *tiktok*, *twitter*, *pixiv*`¹`, *instagram* or *youtube short* link in it, that can be parsed\.
+<i><b>Any text message</b></i> — the bot will ignore it, unless there's a <b>tiktok</b>, <b>twitter</b>, <b>pixiv</b><code>¹</code>, <b>instagram</b> or <b>youtube short</b> link in it, that can be parsed.
 
-If you send _*several*_ links at once in one message, *all links will be* ||_hopefully_|| *parsed*\.
+If you send <i><b>several</b></i> links at once in one message, <b>all links will be</b> <span class="tg-spoiler"><i>hopefully</i></span> <b>parsed</b>.
 
-The bot *can be used in groups and channels* to some extent\. Commands below have default values depending on where the bot is used\.
+The bot <b>can be used in groups and channels</b> to some extent. Commands below have default values depending on where the bot is used.
 
-_user_ values are for users, _non\-user_ values are for channels and groups\.
+<i>user</i> values are for users, <i>non-user</i> values are for channels and groups.
 
-\[ `TOGGLES` \]
+[ <code>TOGGLES</code> ]
 
-*/include\_link* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want the bot to use a source link as a caption to messages\.
+<b>/include_link</b> (<i>user</i>: <b>off</b>, <i>non-user</i>: <b>on</b>) — toggle this on if you want the bot to use a source link as a caption to messages.
 
-*/delete\_link* \(_user_: *off*, _non\-user_: *off*\) — toggle this on if you want your source messages for a post to be deleted`²`\.
+<b>/delete_link</b> (<i>user</i>: <b>off</b>, <i>non-user</i>: <b>off</b>) — toggle this on if you want your source messages for a post to be deleted<code>²</code>.
 
-*/tiktok\_hd* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want to get a video in HD quality \(may result in large videofile\)\.
+<b>/tiktok_hd</b> (<i>user</i>: <b>off</b>, <i>non-user</i>: <b>on</b>) — toggle this on if you want to get a video in HD quality (may result in large videofile).
 
-*/twitter\_hd* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want to get twitter photos as documents\.
+<b>/twitter_hd</b> (<i>user</i>: <b>off</b>, <i>non-user</i>: <b>on</b>) — toggle this on if you want to get twitter photos as documents.
 
-*/pixiv\_hd* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want to get pixiv photos as documents\.
+<b>/pixiv_hd</b> (<i>user</i>: <b>off</b>, <i>non-user</i>: <b>on</b>) — toggle this on if you want to get pixiv photos as documents.
 
-*/instagram\_hd* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want to get instagram photos as documents\.
+<b>/instagram_hd</b> (<i>user</i>: <b>off</b>, <i>non-user</i>: <b>on</b>) — toggle this on if you want to get instagram photos as documents.
 
-*/ignore\_fw* \(_user_: *off*, _non\-user_: *on*\) — toggle this on if you want the bot to ignore forwarded messages \(mainly useful in channel mode\)\.
+<b>/ignore_fw</b> (<i>user</i>: <b>off</b>, <i>non-user</i>: <b>on</b>) — toggle this on if you want the bot to ignore forwarded messages (mainly useful in channel mode).
 
-\[ `STYLE COMMANDS` \]
+[ <code>STYLE COMMANDS</code> ]
 
-You can use these commands with an integer argument to specify the style you want to switch to\. In cases when integer is out of range modulo operation is used\. Any other arguments are ignored\.
+You can use these commands with an integer argument to specify the style you want to switch to. In cases when integer is out of range modulo operation is used. Any other arguments are ignored.
 
-*/twitter\_style* \(_user_: style \#`3`, _non\-user_: style \#`3`\) — cycle through the twitter post styles\.
-Only `4` styles are available at the moment\.
+<b>/twitter_style</b> (<i>user</i>: style #<code>3</code>, <i>non-user</i>: style #<code>3</code>) — cycle through the twitter post styles.
+Only <code>4</code> styles are available at the moment.
 
-*/pixiv\_style* \(_user_: style \#`3`, _non\-user_: style \#`3`\) — cycle through the pixiv post styles\.
-Only `5` styles are available at the moment\.
+<b>/pixiv_style</b> (<i>user</i>: style #<code>3</code>, <i>non-user</i>: style #<code>3</code>) — cycle through the pixiv post styles.
+Only <code>5</code> styles are available at the moment.
 
-*/tiktok\_style* \(_user_: style \#`0`, _non\-user_: style \#`0`\) — cycle through the tiktok post styles\.
-Only `5` styles are available at the moment\.
+<b>/tiktok_style</b> (<i>user</i>: style #<code>0</code>, <i>non-user</i>: style #<code>0</code>) — cycle through the tiktok post styles.
+Only <code>5</code> styles are available at the moment.
 
-*/youtube\_short\_style* \(_user_: style \#`0`, _non\-user_: style \#`0`\) — cycle through the youtube short post styles\.
-Only `6` styles are available at the moment\.
+<b>/youtube_short_style</b> (<i>user</i>: style #<code>0</code>, <i>non-user</i>: style #<code>0</code>) — cycle through the youtube short post styles.
+Only <code>6</code> styles are available at the moment.
 
-\[ `SPECIAL` \]
+[ <code>SPECIAL</code> ]
 
-*/tiktok\_mode* \(_user_: style \#`0`, _non\-user_: style \#`0`\) — cycle through the tiktok modes for sending slideshow\-tiktoks\.
-Only `2` modes are available at the moment\.
+<b>/tiktok_mode</b> (<i>user</i>: style #<code>0</code>, <i>non-user</i>: style #<code>0</code>) — cycle through the tiktok modes for sending slideshow-tiktoks.
+Only <code>2</code> modes are available at the moment.
 
-\[ `NOTES` \]
+[ <code>NOTES</code> ]
 
-`¹`: When pixiv artwork contains *more than 1 artwork* it should be specified like this: `pixiv.net\/artworks\/XXXXXX + 1\-4`\.
+<code>¹</code>: When pixiv artwork contains <b>more than 1 artwork</b> it should be specified like this: <code>pixiv.net\/artworks\/XXXXXX + 1\-4</code>.
 
-*Rules*:
-`1`\. You *must* use `+` sign, spaces before and after it are *optional*\.
-`2`\. You can either use ranges \(and reversed ranges: `6\-3`\) or just write a list of numbers like this: `3 6 2`\. Optional `,` and `\.` are allowed between numbers and ranges\.
+<b>Rules</b>:
+<code>1</code>. You <b>must</b> use <code>+</code> sign, spaces before and after it are <b>optional</b>.
+<code>2</code>. You can either use ranges (and reversed ranges: <code>6\-3</code>) or just write a list of numbers like this: <code>3 6 2</code>. Optional <code>,</code> and <code>.</code> are allowed between numbers and ranges.
 
-Specified order will be used by the bot while sending illustrations and documents\. Please note that Telegram allows *only 10 images at once*\.
+Specified order will be used by the bot while sending illustrations and documents. Please note that Telegram allows <b>only 10 images at once</b>.
 
-`²`: ⚠️ *MESSAGES ARE _ALWAYS_ DELETED* ⚠️, even if the bot __*can't*__ get the content\! *Except* for the cases with forwarded messages if they're ignored with */ignore\_fw* option\.
+<code>²</code>: ⚠️ <b>MESSAGES ARE <i>ALWAYS</i> DELETED</b> ⚠️, even if the bot <i><b>can't</b></i> get the content\! <b>Except</b> for the cases with forwarded messages if they're ignored with <b>/ignore_fw</b> option.

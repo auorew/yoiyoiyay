@@ -31,7 +31,7 @@ from yoiyoi.bot.formatters import esc, formatter, get_text
 from yoiyoi.bot.helpers import notify
 
 # bot senders
-from yoiyoi.bot.senders import send_reply
+from yoiyoi.bot.senders import send_reply_md2
 
 # database helpers
 from yoiyoi.db.updaters import update_chat
@@ -112,7 +112,7 @@ async def process_link(
                         case LinkType.XIAOHONGSHU:
                             await XiaohongshuSender(update, link, chat).run()
                         case _:
-                            await send_reply(update, esc(link.link))
+                            await send_reply_md2(update, esc(link.link))
             # delete source post media group messages
             else:
                 should_delete = media_group_id in media_groups

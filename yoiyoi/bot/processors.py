@@ -41,7 +41,7 @@ from yoiyoi.bot import (
 from yoiyoi.bot.formatters import esc
 
 # bot senders
-from yoiyoi.bot.senders import send_error, send_reply
+from yoiyoi.bot.senders import send_error, send_reply_md2
 
 # get file size
 from yoiyoi.extra.requests import save_file
@@ -359,13 +359,13 @@ async def choose_twitter_video(
             update,
             f"Sorry, video is *too long*\\: " f"`{esc(str(content.duration))} s`\\! ",
         )
-        await send_reply(update, f"Here's your download links\\: {video_links}\\.")
+        await send_reply_md2(update, f"Here's your download links\\: {video_links}\\.")
         return
     for link, size in zip(content.links, content.sizes, strict=False):
         if size > MAX_VIDEO_SIZE:
             await send_error(update, "Sorry, file is *too huge*\\!")
-            await send_reply(update, f"[Download link]({link})\\.")
-            await send_reply(update, "Trying to get smaller version\\.\\.\\.")
+            await send_reply_md2(update, f"[Download link]({link})\\.")
+            await send_reply_md2(update, "Trying to get smaller version\\.\\.\\.")
             continue
         return link
     return
