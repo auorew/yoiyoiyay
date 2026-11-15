@@ -2,6 +2,13 @@
 
 from enum import Enum, auto
 
+# twitter carousel reference style parameters
+TWITTER_CAROUSEL_REF_HEIGHT = 327.35
+TWITTER_CAROUSEL_MARGIN = 4.0
+TWITTER_CAROUSEL_GAP = 4.0
+TWITTER_CAROUSEL_RADIUS = 8.0
+TWITTER_CAROUSEL_FILL = None
+
 
 # link types
 class LinkType(Enum):

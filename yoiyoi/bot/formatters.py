@@ -29,7 +29,7 @@ from telegram.helpers import escape_markdown
 from yoiyoi.bot import PixivParse
 
 # link types and other info
-from yoiyoi.services.constants import LINKS
+from yoiyoi.services.constants import LINKS, TWITTER_CAROUSEL_FILL
 
 # Link namedtuple
 from yoiyoi.services.namedtuples import Link
@@ -125,7 +125,7 @@ def parse_link_modifiers(
     if illust_match:
         illust = illust_match.group("illust").strip()
 
-    # 3. Actions in query parameters (&stitch, &stitch=black, etc.)
+    # 3. Actions in query parameters (&stitch, &stitch=fill:black;gap:8, etc.)
     for param in re.finditer(
         r"[?&](?P<key>[a-zA-Z0-9_\-]+)(?:=(?P<val>[^\s&+!#]+|[#][0-9a-fA-F]{6}))?",
         tail,
@@ -134,7 +134,53 @@ def parse_link_modifiers(
         val = param.group("val")
         # twitter actions
         if service == "twitter" and key == "stitch" and "stitch" not in action:
-            action["stitch"] = {"fill": val if val else None}
+            stitch_data = {"fill": None, "gap": None, "radius": None, "margin": None}
+            if val:
+                if ":" in val or ";" in val:
+                    # Parse semicolon-separated settings
+                    # (e.g. fill:black;gap:8;margin:4,8)
+                    pairs = val.split(";")
+                    for pair in pairs:
+                        if ":" in pair:
+                            k, v = pair.split(":", 1)
+                            k, v = k.strip().lower(), v.strip()
+                            if k in ("fill", "color"):
+                                stitch_data["fill"] = (
+                                    TWITTER_CAROUSEL_FILL
+                                    if v.lower() in ("none", "transparent")
+                                    else v
+                                )
+                            elif k in ("gap",):
+                                try:
+                                    stitch_data["gap"] = float(v)
+                                except ValueError:
+                                    pass
+                            elif k in ("radius", "border_radius"):
+                                try:
+                                    stitch_data["radius"] = float(v)
+                                except ValueError:
+                                    pass
+                            elif k in ("margin", "margins", "frame_margins"):
+                                # Parse comma or space separated numbers
+                                # (1, 2, or 4 elements)
+                                sub_parts = re.split(r"[,\s]+", v.strip())
+                                try:
+                                    nums = [float(p) for p in sub_parts if p]
+                                    if len(nums) == 1:
+                                        stitch_data["margin"] = nums[0]
+                                    elif len(nums) in (2, 4):
+                                        stitch_data["margin"] = nums
+                                except ValueError:
+                                    pass
+                else:
+                    # Fallback for simple single value like
+                    # ?stitch=black or ?stitch=transparent
+                    stitch_data["fill"] = (
+                        TWITTER_CAROUSEL_FILL
+                        if val.lower() in ("none", "transparent")
+                        else val
+                    )
+            action["stitch"] = stitch_data
 
     return illust, info, action
 

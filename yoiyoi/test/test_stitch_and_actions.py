@@ -15,7 +15,9 @@ async def test_parse_link_modifiers_twitter():
     illust, info, action = parse_link_modifiers(tail, service="twitter")
     assert illust == "2-5"
     assert info == "my caption"
-    assert action == {"stitch": {"fill": "black"}}
+    assert action == {
+        "stitch": {"fill": "black", "gap": None, "radius": None, "margin": None}
+    }
 
 
 @pytest.mark.anyio
@@ -24,7 +26,9 @@ async def test_parse_link_modifiers_transparent_stitch():
     illust, info, action = parse_link_modifiers(tail, service="twitter")
     assert illust == "1-4"
     assert info is None
-    assert action == {"stitch": {"fill": None}}
+    assert action == {
+        "stitch": {"fill": None, "gap": None, "radius": None, "margin": None}
+    }
 
 
 @pytest.mark.anyio
@@ -33,7 +37,36 @@ async def test_parse_link_modifiers_stitch_hex_color():
     illust, info, action = parse_link_modifiers(tail, service="twitter")
     assert illust is None
     assert info is None
-    assert action == {"stitch": {"fill": "#15202b"}}
+    assert action == {
+        "stitch": {"fill": "#15202b", "gap": None, "radius": None, "margin": None}
+    }
+
+
+@pytest.mark.anyio
+async def test_parse_link_modifiers_compound_stitch():
+    tail = "&stitch=fill:black;gap:8;radius:12;margin:10,20 + 1-3 !! compound test !!"
+    illust, info, action = parse_link_modifiers(tail, service="twitter")
+    assert illust == "1-3"
+    assert info == "compound test"
+    assert action == {
+        "stitch": {
+            "fill": "black",
+            "gap": 8.0,
+            "radius": 12.0,
+            "margin": [10.0, 20.0],
+        }
+    }
+
+
+@pytest.mark.anyio
+async def test_parse_link_modifiers_explicit_transparent_fill():
+    tail1 = "&stitch=fill:none"
+    _, _, action1 = parse_link_modifiers(tail1, service="twitter")
+    assert action1["stitch"]["fill"] is None
+
+    tail2 = "&stitch=fill:transparent"
+    _, _, action2 = parse_link_modifiers(tail2, service="twitter")
+    assert action2["stitch"]["fill"] is None
 
 
 @pytest.mark.anyio
@@ -48,7 +81,7 @@ async def test_parse_link_modifiers_only_first_selection():
 async def test_parse_link_modifiers_only_first_action():
     tail = "&stitch=white&stitch=black"
     illust, info, action = parse_link_modifiers(tail, service="twitter")
-    assert action == {"stitch": {"fill": "white"}}
+    assert action["stitch"]["fill"] == "white"
 
 
 @pytest.mark.anyio
@@ -62,8 +95,10 @@ async def test_parse_link_modifiers_pixiv_ignores_twitter_actions():
 
 @pytest.mark.anyio
 async def test_formatter_twitter_full_url():
-    url = "https://twitter.com/onlymikufans/status/2121569300767273039"
-    "?a=3AfDKgfEbqRjHBnwKXo&s=19&stitch=black+2-5!! caption !!"
+    url = (
+        "https://twitter.com/onlymikufans/status/2121569300767273039"
+        "?a=3AfDKgfEbqRjHBnwKXo&s=19&stitch=black+2-5!! caption !!"
+    )
     links = [_link async for _link in formatter(url)]
     assert len(links) == 1
     link = links[0]
@@ -71,13 +106,15 @@ async def test_formatter_twitter_full_url():
     assert link.id == "2121569300767273039"
     assert link.illust == "2-5"
     assert link.info == "caption"
-    assert link.action == {"stitch": {"fill": "black"}}
+    assert link.action["stitch"]["fill"] == "black"
 
 
 @pytest.mark.anyio
 async def test_formatter_twitter_tracking_only():
-    url = "https://twitter.com/onlymikufans/status/2121569300767273039"
-    "?s=20&t=abcdef12345"
+    url = (
+        "https://twitter.com/onlymikufans/status/2121569300767273039"
+        "?s=20&t=abcdef12345"
+    )
     links = [_link async for _link in formatter(url)]
     assert len(links) == 1
     link = links[0]
@@ -90,8 +127,7 @@ async def test_formatter_twitter_tracking_only():
 
 @pytest.mark.anyio
 async def test_formatter_pixiv_artwork():
-    url = "https://www.pixiv.net/en/artworks/152060517"
-    " + 1,2-4 !! cool gallery !!"
+    url = "https://www.pixiv.net/en/artworks/152060517" " + 1,2-4 !! cool gallery !!"
     links = [_link async for _link in formatter(url)]
     assert len(links) == 1
     link = links[0]
@@ -120,7 +156,7 @@ async def test_formatter_multiple_urls_in_one_message():
     assert tw_link.id == "2121569300767273039"
     assert tw_link.illust == "1-4"
     assert tw_link.info == "cute comic"
-    assert tw_link.action == {"stitch": {"fill": "white"}}
+    assert tw_link.action["stitch"]["fill"] == "white"
 
     px_link = links[1]
     assert px_link.type == LinkType.PIXIV
@@ -137,7 +173,7 @@ async def test_parse_link_modifiers_order_independence():
     illust, info, action = parse_link_modifiers(tail, service="twitter")
     assert illust == "10-12"
     assert info == "title"
-    assert action == {"stitch": {"fill": "black"}}
+    assert action["stitch"]["fill"] == "black"
 
 
 @pytest.mark.anyio
@@ -151,13 +187,12 @@ def test_stitch_images_differing_sizes_and_orientations(tmp_path: Path):
     # Test combining portrait and landscape images with smallest height
     # Landscape: 800x400 (smallest height = 400)
     p1 = tmp_path / "land.png"
+    Image.new("RGBA", (800, 400), (255, 0, 0, 255)).save(p1)
     # Portrait: 300x600
     p2 = tmp_path / "port.png"
+    Image.new("RGBA", (300, 600), (0, 255, 0, 255)).save(p2)
     # Square: 500x500
     p3 = tmp_path / "sq.png"
-
-    Image.new("RGBA", (800, 400), (255, 0, 0, 255)).save(p1)
-    Image.new("RGBA", (300, 600), (0, 255, 0, 255)).save(p2)
     Image.new("RGBA", (500, 500), (0, 0, 255, 255)).save(p3)
 
     out = tmp_path / "mixed_stitched.png"
@@ -228,3 +263,96 @@ def test_stitch_images_color_fill(tmp_path: Path):
     assert res.mode == "RGBA"
     # Corner pixel should be white (255, 255, 255, 255)
     assert res.getpixel((0, 0)) == (255, 255, 255, 255)
+
+
+def test_stitch_images_custom_parameters(tmp_path: Path):
+    p1 = tmp_path / "a.png"
+    p2 = tmp_path / "b.png"
+    Image.new("RGBA", (400, 400), (255, 0, 0, 255)).save(p1)
+    Image.new("RGBA", (400, 400), (0, 255, 0, 255)).save(p2)
+
+    out = tmp_path / "custom_stitched.png"
+    # Custom gap, border radius, and asymmetric margins [top/bottom, left/right]
+    _stitch_images_sync(
+        [p1, p2],
+        out,
+        fill_color="blue",
+        gap=10,
+        border_radius=16,
+        frame_margins=[10, 20],
+    )
+
+    res = Image.open(out)
+    target_h = 400
+    scale = target_h / 327.35
+    left_px = round(20 * scale)
+    top_px = round(10 * scale)
+    resolved_gap = round(10 * scale)
+
+    expected_w = (2 * left_px) + 400 + 400 + resolved_gap
+    expected_h = (2 * top_px) + 400
+
+    assert res.size == (expected_w, expected_h)
+    assert res.mode == "RGBA"
+    # Check background fill color (blue)
+    assert res.getpixel((0, 0)) == (0, 0, 255, 255)
+
+
+@pytest.mark.anyio
+async def test_formatter_multiple_urls_with_variations():
+    """Test multiple URLs with varying stitch parameters and extra text"""
+    message_text = (
+        "First is a comic:\n"
+        "https://twitter.com/onlymikufans/status/2121569300767273039"
+        "?a=3AfDKgfEbqRjHBnwKXo&s=19&stitch=white + 1-4 !! white comic !!\n\n"
+        "Then a portrait:\n"
+        "https://www.pixiv.net/en/artworks/152060517"
+        " + 1,2-4 !! cool portrait !!\n\n"
+        "Finally this one:\n"
+        "https://twitter.com/onlymikufans/status/2121569300767273040"
+        "?stitch=black + 3-5 !! black background !!\n\n"
+        "Extra text at the end."
+    )
+    links = [_link async for _link in formatter(message_text)]
+    assert len(links) == 3
+
+    # Twitter link 1 (found first due to LINKS dictionary iteration order)
+    tw_link1 = links[0]
+    assert tw_link1.type == LinkType.TWITTER
+    assert tw_link1.id == "2121569300767273039"
+    assert tw_link1.illust == "1-4"
+    assert tw_link1.info == "white comic"
+    assert tw_link1.action["stitch"]["fill"] == "white"
+
+    # Twitter link 2
+    tw_link2 = links[1]
+    assert tw_link2.type == LinkType.TWITTER
+    assert tw_link2.id == "2121569300767273040"
+    assert tw_link2.illust == "3-5"
+    assert tw_link2.info == "black background"
+    assert tw_link2.action["stitch"]["fill"] == "black"
+
+    # Pixiv link (found after Twitter links due to formatter iteration order)
+    px1 = links[2]
+    assert px1.type == LinkType.PIXIV
+    assert px1.id == "152060517"
+    assert px1.illust == "1,2-4"
+    assert px1.info == "cool portrait"
+    assert px1.action == {}
+
+
+@pytest.mark.anyio
+async def test_formatter_pixiv_full_url_with_all_modifiers():
+    url = (
+        "https://www.pixiv.net/en/artworks/98765432"
+        "?mode=manga&p=3&order=desc&stitch=white&ref=search + 1-4,6-8!! "
+        "detailed manga !!"
+    )
+    links = [_link async for _link in formatter(url)]
+    assert len(links) == 1
+    link = links[0]
+    assert link.type == LinkType.PIXIV
+    assert link.id == "98765432"
+    assert link.illust == "1-4,6-8"
+    assert link.info == "detailed manga"
+    assert link.action == {}

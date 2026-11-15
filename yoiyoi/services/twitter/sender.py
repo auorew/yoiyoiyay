@@ -148,17 +148,41 @@ class TwitterSender(BaseSender):
 
             stitched_filename = f"stitched_{self.link.id}.png"
             stitched_raw_path = self.storage_dir / stitched_filename
-            fill_color = stitch_action.get("fill")
+
+            # Extract configuration safely from stitch_action dictionary
+            if isinstance(stitch_action, dict):
+                fill_color = stitch_action.get("fill")
+                gap = stitch_action.get("gap")
+                border_radius = stitch_action.get("radius")
+                frame_margins = stitch_action.get("margin")
+            else:
+                # Fallback if stitch_action happens to be a direct string or simple value
+                fill_color = stitch_action if isinstance(stitch_action, str) else None
+                gap = border_radius = frame_margins = None
+
             self.log.info(
-                "Calling stitch_images: fill_color=%r, output=%s",
+                "Calling stitch_images: "
+                "fill_color=%r, gap=%r, radius=%r, margins=%r, output=%s",
                 fill_color,
+                gap,
+                border_radius,
+                frame_margins,
                 stitched_raw_path.name,
                 fill_color=fill_color,
+                gap=gap,
+                border_radius=border_radius,
+                frame_margins=frame_margins,
                 output=stitched_raw_path.name,
                 tweet_id=self.link.id,
             )
+
             await stitch_images(
-                downloaded_paths, stitched_raw_path, fill_color=fill_color
+                image_paths=downloaded_paths,
+                output_path=stitched_raw_path,
+                fill_color=fill_color,
+                border_radius=border_radius,
+                gap=gap,
+                frame_margins=frame_margins,
             )
             self.storage.add(stitched_raw_path)
 

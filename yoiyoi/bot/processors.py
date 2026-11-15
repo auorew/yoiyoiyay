@@ -52,6 +52,14 @@ from yoiyoi.extra.settings import bot_settings
 # extra utilities
 from yoiyoi.extra.utils import get_file_chunk, replace_file
 
+# twitter carousel constants
+from yoiyoi.services.constants import (
+    TWITTER_CAROUSEL_GAP,
+    TWITTER_CAROUSEL_MARGIN,
+    TWITTER_CAROUSEL_RADIUS,
+    TWITTER_CAROUSEL_REF_HEIGHT,
+)
+
 # TweetContent namedtuples
 from yoiyoi.services.namedtuples import TweetContent
 
@@ -414,14 +422,19 @@ def _stitch_images_sync(
     image_paths: list[Path],
     output_path: Path,
     fill_color: Optional[str] = None,
+    border_radius: Optional[float] = None,
+    gap: Optional[float] = None,
+    frame_margins: Optional[float | list[float] | tuple[float]] = None,
 ) -> Path:
     """Stitches images horizontally mirroring Twitter gallery carousel styles:
-    - Base parameters at Twitter reference height 327.35px:
-      - border-radius: 8px
-      - gap: 4px
-      - frame margins: 4px (each side)
+    - Base parameters at Twitter for reference (at 327.35px reference height):
+      - height:         327.35px            | TWITTER_CAROUSEL_REF_HEIGHT
+      - border-radius:  8px                 | TWITTER_CAROUSEL_RADIUS
+      - gap:            4px                 | TWITTER_CAROUSEL_GAP
+      - frame margins:  4px (each side)     | TWITTER_CAROUSEL_MARGIN
+      - fill:           transparent         |
     - All images are scaled to match the smallest image height.
-    - Parameters are scaled proportionally: scale = target_height / 327.35.
+    - Parameters are scaled proportionally by target_height / TWITTER_CAROUSEL_REF_HEIGHT.
     - Each image card gets rounded corners.
     """
     if not image_paths:
@@ -438,26 +451,81 @@ def _stitch_images_sync(
         target_height = min(img.height for img in opened_images)
 
         # Proportional scaling factor against Twitter's reference height 327.35px
-        scale = target_height / 327.35
-        margin = max(1, round(4 * scale))
-        gap = max(1, round(4 * scale))
-        radius = max(1, round(8 * scale))
+        scale = target_height / TWITTER_CAROUSEL_REF_HEIGHT
+
+        # 1. Resolve Border Radius (default reference: 8px)
+        base_radius = (
+            border_radius
+            if border_radius is not None
+            and isinstance(border_radius, (int, float))
+            and border_radius >= 0
+            else TWITTER_CAROUSEL_RADIUS
+        )
+        radius = max(0, round(base_radius * scale))
+
+        # 2. Resolve Gap (default reference: 4px)
+        base_gap = (
+            gap
+            if gap is not None and isinstance(gap, (int, float)) and gap >= 0
+            else TWITTER_CAROUSEL_GAP
+        )
+        resolved_gap = max(0, round(base_gap * scale))
+
+        # 3. Resolve Frame Margins (default reference: 4px per side)
+        match frame_margins:
+            case None:
+                m = TWITTER_CAROUSEL_MARGIN * scale
+                top = right = bottom = left = m
+            case int() | float() as val:
+                m = float(val) * scale
+                top = right = bottom = left = m
+            case [v, h] | (v, h):
+                top = bottom = float(v) * scale
+                right = left = float(h) * scale
+            case [t, r, b, l] | (t, r, b, l):
+                top = float(t) * scale
+                right = float(r) * scale
+                bottom = float(b) * scale
+                left = float(l) * scale
+            case _:
+                m = TWITTER_CAROUSEL_MARGIN * scale
+                top = right = bottom = left = m
+                # # Let's not throw any error for now
+                # if isinstance(frame_margins, (list, tuple)):
+                #     raise ValueError(
+                #         "frame_margins sequence must have either 2 or 4 elements: "
+                #         "[vertical, horizontal] or [top, right, bottom, left]."
+                #     )
+                # raise TypeError("Invalid type for frame_margins.")
+
+        # Convert margins to final pixel integers
+        top_px = max(0, round(top))
+        right_px = max(0, round(right))
+        bottom_px = max(0, round(bottom))
+        left_px = max(0, round(left))
 
         log.info(
             "Stitching %d images: target_height=%d, scale=%.3f, "
-            "margin=%d, gap=%d, radius=%d, fill_color=%r",
+            "margins=(top=%d, right=%d, bottom=%d, left=%d), "
+            "gap=%d, radius=%d, fill_color=%r",
             len(opened_images),
             target_height,
             scale,
-            margin,
-            gap,
+            top_px,
+            right_px,
+            bottom_px,
+            left_px,
+            resolved_gap,
             radius,
             fill_color,
             image_count=len(opened_images),
             target_height=target_height,
             scale=scale,
-            margin=margin,
-            gap=gap,
+            top_margin=top_px,
+            right_margin=right_px,
+            bottom_margin=bottom_px,
+            left_margin=left_px,
+            gap=resolved_gap,
             radius=radius,
             fill_color=fill_color,
         )
@@ -491,13 +559,14 @@ def _stitch_images_sync(
             card.paste(resized_img, (0, 0), mask=mask)
             scaled_images.append(card)
 
-        # Calculate canvas dimensions
+        # Calculate canvas dimensions using asymmetric margins
         total_width = (
-            2 * margin
+            left_px
+            + right_px
             + sum(img.width for img in scaled_images)
-            + (len(scaled_images) - 1) * gap
+            + (len(scaled_images) - 1) * resolved_gap
         )
-        total_height = 2 * margin + target_height
+        total_height = top_px + bottom_px + target_height
 
         # Determine background color
         if fill_color:
@@ -514,11 +583,11 @@ def _stitch_images_sync(
 
         canvas = Image.new("RGBA", (total_width, total_height), bg_color)
 
-        # Paste images onto canvas
-        curr_x = margin
+        # Paste images onto canvas using custom left and top offsets
+        curr_x = left_px
         for img in scaled_images:
-            canvas.alpha_composite(img, (curr_x, margin))
-            curr_x += img.width + gap
+            canvas.alpha_composite(img, (curr_x, top_px))
+            curr_x += img.width + resolved_gap
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         canvas.save(output_path, format="PNG")
@@ -544,8 +613,17 @@ async def stitch_images(
     image_paths: list[Path],
     output_path: Path,
     fill_color: Optional[str] = None,
+    border_radius: Optional[float] = None,
+    gap: Optional[float] = None,
+    frame_margins: Optional[float | list[float] | tuple[float]] = None,
 ) -> Path:
-    """Async wrapper to stitch images."""
+    """Async wrapper to stitch images with customizable layout parameters."""
     return await asyncio.to_thread(
-        _stitch_images_sync, image_paths, output_path, fill_color
+        _stitch_images_sync,
+        image_paths=image_paths,
+        output_path=output_path,
+        fill_color=fill_color,
+        border_radius=border_radius,
+        gap=gap,
+        frame_margins=frame_margins,
     )
