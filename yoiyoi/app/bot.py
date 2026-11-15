@@ -25,6 +25,7 @@ from yoiyoi.bot.commands import (
     channel_commands,
     command_delete_link,
     command_help,
+    command_help_advanced,
     command_ignore_fw,
     command_include_link,
     command_instagram_hd,
@@ -98,6 +99,15 @@ def create_bot_app() -> Application:
         CommandHandler(
             command="help",
             callback=command_help,
+            block=False,
+        ),
+    )
+
+    # get advanced help
+    application.add_handler(
+        CommandHandler(
+            command="help_advanced",
+            callback=command_help_advanced,
             block=False,
         ),
     )
