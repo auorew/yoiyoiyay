@@ -545,19 +545,22 @@ def _stitch_images_sync(
             w, h = resized_img.size
             corner_radius = min(radius, w // 2, h // 2)
 
-            # High-resolution supersampled mask for smooth anti-aliased corners
-            ss = 4
-            mask_ss = Image.new("L", (w * ss, h * ss), 0)
-            draw_ss = ImageDraw.Draw(mask_ss)
-            draw_ss.rounded_rectangle(
-                (0, 0, w * ss, h * ss), radius=corner_radius * ss, fill=255
-            )
-            mask = mask_ss.resize((w, h), Image.Resampling.LANCZOS)
+            if corner_radius > 0:
+                # High-resolution supersampled mask for smooth anti-aliased corners
+                ss = 4
+                mask_ss = Image.new("L", (w * ss, h * ss), 0)
+                draw_ss = ImageDraw.Draw(mask_ss)
+                draw_ss.rounded_rectangle(
+                    (0, 0, w * ss, h * ss), radius=corner_radius * ss, fill=255
+                )
+                mask = mask_ss.resize((w, h), Image.Resampling.LANCZOS)
 
-            # Apply mask to image alpha channel
-            card = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-            card.paste(resized_img, (0, 0), mask=mask)
-            scaled_images.append(card)
+                # Apply mask to image alpha channel
+                card = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+                card.paste(resized_img, (0, 0), mask=mask)
+                scaled_images.append(card)
+            else:
+                scaled_images.append(resized_img)
 
         # Calculate canvas dimensions using asymmetric margins
         total_width = (

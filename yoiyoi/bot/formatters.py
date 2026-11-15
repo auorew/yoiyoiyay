@@ -29,7 +29,7 @@ from telegram.helpers import escape_markdown
 from yoiyoi.bot import PixivParse
 
 # link types and other info
-from yoiyoi.services.constants import LINKS, TWITTER_CAROUSEL_FILL
+from yoiyoi.services.constants import LINKS
 
 # Link namedtuple
 from yoiyoi.services.namedtuples import Link
@@ -45,6 +45,16 @@ pixiv_number = re.compile(r"((?P<n1>\d+)(?:-(?P<n2>\d+))?)")
 
 # octet-stream
 NO_EXT = "octet-stream"
+
+# stitch presets
+STITCH_PRESETS: dict[str, dict[str, Any]] = {
+    "default": {"fill": None, "gap": None, "radius": None, "margin": None},
+    "plain": {"fill": None, "gap": 0.0, "radius": 0.0, "margin": 0.0},
+}
+# aliases for convenience
+STITCH_PRESETS["twitter"] = STITCH_PRESETS["default"]
+STITCH_PRESETS["seamless"] = STITCH_PRESETS["plain"]
+STITCH_PRESETS["flat"] = STITCH_PRESETS["plain"]
 
 
 async def unescape_html(text: str) -> str:
@@ -94,6 +104,67 @@ async def pixiv_parse(
     return (PixivParse.SUCCESS, tuple(ids))
 
 
+def _apply_stitch_setting(stitch_data: dict, key: str, val_str: str) -> None:
+    """Applies an individual key-value stitch setting to the configuration dictionary."""
+    match key:
+        case "mode" | "style" | "preset":
+            if preset := STITCH_PRESETS.get(val_str.lower()):
+                stitch_data.update(preset)
+        case "fill" | "color":
+            v_clean = val_str.lower()
+            stitch_data["fill"] = None if v_clean in ("none", "transparent") else val_str
+        case "gap":
+            try:
+                stitch_data["gap"] = float(val_str)
+            except ValueError:
+                pass
+        case "radius" | "border" | "border_radius":
+            try:
+                stitch_data["radius"] = float(val_str)
+            except ValueError:
+                pass
+        case "margin" | "margins" | "frame_margins":
+            try:
+                nums = [float(p) for p in re.split(r"[,\s]+", val_str) if p]
+                match len(nums):
+                    case 1:
+                        stitch_data["margin"] = nums[0]
+                    case 2 | 4:
+                        stitch_data["margin"] = nums
+            except ValueError:
+                pass
+
+
+def _parse_stitch_action(val: Optional[str]) -> dict:
+    """Parses the full stitch action value string into a configuration dictionary."""
+    stitch_data = STITCH_PRESETS["default"].copy()
+    if not val:
+        return stitch_data
+
+    if "=" in val or ";" in val:
+        for part in val.split(";"):
+            if not (part := part.strip()):
+                continue
+            # Split by '=' for key-value pairs,
+            # or treat as a bare preset name if no '=' is present
+            match part.split("=", 1):
+                case [bare_part]:
+                    if preset := STITCH_PRESETS.get(bare_part.lower()):
+                        stitch_data.update(preset)
+                case [k, v]:
+                    _apply_stitch_setting(stitch_data, k.strip().lower(), v.strip())
+    else:
+        match val.lower():
+            case preset_name if preset_name in STITCH_PRESETS:
+                stitch_data.update(STITCH_PRESETS[preset_name])
+            case "none" | "transparent":
+                stitch_data["fill"] = None
+            case _:
+                stitch_data["fill"] = val
+
+    return stitch_data
+
+
 def parse_link_modifiers(
     tail: str, service: str = ""
 ) -> tuple[Optional[str], Optional[str], dict]:
@@ -134,53 +205,7 @@ def parse_link_modifiers(
         val = param.group("val")
         # twitter actions
         if service == "twitter" and key == "stitch" and "stitch" not in action:
-            stitch_data = {"fill": None, "gap": None, "radius": None, "margin": None}
-            if val:
-                if ":" in val or ";" in val:
-                    # Parse semicolon-separated settings
-                    # (e.g. fill:black;gap:8;margin:4,8)
-                    pairs = val.split(";")
-                    for pair in pairs:
-                        if ":" in pair:
-                            k, v = pair.split(":", 1)
-                            k, v = k.strip().lower(), v.strip()
-                            if k in ("fill", "color"):
-                                stitch_data["fill"] = (
-                                    TWITTER_CAROUSEL_FILL
-                                    if v.lower() in ("none", "transparent")
-                                    else v
-                                )
-                            elif k in ("gap",):
-                                try:
-                                    stitch_data["gap"] = float(v)
-                                except ValueError:
-                                    pass
-                            elif k in ("radius", "border_radius"):
-                                try:
-                                    stitch_data["radius"] = float(v)
-                                except ValueError:
-                                    pass
-                            elif k in ("margin", "margins", "frame_margins"):
-                                # Parse comma or space separated numbers
-                                # (1, 2, or 4 elements)
-                                sub_parts = re.split(r"[,\s]+", v.strip())
-                                try:
-                                    nums = [float(p) for p in sub_parts if p]
-                                    if len(nums) == 1:
-                                        stitch_data["margin"] = nums[0]
-                                    elif len(nums) in (2, 4):
-                                        stitch_data["margin"] = nums
-                                except ValueError:
-                                    pass
-                else:
-                    # Fallback for simple single value like
-                    # ?stitch=black or ?stitch=transparent
-                    stitch_data["fill"] = (
-                        TWITTER_CAROUSEL_FILL
-                        if val.lower() in ("none", "transparent")
-                        else val
-                    )
-            action["stitch"] = stitch_data
+            action["stitch"] = _parse_stitch_action(val)
 
     return illust, info, action
 

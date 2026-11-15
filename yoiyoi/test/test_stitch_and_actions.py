@@ -44,7 +44,9 @@ async def test_parse_link_modifiers_stitch_hex_color():
 
 @pytest.mark.anyio
 async def test_parse_link_modifiers_compound_stitch():
-    tail = "&stitch=fill:black;gap:8;radius:12;margin:10,20 + 1-3 !! compound test !!"
+    tail = (
+        "&stitch=plain;fill=black;gap=8;radius=12;margin=10,20 + 1-3 !! compound test !!"
+    )
     illust, info, action = parse_link_modifiers(tail, service="twitter")
     assert illust == "1-3"
     assert info == "compound test"
@@ -60,11 +62,11 @@ async def test_parse_link_modifiers_compound_stitch():
 
 @pytest.mark.anyio
 async def test_parse_link_modifiers_explicit_transparent_fill():
-    tail1 = "&stitch=fill:none"
+    tail1 = "&stitch=fill=none"
     _, _, action1 = parse_link_modifiers(tail1, service="twitter")
     assert action1["stitch"]["fill"] is None
 
-    tail2 = "&stitch=fill:transparent"
+    tail2 = "&stitch=fill=transparent"
     _, _, action2 = parse_link_modifiers(tail2, service="twitter")
     assert action2["stitch"]["fill"] is None
 
@@ -356,3 +358,40 @@ async def test_formatter_pixiv_full_url_with_all_modifiers():
     assert link.illust == "1-4,6-8"
     assert link.info == "detailed manga"
     assert link.action == {}
+
+
+@pytest.mark.anyio
+async def test_parse_link_modifiers_presets():
+    for preset in ["plain", "seamless", "flat"]:
+        tail = f"&stitch={preset}"
+        _, _, action = parse_link_modifiers(tail, service="twitter")
+        assert action["stitch"] == {
+            "fill": None,
+            "gap": 0.0,
+            "radius": 0.0,
+            "margin": 0.0,
+        }
+
+
+def test_stitch_images_plain_preset(tmp_path: Path):
+    p1 = tmp_path / "a.png"
+    p2 = tmp_path / "b.png"
+    Image.new("RGBA", (300, 300), (255, 0, 0, 255)).save(p1)
+    Image.new("RGBA", (300, 300), (0, 255, 0, 255)).save(p2)
+
+    out = tmp_path / "plain_stitched.png"
+    # Plain preset attributes: zero margins, zero gap, zero radius
+    _stitch_images_sync(
+        [p1, p2],
+        out,
+        fill_color=None,
+        gap=0.0,
+        border_radius=0.0,
+        frame_margins=0.0,
+    )
+
+    res = Image.open(out)
+    # With 0 margin and 0 gap,
+    # total dimensions should be exactly 300+300 = 600 width, 300 height
+    assert res.size == (600, 300)
+    assert res.mode == "RGBA"
