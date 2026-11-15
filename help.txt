@@ -52,4 +52,4 @@ Only <code>6</code> styles are available at the moment.
 
 <code>¹</code>: ⚠️ <b>MESSAGES ARE <i>ALWAYS</i> DELETED</b> ⚠️, even if the bot <i><b>can't</b></i> get the content! <i>Except</i> for the cases with forwarded messages if they're ignored with <b>/ignore_fw</b> option.
 
-ℹ️ <b>More info</b>: For details on how to choose specific media ranges (e.g. <code>URL + 1-4</code>), add custom captions (<code>!! text !!</code>), adjust caption positions (<code>^</code> / <code>&top</code>), or stitch Twitter images (<code>&stitch=flat</code>), check out the advanced guide via <b>/help_advanced</b> (or check the repository documentation).
+✨ <b>More info</b>: For details on how to choose specific media ranges (e.g. <code>URL + 1-4</code>), add custom captions (<code>!! text !!</code>), adjust caption positions (<code>^</code> / <code>&top</code>), or stitch Twitter images (<code>&stitch=flat</code>), check out the advanced guide via <b>/help_advanced</b> (or check the repository documentation).
