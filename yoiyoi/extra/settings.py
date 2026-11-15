@@ -94,7 +94,7 @@ class BotSettings(BaseSettings):
     help_file: Path = Field(WORK_DIR / "help.txt")
 
     # advanced help file
-    help_file: Path = Field(WORK_DIR / "help_advanced.txt")
+    help_advanced_file: Path = Field(WORK_DIR / "help_advanced.txt")
 
     # settings file
     log_settings_file: Path = Field(WORK_DIR / "settings.toml")
