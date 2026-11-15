@@ -183,6 +183,7 @@ def parse_link_modifiers(
     action = {}
 
     # 1. Caption !! ... !! at the end
+    # (stripped first so it never conflicts with flags)
     caption_match = re.search(r"!!\s+(?P<caption>.+?)\s+!!\s*$", tail)
     if caption_match:
         info = caption_match.group("caption")
@@ -196,16 +197,24 @@ def parse_link_modifiers(
     if illust_match:
         illust = illust_match.group("illust").strip()
 
-    # 3. Actions in query parameters (&stitch, &stitch=fill:black;gap:8, etc.)
+    # 3. Actions in query parameters (&stitch=fill:black;gap:8, &^, etc.)
     for param in re.finditer(
-        r"[?&](?P<key>[a-zA-Z0-9_\-]+)(?:=(?P<val>[^\s&+!#]+|[#][0-9a-fA-F]{6}))?",
+        r"[?&](?P<key>[a-zA-Z0-9_\-\^]+)(?:=(?P<val>[^\s&+!#]+|[#][0-9a-fA-F]{6}))?",
         tail,
     ):
         key = param.group("key").lower()
         val = param.group("val")
-        # twitter actions
-        if service == "twitter" and key == "stitch" and "stitch" not in action:
+
+        if key in ("top", "above", "caption_top", "^"):
+            action["top"] = True
+        elif service == "twitter" and key == "stitch" and "stitch" not in action:
             action["stitch"] = _parse_stitch_action(val)
+            if val and ("top" in val.lower() or "^" in val):
+                action["top"] = True
+
+    # 3+ Catch standalone '^' if used outside query syntax (e.g. `^ + 1-2`)
+    if re.search(r"(?:^|\s)\^(?:\s|$)", tail):
+        action["top"] = True
 
     return illust, info, action
 

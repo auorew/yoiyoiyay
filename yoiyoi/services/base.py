@@ -153,6 +153,7 @@ class BaseSender(ABC):
         self.link: Link = link
         self.chat: Chat = chat
         self.update_id: int = update.update_id
+        self.caption_above = bool(self.link.action and self.link.action.get("top"))
 
         # setup storage
         self.storage_dir: Path = Path(CACHE_DIR / str(self.update_id))
@@ -388,6 +389,7 @@ class BaseSender(ABC):
                             width=item.width,
                             height=item.height,
                             duration=item.duration,
+                            show_caption_above_media=self.caption_above,
                         )
                     )
                 else:
@@ -396,6 +398,7 @@ class BaseSender(ABC):
                             media=input_media,
                             caption=caption,
                             parse_mode=PM.HTML,
+                            show_caption_above_media=self.caption_above,
                         )
                     )
 

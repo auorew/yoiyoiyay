@@ -395,3 +395,23 @@ def test_stitch_images_plain_preset(tmp_path: Path):
     # total dimensions should be exactly 300+300 = 600 width, 300 height
     assert res.size == (600, 300)
     assert res.mode == "RGBA"
+
+
+@pytest.mark.anyio
+async def test_parse_link_modifiers_caret_top_flag():
+    # Test query parameter style &^
+    tail1 = "&^ + 1-2 !! caption !!"
+    _, info1, action1 = parse_link_modifiers(tail1, service="twitter")
+    assert action1.get("top") is True
+    assert info1 == "caption"
+
+    # Test standalone caret style
+    tail2 = "^ + 1-2"
+    _, _, action2 = parse_link_modifiers(tail2, service="pixiv")
+    assert action2.get("top") is True
+
+    # Test combined with stitch preset
+    tail3 = "&stitch=plain;&^ + 1-2"
+    _, _, action3 = parse_link_modifiers(tail3, service="twitter")
+    assert action3.get("top") is True
+    assert action3["stitch"]["radius"] == 0.0
