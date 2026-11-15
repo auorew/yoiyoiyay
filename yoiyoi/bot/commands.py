@@ -45,6 +45,7 @@ log = structlog.get_logger(__name__)
 
 # get help contents
 HELP_MESSAGE = Path(bot_settings.help_file).read_text(encoding="utf-8")
+HELP_ADVANCED_MESSAGE = Path(bot_settings.help_advanced_file).read_text(encoding="utf-8")
 
 
 @clear_context()
@@ -70,6 +71,16 @@ async def command_help(
     """Sends help message."""
     notify(update, command="/help")
     await send_reply(update, text=HELP_MESSAGE)
+
+
+@clear_context()
+async def command_help_advanced(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    """Sends advanced help message."""
+    notify(update, command="/help_advanced")
+    await send_reply(update, text=HELP_ADVANCED_MESSAGE)
 
 
 @clear_context()

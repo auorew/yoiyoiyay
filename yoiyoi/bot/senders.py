@@ -28,7 +28,7 @@ async def reply_media_group(message: Message, **kwargs) -> tuple[Message, ...]:
 async def send_reply(
     update: Update,
     text: str,
-    parse_mode = PM.HTML,
+    parse_mode=PM.HTML,
     **kwargs,
 ) -> Message:
     """Replies to current message

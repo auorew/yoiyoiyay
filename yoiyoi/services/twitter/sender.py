@@ -310,7 +310,9 @@ class TwitterSender(BaseSender):
             if size > MAX_VIDEO_SIZE:
                 await send_error(self.update, "Sorry, file is *too huge*\\!")
                 await send_reply_md2(self.update, f"[Download link]({link})\\.")
-                await send_reply_md2(self.update, "Trying to get smaller version\\.\\.\\.")
+                await send_reply_md2(
+                    self.update, "Trying to get smaller version\\.\\.\\."
+                )
                 continue
             return link
         return None

@@ -52,25 +52,4 @@ Only <code>6</code> styles are available at the moment.
 
 <code>¹</code>: ⚠️ <b>MESSAGES ARE <i>ALWAYS</i> DELETED</b> ⚠️, even if the bot <i><b>can't</b></i> get the content! <i>Except</i> for the cases with forwarded messages if they're ignored with <b>/ignore_fw</b> option.
 
-<b>Choosing media</b>: For multimedia twitter, pixiv, xiaohongshu, instagram posts, and tiktok slideshows, you can choose which media you want by specifying it like this: <code>URL + 1-4</code> — for media from <code>1</code> to <code>4</code> including.
-In case of pixiv you MUST specify it, since there can be 200 images in one post.
-
-<b>Rules</b>:
-<code>1</code>. You <b>must</b> use <code>+</code> sign, spaces before and after it are <i>optional</i>.
-<code>2</code>. You can either use ranges (and reversed ranges: <code>6-3</code>) or just write a list of numbers like this: <code>3 6 2</code>. Optional <code>,</code> and <code>.</code> are allowed between numbers and ranges.
-<code>3</code>. Specified order will be used by the bot while sending illustrations and documents. Please note that Telegram allows <i>only 10 images at once</i>.
-
-<b>Caption position</b>: You can place the caption <b>above</b> the media by adding a caret <code>^</code> or query parameters like <code>&top</code>, <code>&above</code>, or <code>&caption_top</code> to your link (e.g., <code>URL ^</code> or <code>URL&top</code>).
-
-<b>Custom captions</b>: You can override or add a custom caption to your post by appending <code>!! your caption text !!</code> at the very end of your link or modifier tail (e.g., <code>URL + 1-2 !! my custom text !!</code>).
-
-<b>Twitter image stitching</b>: You can stitch twitter images together and customize the output using key-value parameters separated by semicolons (<code>;</code>):
-Basicly you can use it like: <code>URL&stitch</code> or for flat-stitch without gaps: <code>URL&stitch=flat</code>.
-There's 2 presets right now: <code>stitch=default</code> (or no value, <code>twitter</code>) or <code>stitch=flat</code> (or <code>plain</code>, <code>seamless</code>).
-You can also define <b>custom properties</b>: 
-<code>-</code> <code>fill</code> / <code>color</code> — <code>fill:black</code>, <code>fill:#ff0000</code>, or <code>fill:none</code>/<code>transparent</code>.
-<code>-</code> <code>gap</code> — <code>gap:8</code>.
-<code>-</code> <code>radius</code> / <code>border</code> / <code>border_radius</code> — <code>radius:12</code>.
-<code>-</code> <code>margin</code> / <code>margins</code> / <code>frame_margins</code> — <code>margin:10</code> or <code>margin:10,20</code>.
-
-<b>Combined example</b>: <code>https://twitter.com/kanashino_/status/2121925126870716798+1-3^&stitch=flat;gap=8;radius=12;fill=black</code>
+ℹ️ <b>More info</b>: For details on how to choose specific media ranges (e.g. <code>URL + 1-4</code>), add custom captions (<code>!! text !!</code>), adjust caption positions (<code>^</code> / <code>&top</code>), or stitch Twitter images (<code>&stitch=flat</code>), check out the advanced guide via <b>/help_advanced</b> (or check the repository documentation).
