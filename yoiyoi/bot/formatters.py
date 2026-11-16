@@ -38,7 +38,7 @@ from yoiyoi.services.namedtuples import Link
 esc = partial(escape_markdown, version=2)
 
 # get logger
-log = structlog.get_logger(__name__)
+log: structlog.BoundLogger = structlog.get_logger(__name__)
 
 # pixiv regex
 pixiv_number = re.compile(r"((?P<n1>\d+)(?:-(?P<n2>\d+))?)")
@@ -55,6 +55,60 @@ STITCH_PRESETS: dict[str, dict[str, Any]] = {
 STITCH_PRESETS["twitter"] = STITCH_PRESETS["default"]
 STITCH_PRESETS["seamless"] = STITCH_PRESETS["plain"]
 STITCH_PRESETS["flat"] = STITCH_PRESETS["plain"]
+
+# tokens that mean "put the caption/stitch on top"
+TOP_TOKENS = frozenset({"top", "above", "caption_top", "^"})
+
+# Pre-compiled global regexes for link modifiers
+CAPTION_RE = re.compile(r"""(?x)
+    !!\s+               # start marker and whitespace
+    (?P<caption>.+?)    # capture caption text non-greedily
+    \s+!!\s*$           # end marker at the end of string
+    """)
+
+SELECTION_RE = re.compile(r"""(?x)
+    (?P<selection_delim>\+)       # plus sign
+    (?:\s*)                       # and optional whitespace
+    (?P<illust>
+        \d{1,3}(?:-\d{1,3})?      # first number or range
+        (?:
+            [\s\.,]+
+            \d{1,3}(?:-\d{1,3})?  # subsequent numbers/ranges separated by
+        )*                        # spaces, commas, or dots
+    )
+    """)
+
+QUERY_PARAM_RE = re.compile(r"""(?x)
+    (?P<query_delim>[?&])         # leading query delimiter (? or &)
+    (?P<key>[a-zA-Z0-9_\-\^]+)    # parameter key
+    (?:
+        =
+        (?P<val>
+            (?:
+                [^\s&+!#\^]         # any char except spaces, delimiters, '#' or carets
+                |
+                \#[0-9a-fA-F]{3,8}\b # ...or a hex color (#rgb, #rrggbb, #rrggbbaa)
+            )+
+        )
+    )?
+    """)
+
+CARET_TOP_RE = re.compile(r"""(?x)
+    (?:
+        # Standalone or query-leading caret (e.g., ^ or &^ or ^&stitch)
+        (?:^|\s|[?&])\^(?:\s|$|\+|&)
+    )
+    |
+    (?:
+        # Trailing caret directly following a selection block (e.g., +1-3^)
+        \+\s*\d[\d,\-\s]*\^
+    )
+    |
+    (?:
+        # Caret terminating any other token (e.g., &stitch=flat;fill=black^)
+        (?<=[\w;=.\-#])\^(?=\s*$|[\s+&])
+    )
+    """)
 
 
 async def unescape_html(text: str) -> str:
@@ -73,9 +127,9 @@ async def pixiv_parse(
     text: str,
     count: int,
     max_amount: int = 10,
-) -> tuple[int, tuple[int]]:
+) -> tuple[int, tuple[int, ...]]:
     if not (text and count):
-        return (PixivParse.NO_INFO, [])
+        return (PixivParse.NO_INFO, ())
     ids = []
     for number in re.finditer(pixiv_number, text):
         n1 = int(number.group("n1"))
@@ -88,6 +142,8 @@ async def pixiv_parse(
         else:
             ids += range(n1, n2 + 1)
     ids = list(dict.fromkeys(ids))  # can't use set() because of order
+    if not ids:  # text had no numbers at all
+        return (PixivParse.NO_INFO, ())
     # check if all numbers within range
     if max(ids) > count or min(ids) < 1:
         log.error("Pixiv Parse: Not within range: [1-%d].", count)
@@ -104,6 +160,19 @@ async def pixiv_parse(
     return (PixivParse.SUCCESS, tuple(ids))
 
 
+def _to_float(val: str, *, key: str) -> Optional[float]:
+    """Converts a stitch value to a finite, non-negative float (else None)."""
+    try:
+        number = float(val)
+    except ValueError:
+        log.debug("Stitch setting ignored: not a number.", key=key, value=val)
+        return None
+    if not math.isfinite(number) or number < 0:
+        log.debug("Stitch setting ignored: out of range.", key=key, value=val)
+        return None
+    return number
+
+
 def _apply_stitch_setting(stitch_data: dict, key: str, val_str: str) -> None:
     """Applies an individual key-value stitch setting to the configuration dictionary."""
     match key:
@@ -112,57 +181,63 @@ def _apply_stitch_setting(stitch_data: dict, key: str, val_str: str) -> None:
                 stitch_data.update(preset)
         case "fill" | "color":
             v_clean = val_str.lower()
-            stitch_data["fill"] = None if v_clean in ("none", "transparent") else val_str
-        case "gap":
-            try:
-                stitch_data["gap"] = float(val_str)
-            except ValueError:
-                pass
-        case "radius" | "border" | "border_radius":
-            try:
-                stitch_data["radius"] = float(val_str)
-            except ValueError:
-                pass
+            stitch_data["fill"] = (
+                None if v_clean in ("", "none", "transparent") else val_str
+            )
+        case "gap" | "radius" | "border" | "border_radius":
+            target = "gap" if key == "gap" else "radius"
+            if (number := _to_float(val_str, key=key)) is not None:
+                stitch_data[target] = number
         case "margin" | "margins" | "frame_margins":
-            try:
-                nums = [float(p) for p in re.split(r"[,\s]+", val_str) if p]
-                match len(nums):
-                    case 1:
-                        stitch_data["margin"] = nums[0]
-                    case 2 | 4:
-                        stitch_data["margin"] = nums
-            except ValueError:
-                pass
+            parts = [p for p in re.split(r"[,\s]+", val_str) if p]
+            nums = [_to_float(p, key=key) for p in parts]
+            if None in nums:
+                return
+            match len(nums):
+                case 1:
+                    stitch_data["margin"] = nums[0]
+                case 2 | 4:
+                    stitch_data["margin"] = nums
 
 
-def _parse_stitch_action(val: Optional[str]) -> dict:
-    """Parses the full stitch action value string into a configuration dictionary."""
+def _parse_stitch_action(val: Optional[str]) -> tuple[dict, bool]:
+    """Parses the full stitch action value string.
+
+    Returns:
+        (stitch configuration, whether a bare 'top' token was present)
+    """
     stitch_data = STITCH_PRESETS["default"].copy()
+    top = False
     if not val:
-        return stitch_data
+        return stitch_data, top
 
     if "=" in val or ";" in val:
         for part in val.split(";"):
             if not (part := part.strip()):
                 continue
             # Split by '=' for key-value pairs,
-            # or treat as a bare preset name if no '=' is present
+            # or treat as a bare token (preset / top flag) if no '=' is present
             match part.split("=", 1):
                 case [bare_part]:
-                    if preset := STITCH_PRESETS.get(bare_part.lower()):
+                    bare = bare_part.lower()
+                    if bare in TOP_TOKENS:
+                        top = True
+                    elif preset := STITCH_PRESETS.get(bare):
                         stitch_data.update(preset)
                 case [k, v]:
                     _apply_stitch_setting(stitch_data, k.strip().lower(), v.strip())
     else:
-        match val.lower():
-            case preset_name if preset_name in STITCH_PRESETS:
-                stitch_data.update(STITCH_PRESETS[preset_name])
-            case "none" | "transparent":
-                stitch_data["fill"] = None
-            case _:
-                stitch_data["fill"] = val
+        lowered = val.lower()
+        if lowered in TOP_TOKENS:
+            top = True
+        elif lowered in STITCH_PRESETS:
+            stitch_data.update(STITCH_PRESETS[lowered])
+        elif lowered in ("none", "transparent"):
+            stitch_data["fill"] = None
+        else:
+            stitch_data["fill"] = val
 
-    return stitch_data
+    return stitch_data, top
 
 
 def parse_link_modifiers(
@@ -176,7 +251,11 @@ def parse_link_modifiers(
     Returns: (illust, info, action)
     """
     if not tail:
+        log.debug("Link modifiers parse: empty tail provided.")
         return None, None, {}
+
+    parse_log = log.bind(tail=tail, service=service)
+    parse_log.debug("Parsing link modifiers...")
 
     info = None
     illust = None
@@ -184,37 +263,41 @@ def parse_link_modifiers(
 
     # 1. Caption !! ... !! at the end
     # (stripped first so it never conflicts with flags)
-    caption_match = re.search(r"!!\s+(?P<caption>.+?)\s+!!\s*$", tail)
-    if caption_match:
+    if caption_match := CAPTION_RE.search(tail):
         info = caption_match.group("caption")
         tail = tail[: caption_match.start()]
+        parse_log.debug("Extracted caption from tail.", info=info)
 
     # 2. First selection block (+ 1-4, etc.)
-    illust_match = re.search(
-        r"\+\s*(?P<illust>\d{1,3}(?:-\d{1,3})?(?:[\s\.,]+\d{1,3}(?:-\d{1,3})?)*)",
-        tail,
-    )
-    if illust_match:
+    if illust_match := SELECTION_RE.search(tail):
         illust = illust_match.group("illust").strip()
+        parse_log.debug("Extracted illustration selection.", illust=illust)
 
-    # 3. Actions in query parameters (&stitch=fill:black;gap:8, &^, etc.)
-    for param in re.finditer(
-        r"[?&](?P<key>[a-zA-Z0-9_\-\^]+)(?:=(?P<val>[^\s&+!#;]+|[#][0-9a-fA-F]{6}))?",
-        tail,
-    ):
+    # 3. Actions in query parameters
+    for param in QUERY_PARAM_RE.finditer(tail):
         key = param.group("key").lower()
         val = param.group("val")
 
-        if key in ("top", "above", "caption_top", "^"):
+        if key in TOP_TOKENS:
             action["top"] = True
+            parse_log.debug("Detected top action flag via query parameter.", key=key)
         elif service == "twitter" and key == "stitch" and "stitch" not in action:
-            action["stitch"] = _parse_stitch_action(val)
-            if val and ("top" in val.lower() or "^" in val):
+            action["stitch"], stitch_top = _parse_stitch_action(val)
+            if stitch_top:
                 action["top"] = True
+            parse_log.debug("Parsed stitch action.", stitch=action["stitch"])
 
-    # 3+ Catch standalone '^' if used outside query syntax (e.g. `^ + 1-2`)
-    if re.search(r"(?:^|\s)\^(?:\s|$)", tail):
+    # 3+ Check for structured caret modifier token
+    if CARET_TOP_RE.search(tail):
         action["top"] = True
+        parse_log.debug("Detected top action flag via structured caret modifier token.")
+
+    parse_log.debug(
+        "Successfully parsed link modifiers.",
+        illust=illust,
+        info=info,
+        action=action,
+    )
 
     return illust, info, action
 
@@ -231,7 +314,7 @@ async def formatter(query: str) -> AsyncGenerator[Link, None]:
     if not query:
         return
     for re_key, re_type in LINKS.items():
-        for link in re.finditer(re_type["re"], query):
+        for link in re_type["re"].finditer(query):
             # dictionary keys = format args
             matched = link.groupdict()
             if re_type["link"]:
@@ -395,8 +478,9 @@ def extract_file_name(link_type: str, link: str) -> str:
     """
     if link_type not in LINKS or "file" not in LINKS[link_type]:
         return link.split("/")[-1].split("?")[0]
-    if matched := re.search(LINKS[link_type]["file"], link):
+    if matched := LINKS[link_type]["file"].search(link):
         return matched["id"]
+    return ""
 
 
 def extract_file_ext_from_bytes(file: bytes):

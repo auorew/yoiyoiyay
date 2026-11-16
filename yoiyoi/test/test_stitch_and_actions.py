@@ -415,3 +415,99 @@ async def test_parse_link_modifiers_caret_top_flag():
     _, _, action3 = parse_link_modifiers(tail3, service="twitter")
     assert action3.get("top") is True
     assert action3["stitch"]["radius"] == 0.0
+
+
+@pytest.mark.anyio
+async def test_formatter_twitter_caret_attached_selection():
+    url = "https://twitter.com/kanashino_/status/2121925126870716798^+1-3"
+    links = [_link async for _link in formatter(url)]
+    assert len(links) == 1
+    link = links[0]
+    assert link.type == LinkType.TWITTER
+    assert link.id == "2121925126870716798"
+    assert link.illust == "1-3"
+    assert link.action.get("top") is True
+
+
+@pytest.mark.anyio
+async def test_formatter_twitter_trailing_caret_selection():
+    url = "https://twitter.com/kanashino_/status/2121925126870716798+1-3^"
+    links = [_link async for _link in formatter(url)]
+    assert len(links) == 1
+    link = links[0]
+    assert link.type == LinkType.TWITTER
+    assert link.id == "2121925126870716798"
+    assert link.illust == "1-3"
+    assert link.action.get("top") is True
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "url, expected_illust, expected_top, expected_fill, expected_gap, expected_info",
+    [
+        (
+            "https://twitter.com/kanashino_/status/2121925126870716798"
+            "+1-3^&stitch=flat;gap=8;radius=12;fill=black",
+            "1-3",
+            True,
+            "black",
+            8.0,
+            None,
+        ),
+        (
+            "https://twitter.com/kanashino_/status/2121925126870716798"
+            "^&stitch=flat;gap=8;radius=12;fill=black+1-3",
+            "1-3",
+            True,
+            "black",
+            8.0,
+            None,
+        ),
+        (
+            "https://twitter.com/kanashino_/status/2121925126870716798"
+            "+1-3&stitch=flat;gap=8;radius=12;fill=black^!! what !!",
+            "1-3",
+            True,
+            "black",
+            8.0,
+            "what",
+        ),
+        (
+            "https://twitter.com/kanashino_/status/2121925126870716798^+1-3",
+            "1-3",
+            True,
+            None,
+            None,
+            None,
+        ),
+        (
+            "https://twitter.com/kanashino_/status/2121925126870716798"
+            "+1-3&stitch=top;fill=white",
+            "1-3",
+            True,
+            "white",
+            None,
+            None,
+        ),
+    ],
+)
+async def test_formatter_twitter_overloaded_variants(
+    url, expected_illust, expected_top, expected_fill, expected_gap, expected_info
+):
+    links = [_link async for _link in formatter(url)]
+    assert len(links) == 1
+    link = links[0]
+    assert link.type == LinkType.TWITTER
+    assert link.id == "2121925126870716798"
+    assert link.illust == expected_illust
+    assert link.info == expected_info
+
+    if expected_top:
+        assert link.action.get("top") is True
+    else:
+        assert link.action.get("top") is None
+
+    if expected_fill is not None:
+        assert link.action["stitch"]["fill"] == expected_fill
+    if expected_gap is not None:
+        assert link.action["stitch"]["gap"] == expected_gap

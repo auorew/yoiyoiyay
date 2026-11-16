@@ -1,5 +1,7 @@
 """Services constants"""
 
+import re
+
 from enum import Enum, auto
 
 # twitter carousel reference style parameters
@@ -33,11 +35,8 @@ class LinkType(Enum):
             str: link type name
         """
         try:
-            if isinstance(value, cls):
-                value = value.value
-            member = list(cls)[value - 1]
-            return member.name.replace("_", " ").lower()
-        except IndexError:
+            return cls(value).name.replace("_", " ").lower()
+        except ValueError:
             return "unknown"
 
     @classmethod
@@ -59,32 +58,59 @@ class TikTokMediaKind(Enum):
     SLIDESHOW = auto()
 
 
+_NEXT_URL = (
+    r"https?:\/\/"
+    r"|\b(?:twitter|x|pixiv|tiktok|instagram|instagr|youtube|discordapp|xhslink)"
+    r"\.(?:com|net|am|cn)\/"
+)
+# one query/value character: not whitespace, '!', '+', '^', and not a URL start
+_TOK = rf"(?:(?!{_NEXT_URL})[^\s!+\^])"
+# a number token for selections: 1-3 digits (never eats part of a longer id)
+_NUM = r"\d{1,3}(?!\d)(?:-\d{1,3}(?!\d))?"
+
+# remaining URL path (after an id) that must be consumed so the tail can follow it
+_PATH_REST = rf"(?:\/(?:(?!{_NEXT_URL})[^\s?!+\^])*)?"
+
+_TAIL_QUERY = rf"[?&]{_TOK}+"
+# non-selection services historically allowed one '+' inside a query value
+_TAIL_QUERY_PLUS = rf"[?&]{_TOK}+(?:\+{_TOK}*)?"
+# caret flag: a lone '^' or query-style '&^' / '?^' (not emoticons like ^_^)
+_TAIL_CARET = r"(?:[ \t]*|[?&])\^(?![^\s+&?!])"
+# selection: + 1-3 / +1,3 / +1 3 (horizontal whitespace only)
+_TAIL_SELECTION = rf"[ \t]*\+[ \t]*{_NUM}(?:[ \t.,]+{_NUM})*"
+# caption: !! text !!  (single line, bounded, possessive to avoid backtracking)
+_TAIL_CAPTION = r"[ \t]*!![ \t]++\S.{0,1000}?[ \t]++!!"
+
+
+def _link_re(head: str, *, selection: bool = False) -> str:
+    """Builds a link regex: link head + strict, URL-safe tail group."""
+    parts = [_TAIL_QUERY if selection else _TAIL_QUERY_PLUS, _TAIL_CARET]
+    if selection:
+        parts.append(_TAIL_SELECTION)
+    parts.append(_TAIL_CAPTION)
+    tail = "(?P<tail>(?:" + "|".join(parts) + ")*)"
+    return head + tail
+
+
 # link dictionary
 LINKS = {
     "discord": {
-        "re": r"""(?x)
+        "re": _link_re(
+            r"""(?x)
         (?:
             (?:discordapp\.(?:(?:com)|(?:net)))\/
             (?:(?:attachments)|(?:external))\/
             (?P<id>[\w\-]+)
         )
-        (?P<tail>
-            (?:
-                [?&][^\s!+]+\+?[^\s!+]*
-                |
-                \s*\^\s*
-                |
-                \s*!!\s+[^!]+\s+!!
-                |
-                \s+
-            )*
-        )
-        """,
+        """ + _PATH_REST,
+            selection=False,
+        ),
         "link": "",
         "type": LinkType.DISCORD,
     },
     "twitter": {
-        "re": r"""(?x)
+        "re": _link_re(
+            r"""(?x)
             (?:
                 (?:twitter|x)\.
                 (?:com)\/
@@ -92,20 +118,9 @@ LINKS = {
                 (?:status(?:es)?\/)
             )
             (?P<id>\d+)
-            (?P<tail>
-                (?:
-                    [?&][^\s!+]+\+?[^\s!+]*
-                    |
-                    \s*\^\s*
-                    |
-                    \s*\+\s*[0-9\s\.,\-+]+
-                    |
-                    \s*!!\s+[^!]+\s+!!
-                    |
-                    \s+
-                )*
-            )
         """,
+            selection=True,
+        ),
         "file": r"""(?x)
             (?:
                 (?:media\/)
@@ -143,7 +158,8 @@ LINKS = {
         "type": LinkType.TWITTER,
     },
     "pixiv": {
-        "re": r"""(?x)
+        "re": _link_re(
+            r"""(?x)
             (?:
                 (?:pixiv\.net)\/
                 (?:member_illust\.php\?(?:\w+\=\w+\&)*illust_id\=)
@@ -151,20 +167,9 @@ LINKS = {
                 (?:(?:\w{2}\/)?artworks\/)
             )
             (?P<id>\d+)
-            (?P<tail>
-                (?:
-                    [?&][^\s!+]+\+?[^\s!+]*
-                    |
-                    \s*\^\s*
-                    |
-                    \s*\+\s*[0-9\s\.,\-+]+
-                    |
-                    \s*!!\s+[^!]+\s+!!
-                    |
-                    \s+
-                )*
-            )
         """,
+            selection=True,
+        ),
         "file": r"""(?x)
             (?:\/(?P<id>\d+(?:_p(?P<illust>\d+))?)\.)
             (?P<format>\w+)
@@ -173,27 +178,19 @@ LINKS = {
         "type": LinkType.PIXIV,
     },
     "tiktok": {
-        "re": r"""(?x)
+        "re": _link_re(
+            r"""(?x)
             (?:
                 (?:(?:www|m)\.)?
-                (?:tiktok.com\/)
+                (?:tiktok\.com\/)
                 (?:v|embed|trending|\@[\w\.]+\/(?:video|photo))
                 (?:\/)?
                 (?:\?shareId=)?
             )
             (?P<id>\d+)
-            (?P<tail>
-                (?:
-                    [?&][^\s!+]+\+?[^\s!+]*
-                    |
-                    \s*\^\s*
-                    |
-                    \s*!!\s+[^!]+\s+!!
-                    |
-                    \s+
-                )*
-            )
         """,
+            selection=False,
+        ),
         "file": r"""(?x)
         (?:
             (?:.+)\/
@@ -209,47 +206,31 @@ LINKS = {
         "type": LinkType.TIKTOK,
     },
     "vtiktok": {
-        "re": r"""(?x)
+        "re": _link_re(
+            r"""(?x)
             (?:
                 (?P<pre>\b\w{2,3}\b)\.
-                (?:tiktok.com\/)
+                (?:tiktok\.com\/)
                 (?:t\/)?
             )
             (?P<id>[\w]{9})
-            (?P<tail>
-                (?:
-                    [?&][^\s!+]+\+?[^\s!+]*
-                    |
-                    \s*\^\s*
-                    |
-                    \s*!!\s+[^!]+\s+!!
-                    |
-                    \s+
-                )*
-            )
         """,
+            selection=False,
+        ),
         "link": "https://www.tiktok.com/t/{id}",
         "type": LinkType.TIKTOK,
     },
     "instagram": {
-        "re": r"""(?x)
+        "re": _link_re(
+            r"""(?x)
         (?:
             (?:instagram\.com|instagr\.(?:am|com))\/
             (?:p|reel|tv)\/
         )
-        (?P<id>[\w\-]{39}|[\w\-]{11})
-        (?P<tail>
-            (?:
-                [?&][^\s!+]+\+?[^\s!+]*
-                |
-                \s*\^\s*
-                |
-                \s*!!\s+[^!]+\s+!!
-                |
-                \s+
-            )*
-        )
+        (?P<id>[\w\-]{39}|[\w\-]{11})(?![\w\-])
         """,
+            selection=False,
+        ),
         "file": r"""(?x)
         (?:
             (?:.+)\/
@@ -262,48 +243,40 @@ LINKS = {
         "type": LinkType.INSTAGRAM,
     },
     "youtube_short": {
-        "re": r"""(?x)
+        "re": _link_re(
+            r"""(?x)
         (?:
             (?:youtube\.com)\/
             (?:shorts\/|watch\?v=)
         )
         (?P<id>[\w\-]{11})
-        (?P<tail>
-            (?:
-                [?&][^\s!+]+\+?[^\s!+]*
-                |
-                \s*\^\s*
-                |
-                \s*!!\s+[^!]+\s+!!
-                |
-                \s+
-            )*
-        )
         """,
+            selection=False,
+        ),
         "thumb": "https://i.ytimg.com/vi/{0}/maxres2.jpg",
         "link": "https://www.youtube.com/shorts/{id}",
         "type": LinkType.YOUTUBE_SHORT,
     },
     "xiaohongshu": {
-        "re": r"""(?x)
+        "re": _link_re(
+            r"""(?x)
         (?:
             (?:http(?:s)?\:\/\/)?
             (?:xhslink\.(?:com|cn)\/o\/)
             (?P<id>\w+)
         )
-        (?P<tail>
-            (?:
-                [?&][^\s!+]+\+?[^\s!+]*
-                |
-                \s*\^\s*
-                |
-                \s*!!\s+[^!]+\s+!!
-                |
-                \s+
-            )*
-        )
         """,
+            selection=False,
+        ),
         "link": "https://xhslink.cn/o/{id}",
         "type": LinkType.XIAOHONGSHU,
     },
 }
+
+
+# compile every regex once, at import time (invalid patterns fail fast here)
+_REGEX_KEYS = ("re", "file", "media", "info")
+for _entry in LINKS.values():
+    for _key in _REGEX_KEYS:
+        if _key in _entry:
+            _entry[_key] = re.compile(_entry[_key])
